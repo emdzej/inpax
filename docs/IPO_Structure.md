@@ -315,10 +315,13 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 
 ### Unmapped Functions
 
-Functions requiring MENU/SCREEN/STATE contexts could not be mapped via simple compilation:
-- `setmenu`, `setscreen`, `setitem`, `setitemrepeat`
-- `setstate`, `setstatemachine`, `callstatemachine`
+Functions still requiring research:
+- `setitem`, `setitemrepeat` — dynamic menu item handling
+- `callstatemachine` — nested state machine calls
 - Various conversion and DTM functions
+
+**Recently mapped (see Section 8):**
+- `setmenu` (0x01), `setscreen` (0x04), `setstatemachine` (0x05), `setstate` (0x06)
 
 See `docs/research/system-function-ids-complete.md` for full details.
 
