@@ -1,5 +1,7 @@
-export { parseGlobalData, parseIpo } from "./parser/index.js";
+export { parseConstantData, parseGlobalData, parseIpo } from "./parser/index.js";
 export type {
+  Constant,
+  ConstantData,
   GlobalData,
   IpoFile,
   IpoHeader,

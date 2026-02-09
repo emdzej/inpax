@@ -10,6 +10,16 @@ export type GlobalData = {
   readonly variables: readonly VariableType[];
 };
 
+export type Constant =
+  | { readonly type: "string"; readonly value: string }
+  | { readonly type: "int"; readonly value: number }
+  | { readonly type: "real"; readonly value: number }
+  | { readonly type: "bool"; readonly value: boolean };
+
+export type ConstantData = {
+  readonly constants: readonly Constant[];
+};
+
 export type SectionType =
   | "global"
   | "constant"
@@ -29,4 +39,5 @@ export type IpoFile = {
   readonly header: IpoHeader;
   readonly sections: Map<string, Section>;
   readonly globalData: GlobalData;
+  readonly constantData: ConstantData;
 };
