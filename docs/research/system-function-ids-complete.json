@@ -1,0 +1,762 @@
+[
+  {
+    "id": 0,
+    "name": "setmenutitle",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "title"
+      }
+    ],
+    "hex": "0x00",
+    "dec": 0
+  },
+  {
+    "id": 3,
+    "name": "settitle",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "title"
+      }
+    ],
+    "hex": "0x03",
+    "dec": 3
+  },
+  {
+    "id": 8,
+    "name": "returnstatemachine",
+    "params": [],
+    "hex": "0x08",
+    "dec": 8
+  },
+  {
+    "id": 9,
+    "name": "settimer",
+    "params": [
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "timernum"
+      },
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "timeval"
+      }
+    ],
+    "hex": "0x09",
+    "dec": 9
+  },
+  {
+    "id": 12,
+    "name": "exit",
+    "params": [],
+    "hex": "0x0C",
+    "dec": 12
+  },
+  {
+    "id": 13,
+    "name": "exitwindows",
+    "params": [],
+    "hex": "0x0D",
+    "dec": 13
+  },
+  {
+    "id": 14,
+    "name": "scriptselect",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "ScriptSelectIniFile"
+      }
+    ],
+    "hex": "0x0E",
+    "dec": 14
+  },
+  {
+    "id": 15,
+    "name": "scriptchange",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "NewScriptFile"
+      }
+    ],
+    "hex": "0x0F",
+    "dec": 15
+  },
+  {
+    "id": 17,
+    "name": "deselect",
+    "params": [],
+    "hex": "0x11",
+    "dec": 17
+  },
+  {
+    "id": 18,
+    "name": "control",
+    "params": [],
+    "hex": "0x12",
+    "dec": 18
+  },
+  {
+    "id": 19,
+    "name": "start",
+    "params": [],
+    "hex": "0x13",
+    "dec": 19
+  },
+  {
+    "id": 20,
+    "name": "stop",
+    "params": [],
+    "hex": "0x14",
+    "dec": 20
+  },
+  {
+    "id": 23,
+    "name": "printscreen",
+    "params": [],
+    "hex": "0x17",
+    "dec": 23
+  },
+  {
+    "id": 27,
+    "name": "delay",
+    "params": [
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "Time"
+      }
+    ],
+    "hex": "0x1B",
+    "dec": 27
+  },
+  {
+    "id": 28,
+    "name": "getdate",
+    "params": [
+      {
+        "direction": "out",
+        "type": "string",
+        "name": "date"
+      }
+    ],
+    "hex": "0x1C",
+    "dec": 28
+  },
+  {
+    "id": 29,
+    "name": "gettime",
+    "params": [
+      {
+        "direction": "out",
+        "type": "string",
+        "name": "time"
+      }
+    ],
+    "hex": "0x1D",
+    "dec": 29
+  },
+  {
+    "id": 47,
+    "name": "PEMTrennLinie",
+    "params": [
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "Result"
+      }
+    ],
+    "hex": "0x2F",
+    "dec": 47
+  },
+  {
+    "id": 48,
+    "name": "PEMEndLinie",
+    "params": [
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "Result"
+      }
+    ],
+    "hex": "0x30",
+    "dec": 48
+  },
+  {
+    "id": 49,
+    "name": "PEMLoescheTabZeilenPuffer",
+    "params": [
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "Result"
+      }
+    ],
+    "hex": "0x31",
+    "dec": 49
+  },
+  {
+    "id": 50,
+    "name": "PEMUebertrageTabZeilenPuffer",
+    "params": [
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "Result"
+      }
+    ],
+    "hex": "0x32",
+    "dec": 50
+  },
+  {
+    "id": 51,
+    "name": "PEMProtokollAusgabe",
+    "params": [
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "Result"
+      }
+    ],
+    "hex": "0x33",
+    "dec": 51
+  },
+  {
+    "id": 55,
+    "name": "PEMPrinter_ff",
+    "params": [
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "Result"
+      }
+    ],
+    "hex": "0x37",
+    "dec": 55
+  },
+  {
+    "id": 56,
+    "name": "PEMFree_mem",
+    "params": [
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "Result"
+      }
+    ],
+    "hex": "0x38",
+    "dec": 56
+  },
+  {
+    "id": 62,
+    "name": "getinputstate",
+    "params": [
+      {
+        "direction": "out",
+        "type": "int",
+        "name": "InputState"
+      }
+    ],
+    "hex": "0x3E",
+    "dec": 62
+  },
+  {
+    "id": 72,
+    "name": "text",
+    "params": [
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "row"
+      },
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "col"
+      },
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "text"
+      }
+    ],
+    "hex": "0x48",
+    "dec": 72
+  },
+  {
+    "id": 73,
+    "name": "textout",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "text"
+      },
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "row"
+      },
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "col"
+      }
+    ],
+    "hex": "0x49",
+    "dec": 73
+  },
+  {
+    "id": 81,
+    "name": "blankscreen",
+    "params": [],
+    "hex": "0x51",
+    "dec": 81
+  },
+  {
+    "id": 82,
+    "name": "messagebox",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "Title"
+      },
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "Text"
+      }
+    ],
+    "hex": "0x52",
+    "dec": 82
+  },
+  {
+    "id": 83,
+    "name": "infobox",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "Title"
+      },
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "Text"
+      }
+    ],
+    "hex": "0x53",
+    "dec": 83
+  },
+  {
+    "id": 85,
+    "name": "userboxclose",
+    "params": [
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "BoxNum"
+      }
+    ],
+    "hex": "0x55",
+    "dec": 85
+  },
+  {
+    "id": 87,
+    "name": "userboxclear",
+    "params": [
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "BoxNum"
+      }
+    ],
+    "hex": "0x57",
+    "dec": 87
+  },
+  {
+    "id": 89,
+    "name": "winhelp",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "helpfile"
+      }
+    ],
+    "hex": "0x59",
+    "dec": 89
+  },
+  {
+    "id": 90,
+    "name": "winhelpkey",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "helpfile"
+      },
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "key"
+      }
+    ],
+    "hex": "0x5A",
+    "dec": 90
+  },
+  {
+    "id": 91,
+    "name": "callwin",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "cmdline"
+      }
+    ],
+    "hex": "0x5B",
+    "dec": 91
+  },
+  {
+    "id": 92,
+    "name": "viewopen",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "FileNameStr"
+      },
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "TitleStr"
+      }
+    ],
+    "hex": "0x5C",
+    "dec": 92
+  },
+  {
+    "id": 93,
+    "name": "viewclose",
+    "params": [],
+    "hex": "0x5D",
+    "dec": 93
+  },
+  {
+    "id": 96,
+    "name": "INPAapiInit",
+    "params": [],
+    "hex": "0x60",
+    "dec": 96
+  },
+  {
+    "id": 97,
+    "name": "INPAapiEnd",
+    "params": [],
+    "hex": "0x61",
+    "dec": 97
+  },
+  {
+    "id": 101,
+    "name": "INPAapiResultSets",
+    "params": [
+      {
+        "direction": "out",
+        "type": "int",
+        "name": "sets"
+      }
+    ],
+    "hex": "0x65",
+    "dec": 101
+  },
+  {
+    "id": 104,
+    "name": "INPAapiResultBinary",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "ApiResult"
+      },
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "ApiSet"
+      }
+    ],
+    "hex": "0x68",
+    "dec": 104
+  },
+  {
+    "id": 105,
+    "name": "INPAapiCheckJobStatus",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "RefStr"
+      }
+    ],
+    "hex": "0x69",
+    "dec": 105
+  },
+  {
+    "id": 106,
+    "name": "INPAapiFsLesen2",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "ecu"
+      },
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "FileName"
+      }
+    ],
+    "hex": "0x6A",
+    "dec": 106
+  },
+  {
+    "id": 107,
+    "name": "INPAapiFsLesen",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "ecu"
+      },
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "FileName"
+      }
+    ],
+    "hex": "0x6B",
+    "dec": 107
+  },
+  {
+    "id": 109,
+    "name": "INP1apiInit",
+    "params": [
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "rc"
+      }
+    ],
+    "hex": "0x6D",
+    "dec": 109
+  },
+  {
+    "id": 110,
+    "name": "INP1apiEnd",
+    "params": [],
+    "hex": "0x6E",
+    "dec": 110
+  },
+  {
+    "id": 112,
+    "name": "INP1apiState",
+    "params": [
+      {
+        "direction": "out",
+        "type": "int",
+        "name": "ApiState"
+      }
+    ],
+    "hex": "0x70",
+    "dec": 112
+  },
+  {
+    "id": 118,
+    "name": "INP1apiErrorCode",
+    "params": [
+      {
+        "direction": "out",
+        "type": "int",
+        "name": "ErrorCode"
+      }
+    ],
+    "hex": "0x76",
+    "dec": 118
+  },
+  {
+    "id": 119,
+    "name": "INP1apiErrorText",
+    "params": [
+      {
+        "direction": "out",
+        "type": "string",
+        "name": "ErrorText"
+      }
+    ],
+    "hex": "0x77",
+    "dec": 119
+  },
+  {
+    "id": 120,
+    "name": "GetBinaryDataString",
+    "params": [
+      {
+        "direction": "out",
+        "type": "string",
+        "name": "DataString"
+      },
+      {
+        "direction": "out",
+        "type": "int",
+        "name": "DataStringLen"
+      }
+    ],
+    "hex": "0x78",
+    "dec": 120
+  },
+  {
+    "id": 121,
+    "name": "fileopen",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "FileName"
+      },
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "OpenMode"
+      }
+    ],
+    "hex": "0x79",
+    "dec": 121
+  },
+  {
+    "id": 122,
+    "name": "fileclose",
+    "params": [],
+    "hex": "0x7A",
+    "dec": 122
+  },
+  {
+    "id": 123,
+    "name": "filewrite",
+    "params": [
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "str"
+      }
+    ],
+    "hex": "0x7B",
+    "dec": 123
+  },
+  {
+    "id": 124,
+    "name": "fileread",
+    "params": [
+      {
+        "direction": "out",
+        "type": "string",
+        "name": "str"
+      },
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "EOF"
+      }
+    ],
+    "hex": "0x7C",
+    "dec": 124
+  },
+  {
+    "id": 140,
+    "name": "StrArrayCreate",
+    "params": [
+      {
+        "direction": "out",
+        "type": "bool",
+        "name": "rc"
+      },
+      {
+        "direction": "out",
+        "type": "int",
+        "name": "hStrArray"
+      }
+    ],
+    "hex": "0x8C",
+    "dec": 140
+  },
+  {
+    "id": 141,
+    "name": "StrArrayDestroy",
+    "params": [
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "hStrArray"
+      }
+    ],
+    "hex": "0x8D",
+    "dec": 141
+  },
+  {
+    "id": 142,
+    "name": "StrArrayWrite",
+    "params": [
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "hStrArray"
+      },
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "index"
+      },
+      {
+        "direction": "in",
+        "type": "string",
+        "name": "str"
+      }
+    ],
+    "hex": "0x8E",
+    "dec": 142
+  },
+  {
+    "id": 145,
+    "name": "StrArrayDelete",
+    "params": [
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "hStrArray"
+      }
+    ],
+    "hex": "0x91",
+    "dec": 145
+  },
+  {
+    "id": 155,
+    "name": "SetStructureMode",
+    "params": [
+      {
+        "direction": "in",
+        "type": "int",
+        "name": "ReadWrite"
+      }
+    ],
+    "hex": "0x9B",
+    "dec": 155
+  }
+]
