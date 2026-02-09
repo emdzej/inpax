@@ -2,7 +2,8 @@ export {
   decodeInstructions,
   parseConstantData,
   parseGlobalData,
-  parseIpo
+  parseIpo,
+  parseImport32
 } from "./parser/index.js";
 export {
   getSystemFunction,
@@ -14,9 +15,13 @@ export type {
   ConstantData,
   GlobalData,
   Instruction,
+  Import32Call,
   IpoFile,
   IpoHeader,
   Opcode,
+  Param,
+  ParamDirection,
+  ParamType,
   Section,
   SectionType,
   VariableType

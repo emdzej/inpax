@@ -4,6 +4,8 @@ import { parseGlobalData } from "./global-data.js";
 import { parseHeader } from "./header.js";
 import { parseSections } from "./sections.js";
 import { decodeInstructions } from "./opcode-decoder.js";
+import { parseImport32 } from "./import32.js";
+import { parseImport32 } from "./import32.js";
 
 export type {
   Constant,
@@ -17,9 +19,11 @@ export type {
   SectionType,
   VariableType
 } from "./types.js";
+export type { Import32Call, Param, ParamDirection, ParamType } from "./import32.js";
 export { parseConstantData } from "./constant-data.js";
 export { parseGlobalData } from "./global-data.js";
 export { decodeInstructions } from "./opcode-decoder.js";
+export { parseImport32 } from "./import32.js";
 
 export const parseIpo = (buffer: Buffer): IpoFile => {
   const header = parseHeader(buffer);
