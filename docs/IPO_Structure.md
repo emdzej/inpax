@@ -278,7 +278,7 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x1F` | `stringtoreal` | `(in: string value, out: real result)` |
 | `0x20` | `inttostring` | `(in: int value, out: string result)` |
 | `0x21` | `stringtoint` | `(in: string value, out: int result)` |
-| `0x22` | `hexconvert` | `(in: string hexstr, out: int value)` |
+| `0x22` | `hexconvert` | `(in: string HexString, out: int high, out: int mid, out: int low, out: int seg)` |
 | `0x23` | `strcat` | `(out: string dest, in: string left, in: string right)` |
 | `0x24` | `strlen` | `(out: int length, in: string str)` |
 | `0x25` | `midstr` | `(out: string result, in: string str, in: int start, in: int length)` |
@@ -307,27 +307,27 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x3D` | `PEMWrite_druckfeld` | `(out: bool Result)` |
 | `0x3E` | `getinputstate` | `(out: int InputState)` |
 | `0x3F` | `inputtext` | `(out: string text, in: string Title, in: string Text)` |
-| `0x40` | `inputnum` | `(out: int value, in: string Title, in: string Text, in: int Min, in: int Max)` |
+| `0x40` | `inputnum` | `(out: real val, in: string BoxTitle, in: string BoxText, in: real minval, in: real maxval)` |
 | `0x41` | `inputhex` | `(out: string hex, in: string Title, in: string Text, in: string Min, in: string Max)` |
 | `0x42` | `inputdigital` | `(out: int value, in: string Title, in: string Text, in: string OffText, in: string OnText)` |
-| `0x43` | `input2text` | `(out: string text, in: string Title, in: string Text, in: string Default)` |
-| `0x44` | `input2hexnum` | `(out: string hex, in: string Title, in: string Text, in: string Min, in: string Max, in: string Default)` |
-| `0x45` | `input2hex` | `(out: string hex, in: string Title, in: string Text, in: int MinLen, in: int MaxLen, in: string Default)` |
+| `0x43` | `input2text` | `(out: string str1, out: string str2, in: string BoxTitle, in: string BoxText, in: string BoxStr1, in: string BoxStr2)` |
+| `0x44` | `input2hexnum` | `(out: string hexstr, out: int num, in: string BoxTitle, in: string BoxText, in: string BoxStr1, in: string BoxStr2, in: string MinHexStr, in: string MaxHexStr, in: int minnum, in: int maxnum)` |
+| `0x45` | `input2hex` | `(out: string hexstr1, out: string hexstr2, in: string BoxTitle, in: string BoxText, in: string BoxStr1, in: string BoxStr2, in: string MinHexStr1, in: string MaxHexStr1, in: string MinHexStr2, in: string MaxHexStr2)` |
 | `0x46` | `inputint` | `(out: int value, in: string Title, in: string Text, in: int Min, in: int Max)` |
-| `0x47` | `input2int` | `(out: int value, in: string Title, in: string Text, in: int Min, in: int Max, in: int Default)` |
+| `0x47` | `input2int` | `(out: int val1, out: int val2, in: string BoxTitle, in: string BoxText, in: string BoxStr1, in: string BoxStr2, in: int min1, in: int max1, in: int min2, in: int max2)` |
 | `0x48` | `text` | `(in: int row, in: int col, in: string text)` |
 | `0x49` | `textout` | `(in: string text, in: int row, in: int col)` |
 | `0x4A` | `ftextout` | `(in: string text, in: int row, in: int col, in: int fgcolor, in: int bgcolor, in: int fontsize, in: int fontattr)` |
-| `0x4B` | `digitalout` | `(in: int row, in: int col, in: bool value, in: string offtext, in: string ontext)` |
-| `0x4C` | `analogout` | `(in: int row, in: int col, in: real value, in: real min, in: real max, in: int digits, in: string unit)` |
+| `0x4B` | `digitalout` | `(in: bool val, in: int row, in: int col, in: string TrueText, in: string FalseText)` |
+| `0x4C` | `analogout` | `(in: real val, in: int row, in: int col, in: real min, in: real max, in: real minvalid, in: real maxvalid, in: string format)` |
 | `0x4D` | `multianalogout` | `(in: int row, in: int col, ...)` |
 | `0x4E` | `hexdump` | `(in: int row, in: int col, in: string data, in: int len)` |
-| `0x4F` | `ftextclear` | `()` |
+| `0x4F` | `ftextclear` | `(in: string text, in: int row, in: int col, in: int textsize, in: int textattr)` |
 | `0x50` | `clearrect` | `(in: int row, in: int col, in: int width, in: int height)` |
 | `0x51` | `blankscreen` | `()` |
 | `0x52` | `messagebox` | `(in: string Title, in: string Text)` |
 | `0x53` | `infobox` | `(in: string Title, in: string Text)` |
-| `0x54` | `userboxopen` | `(in: int BoxNum, in: int Row, in: int Col, in: int Width, in: int Height, in: string Title, in: string Text)` |
+| `0x54` | `userboxopen` | `(in: int BoxNum, in: int row, in: int col, in: int height, in: int width, in: string TitleStr, in: string TextStr)` |
 | `0x55` | `userboxclose` | `(in: int BoxNum)` |
 | `0x56` | `userboxftextout` | `(in: int BoxNum, in: string Text, in: int Row, in: int Col, in: int ForeColor, in: int BackColor)` |
 | `0x57` | `userboxclear` | `(in: int BoxNum)` |
@@ -337,8 +337,8 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x5B` | `callwin` | `(in: string cmdline)` |
 | `0x5C` | `viewopen` | `(in: string FileNameStr, in: string TitleStr)` |
 | `0x5D` | `viewclose` | `()` |
-| `0x5E` | `simnum` | `(out: int value, in: int row, in: int col)` |
-| `0x5F` | `simdigital` | `(out: bool value, in: int row, in: int col)` |
+| `0x5E` | `simnum` | `(out: real val, in: string BoxTitle, in: string BoxText, in: real minval, in: real maxval)` |
+| `0x5F` | `simdigital` | `(out: bool val, in: string BoxTitle, in: string BoxText, in: string FalseStr, in: string TrueStr)` |
 | `0x60` | `INPAapiInit` | `()` |
 | `0x61` | `INPAapiEnd` | `()` |
 | `0x62` | `INPAapiJob` | `(in: string ecu, in: string Job, in: string Arg1, in: string Arg2)` |
@@ -351,7 +351,7 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x69` | `INPAapiCheckJobStatus` | `(in: string RefStr)` |
 | `0x6A` | `INPAapiFsLesen2` | `(in: string ecu, in: string FileName)` |
 | `0x6B` | `INPAapiFsLesen` | `(in: string ecu, in: string FileName)` |
-| `0x6C` | `INPAapiFsMode` | `(in: int mode)` |
+| `0x6C` | `INPAapiFsMode` | `(in: int FsMode, in: string FsFileMode, in: string PreInfoFile, in: string PostInfoFile, in: string ApiFsJobName)` |
 | `0x6D` | `INP1apiInit` | `(out: bool rc)` |
 | `0x6E` | `INP1apiEnd` | `()` |
 | `0x6F` | `INP1apiJob` | `(in: string ecu, in: string Job, in: string Arg1, in: string Arg2)` |
