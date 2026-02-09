@@ -373,6 +373,8 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x8C` | `StrArrayCreate` | `(out: bool rc, out: int hStrArray)` |
 | `0x8D` | `StrArrayDestroy` | `(in: int hStrArray)` |
 | `0x8E` | `StrArrayWrite` | `(in: int hStrArray, in: int index, in: string str)` |
+| `0x8F` | `StrArrayRead` | `(in: int hStrArray, in: int index, out: string str)` |
+| `0x90` | `StrArrayGetElementCount` | `(in: int hStrArray, out: int ElementCount)` |
 | `0x91` | `StrArrayDelete` | `(in: int hStrArray)` |
 | `0x92` | `SPSInit` | `()` |
 | `0x93` | `SPSEnd` | `()` |
