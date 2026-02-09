@@ -144,3 +144,28 @@ INPAapiResultAnalog(volt, "STAT_UBATT", 1);
 
 ## Compilation
 Use `INPACOMP.EXE filename.ips` to compile.
+
+## Batch mode / headless compilation
+INPA supports command-line execution and a compiler batch mode for headless runs (no GUI prompts).
+From the INPA 2.2 user documentation (section 4.2.4), the compiler accepts a `-B` flag that runs in the
+background without user interaction and can write errors to a log file.
+
+**Syntax (from docs):**
+```
+INPACOMP.EXE <filename.ext> -B [<errors.log>]
+```
+
+**Notes:**
+- `-B` enables batch mode (no user input / background run).
+- Optional `<errors.log>` captures compiler errors to a file (useful for CI logs).
+- Other INPA programs can be invoked with a script directly on the command line, e.g.:
+  `INPALOAD.EXE \INPA\CFGDAT\STARTGER.IPO`
+
+**Examples (CI / validation):**
+```
+# Compile headlessly and save errors to a file
+INPACOMP.EXE MY_SCRIPT.IPS -B compile-errors.log
+
+# Fail CI if errors were logged (simple check)
+INPACOMP.EXE MY_SCRIPT.IPS -B compile-errors.log && (test ! -s compile-errors.log)
+```
