@@ -261,15 +261,21 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x07` | `callstatemachine` | `(in: STATEMACHINE handle)` |
 | `0x08` | `returnstatemachine` | `()` |
 | `0x09` | `settimer` | `(in: int timernum, in: int timeval)` |
+| `0x0A` | `testtimer` | `(in: int timernum, out: bool expiredflag)` |
+| `0x0B` | `setjobstatus` | `(in: int JobStatus)` |
 | `0x0C` | `exit` | `()` |
 | `0x0D` | `exitwindows` | `()` |
 | `0x0E` | `scriptselect` | `(in: string ScriptSelectIniFile)` |
 | `0x0F` | `scriptchange` | `(in: string NewScriptFile)` |
+| `0x10` | `select` | `(in: bool MultipleSelectFlag)` |
 | `0x11` | `deselect` | `()` |
 | `0x12` | `control` | `()` |
 | `0x13` | `start` | `()` |
 | `0x14` | `stop` | `()` |
+| `0x15` | `getapistring` | `(in: bool ArgNumFlag, in: bool FullScreenFlag, out: string ApiString)` |
+| `0x16` | `togglelist` | `(in: bool MultipleSelectFlag, in: bool ArgNumFlag, out: string ApiToggleString)` |
 | `0x17` | `printscreen` | `()` |
+| `0x18` | `printfile` | `(out: int ErrorCode, in: string FileName, in: string PrinterName, in: string PrinterPort, in: bool ErrorMsgFlag)` |
 | `0x1B` | `delay` | `(in: int Time)` |
 | `0x1C` | `getdate` | `(out: string date)` |
 | `0x1D` | `gettime` | `(out: string time)` |
@@ -349,6 +355,21 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x7A` | `fileclose` | `()` |
 | `0x7B` | `filewrite` | `(in: string str)` |
 | `0x7C` | `fileread` | `(out: string str, out: bool EOF)` |
+| `0x7D` | `DTMFindLogUnit` | `(out: bool rc, in: string LogUnit)` |
+| `0x7E` | `DTMGetSGVar` | `(out: string SGVar, in: string SGArt)` |
+| `0x7F` | `DTMGetSGArt` | `(out: string SGArt, in: string SGVar)` |
+| `0x80` | `DTMGetVarWert` | `(out: string VarWert, in: string VarName)` |
+| `0x81` | `DTMSetupGetVarWert` | `(out: string VarWert, in: string VarName)` |
+| `0x82` | `DTMSetupGetStartPosition` | `()` |
+| `0x83` | `DTMSetupGetNextAssoc` | `(out: bool rc, inout: string VarName, inout: string VarWert)` |
+| `0x84` | `DTMLogUnitEintragen` | `(in: string LogUnit)` |
+| `0x85` | `DTMSGEintragen` | `(in: string SGArt, in: string SGVar)` |
+| `0x86` | `DTMLoescheAuftrag` | `()` |
+| `0x87` | `DTMVariableEintragen` | `(in: string VarName, in: string VarWert)` |
+| `0x88` | `DTMVariableLoeschen` | `(out: bool rc, in: string VarName)` |
+| `0x89` | `DTMLoescheAlleVariablen` | `()` |
+| `0x8A` | `DTMSetupVariableEintragen` | `(in: string VarName, in: string VarWert)` |
+| `0x8B` | `DTMSetupVariableLoeschen` | `(out: bool rc, in: string VarName)` |
 | `0x8C` | `StrArrayCreate` | `(out: bool rc, out: int hStrArray)` |
 | `0x8D` | `StrArrayDestroy` | `(in: int hStrArray)` |
 | `0x8E` | `StrArrayWrite` | `(in: int hStrArray, in: int index, in: string str)` |
@@ -358,15 +379,19 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x94` | `SPSLeseVonSPS` | `(...)` |
 | `0x95` | `SPSSendeAnSPS` | `(...)` |
 | `0x96` | `SPSLeseVakWerte` | `(...)` |
+| `0x97` | `ApiJobFsLesenFAB` | `(out: int rc, in: string sgvar, out: int edifehler, out: string jobstatus, out: int fehler, out: int saetze)` |
+| `0x98` | `ApiResultFsLesenFAB` | `(out: int rc, out: int ausgeblendet, in: int satz)` |
+| `0x99` | `ELDIOpenStartDialog` | `(in: string CommandParameter, out: int ResultCode)` |
 | `0x9A` | `chr` | `(out: string ch, in: int code)` |
 | `0x9A` | `asc` | `(out: int code, in: string ch)` |
 | `0x9B` | `SetStructureMode` | `(in: int ReadWrite)` |
 | `0xA1` | `setitemrepeat` | `(in: int ItemNum, in: bool Enabled)` |
 
+**Note:** `setjobstatus` (0x0B) inferred from sequential IDs between `testtimer` (0x0A) and `exit` (0x0C); INPACOMP reports `setjobstatus` as no longer supported.
+
 ### Unmapped Functions
 
 Functions still requiring research:
-- DTM/WinEldi functions (not available in this INPA build)
 - Remaining conversion helpers (e.g., hexconvert, inttoreal, realtoint, bytetoint, inttolong, longtoreal)
 - Input/output variants not yet mapped (inputnum, input2text/hex/int, sim* helpers)
 
