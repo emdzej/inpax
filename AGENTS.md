@@ -146,13 +146,24 @@ INPAapiResultAnalog(volt, "STAT_UBATT", 1);
 Use `INPACOMP.EXE filename.ips` to compile.
 
 ## Batch mode / headless compilation
-INPA supports command-line execution and a compiler batch mode for headless runs (no GUI prompts).
-From the INPA 2.2 user documentation (section 4.2.4), the compiler accepts a `-B` flag that runs in the
-background without user interaction and can write errors to a log file.
 
-**Syntax (from docs):**
+⚠️ **CRITICAL: ALWAYS use `-B` flag when compiling!**
+
+Without `-B`, the compiler opens GUI dialogs and waits for user input — this blocks remote execution.
+
+**Syntax:**
 ```
-INPACOMP.EXE <filename.ext> -B [<errors.log>]
+INPACOMP.EXE <filename.ips> -B <logfile.log>
+```
+
+**Example on Windows Node:**
+```
+C:\EC-APPS\INPA\BIN\INPACOMP.exe C:\EC-APPS\INPA\SGDAT\test.ips -B C:\EC-APPS\INPA\SGDAT\test.log
+```
+
+**Via nodes tool:**
+```
+nodes run --node="Windows Node" ["cmd", "/c", "C:\\EC-APPS\\INPA\\BIN\\INPACOMP.exe S:\\inpax-tests\\test.ips -B S:\\inpax-tests\\test.log"]
 ```
 
 **Notes:**
