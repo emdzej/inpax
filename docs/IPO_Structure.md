@@ -241,16 +241,7 @@ Handles are **section offsets** (u16 LE) pointing to:
 
 System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM, not sequential.
 
-### UI Setter Functions (from Language Constructs research)
-
-| ID (hex) | Function | Signature |
-|----------|----------|-----------|
-| `0x01` | `setmenu` | `(in: MENU handle)` |
-| `0x04` | `setscreen` | `(in: SCREEN handle, in: bool cyclic)` |
-| `0x05` | `setstatemachine` | `(in: STATEMACHINE handle)` |
-| `0x06` | `setstate` | `(in: STATE handle)` |
-
-### Complete Mapping (97 functions)
+### Complete Mapping (159 functions)
 
 | ID (hex) | Function | Signature |
 |----------|----------|-----------|
@@ -258,6 +249,9 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x01` | `setmenu` | `(in: MENU handle)` |
 | `0x02` | `setitem` | `(in: int ItemNum, in: string ItemText, in: bool Enabled)` |
 | `0x03` | `settitle` | `(in: string title)` |
+| `0x04` | `setscreen` | `(in: SCREEN handle, in: bool cyclic)` |
+| `0x05` | `setstatemachine` | `(in: STATEMACHINE handle)` |
+| `0x06` | `setstate` | `(in: STATE handle)` |
 | `0x07` | `callstatemachine` | `(in: STATEMACHINE handle)` |
 | `0x08` | `returnstatemachine` | `()` |
 | `0x09` | `settimer` | `(in: int timernum, in: int timeval)` |
@@ -411,18 +405,11 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x9F` | `StructureString` | `(in: long handle, in: int Offset, in: int length, inout: string value)` |
 | `0xA1` | `setitemrepeat` | `(in: int ItemNum, in: bool Enabled)` |
 
-**Note:** `setjobstatus` (0x0B) inferred from sequential IDs between `testtimer` (0x0A) and `exit` (0x0C); INPACOMP reports `setjobstatus` as no longer supported.
-
-### Unmapped Functions
-
-Functions still requiring research:
-- Remaining conversion helpers (e.g., hexconvert, inttoreal, realtoint, bytetoint, inttolong, longtoreal)
-- Input/output variants not yet mapped (inputnum, input2text/hex/int, sim* helpers)
-
-**Recently mapped (see Section 8):**
-- String/conversion helpers, input/userbox functions, PEM helpers, and EDIABAS INPAapi/INP1api entries
-
-See `docs/research/system-function-ids-complete.md` for full details.
+**Notes:**
+- `setjobstatus` (0x0B) inferred from sequential IDs — INPACOMP reports "no longer supported"
+- DTM functions (0x7D-0x8B) — WinEldi-only, "no longer supported"
+- SPS functions (0x92-0x96) — IDs inferred from sequential range
+- API/ELDI functions (0x97-0x99) — "no longer supported"
 
 ---
 
