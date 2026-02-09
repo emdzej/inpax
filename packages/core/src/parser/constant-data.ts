@@ -141,7 +141,7 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
   }
 
   const parseNext = (): void => {
-    const marker = buffer[offset] as TypeMarker;
+    const marker = buffer[offset];
 
     if (marker === TypeMarkers.STRING) {
       const end = findByte(buffer, 0x0a, offset + 1, endOffset);
