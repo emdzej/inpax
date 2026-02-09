@@ -276,6 +276,7 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x16` | `togglelist` | `(in: bool MultipleSelectFlag, in: bool ArgNumFlag, out: string ApiToggleString)` |
 | `0x17` | `printscreen` | `()` |
 | `0x18` | `printfile` | `(out: int ErrorCode, in: string FileName, in: string PrinterName, in: string PrinterPort, in: bool ErrorMsgFlag)` |
+| `0x1A` | `setcolor` | `(in: int ForeColor, in: int BackColor)` |
 | `0x1B` | `delay` | `(in: int Time)` |
 | `0x1C` | `getdate` | `(out: string date)` |
 | `0x1D` | `gettime` | `(out: string time)` |
@@ -283,9 +284,15 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x1F` | `stringtoreal` | `(in: string value, out: real result)` |
 | `0x20` | `inttostring` | `(in: int value, out: string result)` |
 | `0x21` | `stringtoint` | `(in: string value, out: int result)` |
+| `0x22` | `hexconvert` | `(in: string hexstr, out: int value)` |
 | `0x23` | `strcat` | `(out: string dest, in: string left, in: string right)` |
 | `0x24` | `strlen` | `(out: int length, in: string str)` |
 | `0x25` | `midstr` | `(out: string result, in: string str, in: int start, in: int length)` |
+| `0x26` | `realtoint` | `(in: real value, out: int result)` |
+| `0x27` | `inttoreal` | `(in: int value, out: real result)` |
+| `0x28` | `bytetoint` | `(in: byte value, out: int result)` |
+| `0x29` | `inttolong` | `(in: int value, out: long result)` |
+| `0x2A` | `longtoreal` | `(in: long value, out: real result)` |
 | `0x2B` | `PEMInitialisiere` | `(out: bool Result)` |
 | `0x2C` | `PEMProtokollKopf` | `(out: bool Result)` |
 | `0x2D` | `PEMProtokollZeile` | `(out: bool Result)` |
@@ -306,11 +313,23 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x3D` | `PEMWrite_druckfeld` | `(out: bool Result)` |
 | `0x3E` | `getinputstate` | `(out: int InputState)` |
 | `0x3F` | `inputtext` | `(out: string text, in: string Title, in: string Text)` |
+| `0x40` | `inputnum` | `(out: int value, in: string Title, in: string Text, in: int Min, in: int Max)` |
 | `0x41` | `inputhex` | `(out: string hex, in: string Title, in: string Text, in: string Min, in: string Max)` |
 | `0x42` | `inputdigital` | `(out: int value, in: string Title, in: string Text, in: string OffText, in: string OnText)` |
+| `0x43` | `input2text` | `(out: string text, in: string Title, in: string Text, in: string Default)` |
+| `0x44` | `input2hexnum` | `(out: string hex, in: string Title, in: string Text, in: string Min, in: string Max, in: string Default)` |
+| `0x45` | `input2hex` | `(out: string hex, in: string Title, in: string Text, in: int MinLen, in: int MaxLen, in: string Default)` |
 | `0x46` | `inputint` | `(out: int value, in: string Title, in: string Text, in: int Min, in: int Max)` |
+| `0x47` | `input2int` | `(out: int value, in: string Title, in: string Text, in: int Min, in: int Max, in: int Default)` |
 | `0x48` | `text` | `(in: int row, in: int col, in: string text)` |
 | `0x49` | `textout` | `(in: string text, in: int row, in: int col)` |
+| `0x4A` | `ftextout` | `(in: string text, in: int row, in: int col, in: int fgcolor, in: int bgcolor, in: int fontsize, in: int fontattr)` |
+| `0x4B` | `digitalout` | `(in: int row, in: int col, in: bool value, in: string offtext, in: string ontext)` |
+| `0x4C` | `analogout` | `(in: int row, in: int col, in: real value, in: real min, in: real max, in: int digits, in: string unit)` |
+| `0x4D` | `multianalogout` | `(in: int row, in: int col, ...)` |
+| `0x4E` | `hexdump` | `(in: int row, in: int col, in: string data, in: int len)` |
+| `0x4F` | `ftextclear` | `()` |
+| `0x50` | `clearrect` | `(in: int row, in: int col, in: int width, in: int height)` |
 | `0x51` | `blankscreen` | `()` |
 | `0x52` | `messagebox` | `(in: string Title, in: string Text)` |
 | `0x53` | `infobox` | `(in: string Title, in: string Text)` |
@@ -384,9 +403,12 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x97` | `ApiJobFsLesenFAB` | `(out: int rc, in: string sgvar, out: int edifehler, out: string jobstatus, out: int fehler, out: int saetze)` |
 | `0x98` | `ApiResultFsLesenFAB` | `(out: int rc, out: int ausgeblendet, in: int satz)` |
 | `0x99` | `ELDIOpenStartDialog` | `(in: string CommandParameter, out: int ResultCode)` |
-| `0x9A` | `chr` | `(out: string ch, in: int code)` |
-| `0x9A` | `asc` | `(out: int code, in: string ch)` |
+| `0x9A` | `CreateStructure` | `(out: long handle, in: int length)` |
 | `0x9B` | `SetStructureMode` | `(in: int ReadWrite)` |
+| `0x9C` | `StructureByte` | `(in: long handle, in: int Offset, inout: byte value)` |
+| `0x9D` | `StructureInt` | `(in: long handle, in: int Offset, inout: int value)` |
+| `0x9E` | `StructureLong` | `(in: long handle, in: int Offset, inout: long value)` |
+| `0x9F` | `StructureString` | `(in: long handle, in: int Offset, in: int length, inout: string value)` |
 | `0xA1` | `setitemrepeat` | `(in: int ItemNum, in: bool Enabled)` |
 
 **Note:** `setjobstatus` (0x0B) inferred from sequential IDs between `testtimer` (0x0A) and `exit` (0x0C); INPACOMP reports `setjobstatus` as no longer supported.
