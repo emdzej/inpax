@@ -10,6 +10,7 @@ export {
   systemFunctionById,
   systemFunctions
 } from "./data/system-functions.js";
+export { formatDisassembly, formatInstruction } from "./formatter/disassembly.js";
 export type {
   Constant,
   ConstantData,
@@ -27,4 +28,5 @@ export type {
   SectionType,
   VariableType
 } from "./parser/index.js";
+export type { FormatOptions } from "./formatter/disassembly.js";
 export type { SystemFunction } from "./data/system-functions.js";
