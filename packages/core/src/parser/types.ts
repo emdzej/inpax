@@ -35,6 +35,31 @@ export type Section = {
   readonly type: SectionType;
 };
 
+export type Opcode =
+  | "PUSH_VAR_ADDR"
+  | "PUSH_VAR_VAL"
+  | "PUSH_CONST"
+  | "STORE"
+  | "ALU_OP"
+  | "JMP_FALSE"
+  | "JMP"
+  | "CALL_USER"
+  | "CALL_API"
+  | "PUSH_HANDLE"
+  | "SCREEN_START"
+  | "LINE"
+  | "ITEM"
+  | "STATE"
+  | "UNKNOWN";
+
+export type Instruction = {
+  readonly offset: number;
+  readonly opcode: Opcode;
+  readonly operands: readonly number[];
+  readonly raw: Uint8Array;
+  readonly size: number;
+};
+
 export type IpoFile = {
   readonly header: IpoHeader;
   readonly sections: Map<string, Section>;
