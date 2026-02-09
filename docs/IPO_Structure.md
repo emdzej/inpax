@@ -189,6 +189,16 @@ The INPA VM is stack-based. Instructions are variable-length.
 | `00 09 [u8]` | Op | `ALU_OP` | Binary arithmetic/comparison operation |
 | `00 0B [s16]` | Offset | `JMP_FALSE` | Pop condition; if false, jump by offset |
 | `00 0E [s16]` | Offset | `JMP` | Unconditional relative jump |
+| `02 [u16] 00` | Offset | `PUSH_UI_HANDLE` | Push handle to SCREEN/MENU/STATEMACHINE/STATE |
+
+### UI Construct Markers
+
+| Opcode | Mnemonic | Description |
+|--------|----------|-------------|
+| `0x21` | `SCREEN_START` | SCREEN section marker |
+| `0x22` | `LINE` | LINE construct marker |
+| `0x24` | `ITEM` | MENU ITEM marker |
+| `0x25` | `STATE` | STATE definition marker |
 
 ### Function Call Opcodes
 
@@ -212,13 +222,35 @@ The INPA VM is stack-based. Instructions are variable-length.
 
 All indices are **16-bit little-endian unsigned integers**.
 
+### Handle Format (Opcode 0x02)
+
+Handles are **section offsets** (u16 LE) pointing to:
+- SCREEN section header (for `setscreen`)
+- MENU section header (for `setmenu`)
+- STATEMACHINE section header (for `setstatemachine`)
+- STATE subsection (for `setstate`)
+
+**Example:**
+```hex
+02 40 00 00     ; Push handle to section @ file offset 0x0040
+```
+
 ---
 
 ## 8. System Function IDs
 
 System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM, not sequential.
 
-### Complete Mapping (58 functions)
+### UI Setter Functions (from Language Constructs research)
+
+| ID (hex) | Function | Signature |
+|----------|----------|-----------|
+| `0x01` | `setmenu` | `(in: MENU handle)` |
+| `0x04` | `setscreen` | `(in: SCREEN handle, in: bool cyclic)` |
+| `0x05` | `setstatemachine` | `(in: STATEMACHINE handle)` |
+| `0x06` | `setstate` | `(in: STATE handle)` |
+
+### Complete Mapping (62 functions)
 
 | ID (hex) | Function | Signature |
 |----------|----------|-----------|
@@ -393,6 +425,14 @@ while (i < 5) {
 
 ## 11. UI Constructs
 
+### Section Type Identifiers
+
+| Type Byte | Construct | Required Elements |
+|-----------|-----------|-------------------|
+| `0x01` | SCREEN | Opcode `0x21` marker |
+| `0x02` | MENU | INIT block (mandatory) |
+| `0x03` | STATEMACHINE | INIT block + states |
+
 ### SCREEN Definition
 
 Screens are named sections containing layout calls.
@@ -406,37 +446,95 @@ SCREEN s_main() {
 }
 ```
 
+**Bytecode structure:**
+```hex
+01 73 5f 6d 61 69 6e 0a      ; Section type (0x01) + name "s_main\n"
+00 00 00 00 0a 0a 00         ; Preamble
+00 00 21 0a                  ; Opcode 0x21 (SCREEN_START)
+00 00 00 00 0a 0a 00         ; ...
+00 00 22 0a                  ; Opcode 0x22 (LINE marker)
+00 00 00 00 56 6f 6c...      ; "Voltage\n"
+56 0a                        ; "V\n"
+[LINE body bytecode]         ; Normal opcodes (text calls etc)
+```
+
 **Activating a screen:**
 ```c
 setscreen(s_main, TRUE);
 ```
 
 **Bytecode:**
+```hex
+02 40 00 00        ; PUSH_UI_HANDLE (SCREEN @ offset 0x0040)
+01 01 01 00        ; PUSH_CONST idx=1 (TRUE)
+0C 81 04 00        ; CALL_API setscreen (ID=0x04)
 ```
-02 [screen_handle] ; Push screen handle
-01 01              ; Push TRUE
-0C 81 04 00        ; CALL_API (setscreen, ID=0x04)
+
+### LINE Construct
+
+LINE is a compiler directive that generates inline bytecode, not a runtime function.
+
+**Source:**
+```c
+LINE("Label", "Unit") {
+    text(0, 0, "value");
+}
+```
+
+**Bytecode:**
+```hex
+22                           ; LINE marker opcode
+0a 00 00 00 00              ; Padding
+4c 61 62 65 6c 0a           ; "Label\n" (inline string)
+55 6e 69 74 0a              ; "Unit\n" (inline string)
+[body bytecode]             ; Normal function calls
 ```
 
 ### MENU Definition
 
-Menus contain items that trigger actions.
+Menus contain items that trigger actions. INIT block is **mandatory**.
 
 **Source:**
 ```c
 MENU m_main() {
-    setmenutitle("Main Menu");
-    ITEM(1, "Exit") { exit(); }
+    INIT {
+        setmenutitle("Main Menu");
+    }
+    ITEM(1, "Exit") {
+        exit();
+    }
 }
 ```
 
-**Bytecode elements:**
-- `0C 81 00 00` — `setmenutitle` (ID 0x00)
-- `0C 81 0C 00` — `exit` (ID 0x0C)
+**Bytecode structure:**
+```hex
+02 6d 5f 6d 61 69 6e 0a      ; Section type (0x02) + name "m_main\n"
+00 00 00 00 0a 0a 00         ; Preamble
+[INIT block bytecode]        ; setmenutitle etc
+24                           ; Opcode 0x24 (ITEM marker)
+01 00                        ; ITEM key = 1 (u16 LE)
+45 78 69 74 0a               ; "Exit\n"
+[ITEM body bytecode]         ; exit() etc
+```
 
-### Opcode 0x02
+**Activating a menu:**
+```c
+setmenu(m_main);
+```
 
-`02 [u16] 00` appears to push UI handles (screen/menu references). The exact semantics require further investigation.
+**Bytecode:**
+```hex
+02 41 00 00        ; PUSH_UI_HANDLE (MENU @ offset 0x0041)
+0C 81 01 00        ; CALL_API setmenu (ID=0x01)
+```
+
+### Menu-related system functions
+
+| ID (hex) | Function | Signature |
+|----------|----------|-----------|
+| `0x00` | `setmenutitle` | `(in: string title)` |
+| `0x01` | `setmenu` | `(in: MENU handle)` |
+| `0x0C` | `exit` | `()` |
 
 ---
 
@@ -462,16 +560,67 @@ STATEMACHINE sm_name() {
 }
 ```
 
+### Bytecode Structure
+
+**Section header:**
+```hex
+03 73 6d 5f 6e 61 6d 65 0a   ; Section type (0x03) + name "sm_name\n"
+00 00 00 00 0a 0a 00         ; Preamble
+[INIT block header]
+[INIT bytecode]
+25 73 74 61 74 65 5f 6f 6e 65 0a  ; Opcode 0x25 (STATE) + "state_one\n"
+00 00 00 00 0a 0a 00         ; State preamble
+[state_one bytecode]
+25 ...                       ; Next state
+```
+
+### State Transitions (setstate)
+
+**Source:**
+```c
+INIT {
+    setstate(state_one);
+}
+```
+
+**Bytecode:**
+```hex
+02 43 00 00        ; PUSH_UI_HANDLE (STATE state_one @ offset 0x0043)
+0C 81 06 00        ; CALL_API setstate (ID=0x06)
+```
+
+### Activating State Machine (setstatemachine)
+
+**Source:**
+```c
+inpainit() {
+    setstatemachine(sm_main);
+}
+```
+
+**Bytecode:**
+```hex
+02 42 00 00        ; PUSH_UI_HANDLE (STATEMACHINE @ offset 0x0042)
+0C 81 05 00        ; CALL_API setstatemachine (ID=0x05)
+```
+
 ### Key Points
 
 - Keyword is `STATEMACHINE` (one word)
 - States are **identifiers only** — no `STATE` keyword before them
-- Transitions via `setstate(state_identifier)`
-- Register in menu/init: `setstatemachine(sm_name)`
+- Opcode `0x25` marks each state definition
+- State handles use same `0x02` opcode pattern as SCREEN/MENU
+- Transitions via `setstate(state_identifier)` (ID=0x06)
+- Register in init: `setstatemachine(sm_name)` (ID=0x05)
+- Return from nested: `returnstatemachine()` (ID=0x08)
 
-### ⚠️ Binary Structure
+### State Machine Functions
 
-State machine binary structure is **not fully validated** against production files. Syntax compiles successfully, but internal bytecode representation needs more analysis.
+| ID (hex) | Function | Signature |
+|----------|----------|-----------|
+| `0x05` | `setstatemachine` | `(in: STATEMACHINE handle)` |
+| `0x06` | `setstate` | `(in: STATE handle)` |
+| `0x08` | `returnstatemachine` | `()` |
 
 ---
 
@@ -552,22 +701,23 @@ Items requiring further research:
 | Header version bytes meaning | ⚠️ Unknown | `05 00`, `01 02`, `01 03` observed |
 | Import signature `t` type | ⚠️ Unknown | Seen in `OpenFile` |
 | Import signature `L` type | ⚠️ Unknown | Possibly LPARAM |
-| Opcode `02` full semantics | ⚠️ Partial | UI handles, needs more analysis |
 
 ### Medium Priority
 
 | Item | Status | Notes |
 |------|--------|-------|
-| State machine bytecode | ⚠️ Unvalidated | Compiles but binary structure unknown |
-| Complete system function IDs | ⚠️ 58/108 | ~50 functions unmapped |
+| Complete system function IDs | ⚠️ 62/108 | ~46 functions unmapped |
 | Constant Data complex entries | ⚠️ Partial | Multi-type sequences unclear |
+| ITEMREPEAT bytecode | ⚠️ Unknown | Dynamic menu items |
 
-### Low Priority
+### Resolved (formerly unresolved)
 
-| Item | Status | Notes |
-|------|--------|-------|
-| `ITEM` construct bytecode | ⚠️ Unknown | May use jump tables or callbacks |
-| `LINE` construct bytecode | ⚠️ Unknown | Layout system internals |
+| Item | Resolution |
+|------|------------|
+| Opcode `0x02` semantics | ✅ PUSH_UI_HANDLE — pushes section offset for SCREEN/MENU/STATE |
+| State machine bytecode | ✅ Validated — section type 0x03, opcode 0x25 for states |
+| LINE/ITEM bytecode | ✅ Validated — opcodes 0x22 and 0x24 respectively |
+| UI setter function IDs | ✅ setmenu=0x01, setscreen=0x04, setstatemachine=0x05, setstate=0x06 |
 
 ---
 
@@ -581,7 +731,9 @@ Items requiring further research:
 - `docs/research/validation-findings-phase6.md` — Import32 analysis
 - `docs/research/VALIDATION-REPORT.md` — Production validation
 - `docs/research/system-function-ids-complete.md` — System function mapping
+- `docs/research/language-constructs.md` — SCREEN/MENU/STATE bytecode analysis
+- `docs/research/api32-exports.md` — api32.dll FFI analysis
 
 ---
 
-*Document generated from research phases 1-6. Validated against 20+ production IPO files.*
+*Document updated 2026-02-09. Integrated language construct research findings.*
