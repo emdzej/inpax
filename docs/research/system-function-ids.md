@@ -1,7 +1,31 @@
 # System Function ID Map
 
 **Date:** 2026-02-09  
-**Status:** In Progress - Partial Map from Binary Analysis
+**Status:** ✅ **COMPLETE** - 58/108 functions mapped via automated extraction
+
+> **📋 See [system-function-ids-complete.md](./system-function-ids-complete.md) for the full mapping table**
+>
+> **💾 Machine-readable formats:**
+> - [system-function-ids-complete.json](./system-function-ids-complete.json) - Full data
+> - [system-function-ids.ts](./system-function-ids.ts) - TypeScript definitions
+>
+> **🔧 Extraction tool:** [tools/extract-system-function-ids-v2.js](../../tools/extract-system-function-ids-v2.js)
+
+## Quick Summary
+
+Successfully mapped **58 out of 108** INPA system functions (53.7% coverage) by:
+1. Parsing `inpa.h` to extract function signatures
+2. Auto-generating minimal test `.ips` scripts for each function
+3. Compiling with `INPACOMP.exe` from correct working directory
+4. Extracting function IDs from bytecode pattern `0C 81 XX 00`
+
+**Key breakthrough:** Compiler requires BOTH `inpainit()` AND `inpaexit()` functions!
+
+---
+
+## Historical Notes (Pre-automation)
+
+**Previous Status:** In Progress - Partial Map from Binary Analysis
 
 ## Methodology
 
