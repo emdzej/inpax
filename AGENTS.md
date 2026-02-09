@@ -1,5 +1,31 @@
 # INPA / IPS Scripting Language Guide
 
+## Tech Stack
+
+- **Language**: TypeScript (strict mode)
+- **Monorepo**: pnpm + Turborepo
+- **Testing**: Vitest
+- **Linting**: ESLint + Prettier
+- **Build**: TypeScript (`tsc`)
+
+### Guidelines
+
+| Technology | Guide                                                            | When to load                     |
+| ---------- | ---------------------------------------------------------------- | -------------------------------- |
+| TypeScript | [`docs/guidelines/typescript.md`](docs/guidelines/typescript.md) | Types, const objects, binary ops |
+
+**Rule:** Load the relevant guide(s) before starting work in that area.
+
+### Core Rules
+
+- **All code, comments, and commit messages in English**
+- **No `any`** — use `unknown` or proper types
+- **Const objects over enums** — better tree-shaking
+- **Uint8Array for binary data** — use DataView for multi-byte reads
+- **Conventional commits**: `feat(parser): add opcode disassembly`
+
+---
+
 ## Overview
 INPA (Interpreter for Test Procedures) is a scripting system used for BMW diagnostics. It allows creating `.IPS` (source) files which are compiled into `.IPO` (object) files. These scripts control the diagnostic interface (EDIABAS) to communicate with vehicle ECUs.
 
