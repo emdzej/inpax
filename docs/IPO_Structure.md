@@ -326,18 +326,22 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x63` | `INPAapiResultText` | `(out: string ResultText, in: string ApiResult, in: int ApiSet, in: string Format)` |
 | `0x64` | `INPAapiResultInt` | `(out: int ResultInt, in: string ApiResult, in: int ApiSet)` |
 | `0x65` | `INPAapiResultSets` | `(out: int sets)` |
+| `0x66` | `INPAapiResultDigital` | `(out: bool ResultValue, in: string ApiResult, in: int ApiSet)` |
 | `0x67` | `INPAapiResultAnalog` | `(out: real ResultValue, in: string ApiResult, in: int ApiSet)` |
 | `0x68` | `INPAapiResultBinary` | `(in: string ApiResult, in: int ApiSet)` |
 | `0x69` | `INPAapiCheckJobStatus` | `(in: string RefStr)` |
 | `0x6A` | `INPAapiFsLesen2` | `(in: string ecu, in: string FileName)` |
 | `0x6B` | `INPAapiFsLesen` | `(in: string ecu, in: string FileName)` |
+| `0x6C` | `INPAapiFsMode` | `(in: int mode)` |
 | `0x6D` | `INP1apiInit` | `(out: bool rc)` |
 | `0x6E` | `INP1apiEnd` | `()` |
 | `0x6F` | `INP1apiJob` | `(in: string ecu, in: string Job, in: string Arg1, in: string Arg2)` |
 | `0x70` | `INP1apiState` | `(out: int ApiState)` |
 | `0x71` | `INP1apiResultText` | `(out: bool rc, out: string ResultText, in: string ApiResult, in: int ApiSet, in: string Format)` |
 | `0x72` | `INP1apiResultInt` | `(out: bool rc, out: int ResultInt, in: string ApiResult, in: int ApiSet)` |
+| `0x73` | `INP1apiResultSets` | `(out: bool rc, out: int sets)` |
 | `0x74` | `INP1apiResultReal` | `(out: bool rc, out: real ResultValue, in: string ApiResult, in: int ApiSet)` |
+| `0x75` | `INP1apiResultBinary` | `(out: bool rc, in: string ApiResult, in: int ApiSet)` |
 | `0x76` | `INP1apiErrorCode` | `(out: int ErrorCode)` |
 | `0x77` | `INP1apiErrorText` | `(out: string ErrorText)` |
 | `0x78` | `GetBinaryDataString` | `(out: string DataString, out: int DataStringLen)` |
