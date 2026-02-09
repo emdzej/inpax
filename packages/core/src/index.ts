@@ -4,6 +4,11 @@ export {
   parseGlobalData,
   parseIpo
 } from "./parser/index.js";
+export {
+  getSystemFunction,
+  systemFunctionById,
+  systemFunctions
+} from "./data/system-functions.js";
 export type {
   Constant,
   ConstantData,
@@ -16,3 +21,4 @@ export type {
   SectionType,
   VariableType
 } from "./parser/index.js";
+export type { SystemFunction } from "./data/system-functions.js";
