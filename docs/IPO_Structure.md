@@ -353,6 +353,11 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x8D` | `StrArrayDestroy` | `(in: int hStrArray)` |
 | `0x8E` | `StrArrayWrite` | `(in: int hStrArray, in: int index, in: string str)` |
 | `0x91` | `StrArrayDelete` | `(in: int hStrArray)` |
+| `0x92` | `SPSInit` | `()` |
+| `0x93` | `SPSEnd` | `()` |
+| `0x94` | `SPSLeseVonSPS` | `(...)` |
+| `0x95` | `SPSSendeAnSPS` | `(...)` |
+| `0x96` | `SPSLeseVakWerte` | `(...)` |
 | `0x9A` | `chr` | `(out: string ch, in: int code)` |
 | `0x9A` | `asc` | `(out: int code, in: string ch)` |
 | `0x9B` | `SetStructureMode` | `(in: int ReadWrite)` |
