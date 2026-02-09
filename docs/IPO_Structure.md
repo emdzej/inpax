@@ -318,6 +318,8 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x5B` | `callwin` | `(in: string cmdline)` |
 | `0x5C` | `viewopen` | `(in: string FileNameStr, in: string TitleStr)` |
 | `0x5D` | `viewclose` | `()` |
+| `0x5E` | `simnum` | `(out: int value, in: int row, in: int col)` |
+| `0x5F` | `simdigital` | `(out: bool value, in: int row, in: int col)` |
 | `0x60` | `INPAapiInit` | `()` |
 | `0x61` | `INPAapiEnd` | `()` |
 | `0x62` | `INPAapiJob` | `(in: string ecu, in: string Job, in: string Arg1, in: string Arg2)` |
