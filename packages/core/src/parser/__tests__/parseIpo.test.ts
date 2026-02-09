@@ -38,6 +38,9 @@ describe("parseIpo", () => {
     expect(constantSection?.type).toBe("constant");
     expect(globalSection?.size).toBeGreaterThan(0);
     expect(constantSection?.size).toBeGreaterThan(0);
+
+    expect(result.globalData.count).toBeGreaterThan(0);
+    expect(result.globalData.variables.length).toBe(result.globalData.count);
   });
 
   it("parses header and sections for startus.ipo", () => {
@@ -52,5 +55,8 @@ describe("parseIpo", () => {
 
     expect(globalSection?.offset).toBeGreaterThan(0);
     expect(constantSection?.offset).toBeGreaterThan(0);
+
+    expect(result.globalData.count).toBeGreaterThan(0);
+    expect(result.globalData.variables.length).toBe(result.globalData.count);
   });
 });

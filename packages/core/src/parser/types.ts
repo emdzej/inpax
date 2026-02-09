@@ -3,6 +3,13 @@ export type IpoHeader = {
   readonly magic: string;
 };
 
+export type VariableType = "bool" | "byte" | "int" | "real" | "string";
+
+export type GlobalData = {
+  readonly count: number;
+  readonly variables: readonly VariableType[];
+};
+
 export type SectionType =
   | "global"
   | "constant"
@@ -21,4 +28,5 @@ export type Section = {
 export type IpoFile = {
   readonly header: IpoHeader;
   readonly sections: Map<string, Section>;
+  readonly globalData: GlobalData;
 };
