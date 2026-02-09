@@ -9,43 +9,49 @@ describe("parseImport32", () => {
 
     expect(result).toEqual({
       dll: "kernel32",
-      function: "GetPrivateProfileStringA",
+      functionName: "GetPrivateProfileStringA",
       convention: "c",
-      params: [
-        { type: "string", direction: "in", signature: "s" },
-        { type: "string", direction: "in", signature: "s" },
-        { type: "string", direction: "in", signature: "s" },
-        { type: "string", direction: "out", signature: "S" },
-        { type: "int", direction: "in", signature: "i" },
-        { type: "string", direction: "in", signature: "s" }
+      parameters: [
+        { type: "string", direction: "in", raw: "s" },
+        { type: "string", direction: "in", raw: "s" },
+        { type: "string", direction: "in", raw: "s" },
+        { type: "string", direction: "out", raw: "S" },
+        { type: "int", direction: "in", raw: "i" },
+        { type: "string", direction: "in", raw: "s" }
       ],
-      returnType: "int"
+      returnType: "int",
+      rawSignature: "kernel32::GetPrivateProfileStringA:c.sssSis%I"
     });
   });
 
-  it("parses api32.DLL __apiGetConfig signature", () => {
+  it("parses api32 config signature", () => {
     const result = parseImport32("api32.DLL::__apiGetConfig:c.lsS%I");
 
     expect(result.dll).toBe("api32.DLL");
-    expect(result.function).toBe("__apiGetConfig");
+    expect(result.functionName).toBe("__apiGetConfig");
     expect(result.convention).toBe("c");
-    expect(result.params).toEqual([
-      { type: "long", direction: "in", signature: "l" },
-      { type: "string", direction: "in", signature: "s" },
-      { type: "string", direction: "out", signature: "S" }
-    ]);
     expect(result.returnType).toBe("int");
+    expect(result.parameters).toEqual([
+      { type: "long", direction: "in", raw: "l" },
+      { type: "string", direction: "in", raw: "s" },
+      { type: "string", direction: "out", raw: "S" }
+    ]);
   });
 
-  it("marks unknown parameter types", () => {
+  it("keeps unknown parameters as unknown", () => {
     const result = parseImport32("kernel32::OpenFile:c.stLi%I");
 
-    expect(result.params).toEqual([
-      { type: "string", direction: "in", signature: "s" },
-      { type: "unknown", direction: "unknown", signature: "t" },
-      { type: "unknown", direction: "unknown", signature: "L" },
-      { type: "int", direction: "in", signature: "i" }
+    expect(result.parameters).toEqual([
+      { type: "string", direction: "in", raw: "s" },
+      { type: "unknown", direction: "in", raw: "t" },
+      { type: "unknown", direction: "in", raw: "L" },
+      { type: "int", direction: "in", raw: "i" }
     ]);
-    expect(result.returnType).toBe("int");
+  });
+
+  it("defaults to void return type when %I is missing", () => {
+    const result = parseImport32("XTRACT32.DLL::XTRACT:c.siSl");
+
+    expect(result.returnType).toBe("void");
   });
 });
