@@ -250,12 +250,15 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x05` | `setstatemachine` | `(in: STATEMACHINE handle)` |
 | `0x06` | `setstate` | `(in: STATE handle)` |
 
-### Complete Mapping (62 functions)
+### Complete Mapping (97 functions)
 
 | ID (hex) | Function | Signature |
 |----------|----------|-----------|
 | `0x00` | `setmenutitle` | `(in: string title)` |
+| `0x01` | `setmenu` | `(in: MENU handle)` |
+| `0x02` | `setitem` | `(in: int ItemNum, in: string ItemText, in: bool Enabled)` |
 | `0x03` | `settitle` | `(in: string title)` |
+| `0x07` | `callstatemachine` | `(in: STATEMACHINE handle)` |
 | `0x08` | `returnstatemachine` | `()` |
 | `0x09` | `settimer` | `(in: int timernum, in: int timeval)` |
 | `0x0C` | `exit` | `()` |
@@ -270,21 +273,46 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x1B` | `delay` | `(in: int Time)` |
 | `0x1C` | `getdate` | `(out: string date)` |
 | `0x1D` | `gettime` | `(out: string time)` |
+| `0x1E` | `realtostring` | `(in: real value, in: string format, out: string result)` |
+| `0x1F` | `stringtoreal` | `(in: string value, out: real result)` |
+| `0x20` | `inttostring` | `(in: int value, out: string result)` |
+| `0x21` | `stringtoint` | `(in: string value, out: int result)` |
+| `0x23` | `strcat` | `(out: string dest, in: string left, in: string right)` |
+| `0x24` | `strlen` | `(out: int length, in: string str)` |
+| `0x25` | `midstr` | `(out: string result, in: string str, in: int start, in: int length)` |
+| `0x2B` | `PEMInitialisiere` | `(out: bool Result)` |
+| `0x2C` | `PEMProtokollKopf` | `(out: bool Result)` |
+| `0x2D` | `PEMProtokollZeile` | `(out: bool Result)` |
+| `0x2E` | `PEMSGZ_Kopfzeile` | `(out: bool Result)` |
 | `0x2F` | `PEMTrennLinie` | `(out: bool Result)` |
 | `0x30` | `PEMEndLinie` | `(out: bool Result)` |
 | `0x31` | `PEMLoescheTabZeilenPuffer` | `(out: bool Result)` |
 | `0x32` | `PEMUebertrageTabZeilenPuffer` | `(out: bool Result)` |
 | `0x33` | `PEMProtokollAusgabe` | `(out: bool Result)` |
+| `0x34` | `PEMDruckeEtikett` | `(out: bool Result)` |
+| `0x36` | `PEMPrintFormular` | `(out: bool Result)` |
 | `0x37` | `PEMPrinter_ff` | `(out: bool Result)` |
 | `0x38` | `PEMFree_mem` | `(out: bool Result)` |
+| `0x39` | `PEMLoad_formular` | `(out: bool Result)` |
+| `0x3A` | `PEMDefault_druckfeld` | `(out: bool Result)` |
+| `0x3B` | `PEMDefault_besetzen` | `(out: bool Result)` |
+| `0x3C` | `PEMForget_formular` | `(out: bool Result)` |
+| `0x3D` | `PEMWrite_druckfeld` | `(out: bool Result)` |
 | `0x3E` | `getinputstate` | `(out: int InputState)` |
+| `0x3F` | `inputtext` | `(out: string text, in: string Title, in: string Text)` |
+| `0x41` | `inputhex` | `(out: string hex, in: string Title, in: string Text, in: string Min, in: string Max)` |
+| `0x42` | `inputdigital` | `(out: int value, in: string Title, in: string Text, in: string OffText, in: string OnText)` |
+| `0x46` | `inputint` | `(out: int value, in: string Title, in: string Text, in: int Min, in: int Max)` |
 | `0x48` | `text` | `(in: int row, in: int col, in: string text)` |
 | `0x49` | `textout` | `(in: string text, in: int row, in: int col)` |
 | `0x51` | `blankscreen` | `()` |
 | `0x52` | `messagebox` | `(in: string Title, in: string Text)` |
 | `0x53` | `infobox` | `(in: string Title, in: string Text)` |
+| `0x54` | `userboxopen` | `(in: int BoxNum, in: int Row, in: int Col, in: int Width, in: int Height, in: string Title, in: string Text)` |
 | `0x55` | `userboxclose` | `(in: int BoxNum)` |
+| `0x56` | `userboxftextout` | `(in: int BoxNum, in: string Text, in: int Row, in: int Col, in: int ForeColor, in: int BackColor)` |
 | `0x57` | `userboxclear` | `(in: int BoxNum)` |
+| `0x58` | `userboxsetcolor` | `(in: int BoxNum, in: int ForeColor, in: int BackColor)` |
 | `0x59` | `winhelp` | `(in: string helpfile)` |
 | `0x5A` | `winhelpkey` | `(in: string helpfile, in: string key)` |
 | `0x5B` | `callwin` | `(in: string cmdline)` |
@@ -292,14 +320,22 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x5D` | `viewclose` | `()` |
 | `0x60` | `INPAapiInit` | `()` |
 | `0x61` | `INPAapiEnd` | `()` |
+| `0x62` | `INPAapiJob` | `(in: string ecu, in: string Job, in: string Arg1, in: string Arg2)` |
+| `0x63` | `INPAapiResultText` | `(out: string ResultText, in: string ApiResult, in: int ApiSet, in: string Format)` |
+| `0x64` | `INPAapiResultInt` | `(out: int ResultInt, in: string ApiResult, in: int ApiSet)` |
 | `0x65` | `INPAapiResultSets` | `(out: int sets)` |
+| `0x67` | `INPAapiResultAnalog` | `(out: real ResultValue, in: string ApiResult, in: int ApiSet)` |
 | `0x68` | `INPAapiResultBinary` | `(in: string ApiResult, in: int ApiSet)` |
 | `0x69` | `INPAapiCheckJobStatus` | `(in: string RefStr)` |
 | `0x6A` | `INPAapiFsLesen2` | `(in: string ecu, in: string FileName)` |
 | `0x6B` | `INPAapiFsLesen` | `(in: string ecu, in: string FileName)` |
 | `0x6D` | `INP1apiInit` | `(out: bool rc)` |
 | `0x6E` | `INP1apiEnd` | `()` |
+| `0x6F` | `INP1apiJob` | `(in: string ecu, in: string Job, in: string Arg1, in: string Arg2)` |
 | `0x70` | `INP1apiState` | `(out: int ApiState)` |
+| `0x71` | `INP1apiResultText` | `(out: bool rc, out: string ResultText, in: string ApiResult, in: int ApiSet, in: string Format)` |
+| `0x72` | `INP1apiResultInt` | `(out: bool rc, out: int ResultInt, in: string ApiResult, in: int ApiSet)` |
+| `0x74` | `INP1apiResultReal` | `(out: bool rc, out: real ResultValue, in: string ApiResult, in: int ApiSet)` |
 | `0x76` | `INP1apiErrorCode` | `(out: int ErrorCode)` |
 | `0x77` | `INP1apiErrorText` | `(out: string ErrorText)` |
 | `0x78` | `GetBinaryDataString` | `(out: string DataString, out: int DataStringLen)` |
@@ -311,17 +347,20 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 | `0x8D` | `StrArrayDestroy` | `(in: int hStrArray)` |
 | `0x8E` | `StrArrayWrite` | `(in: int hStrArray, in: int index, in: string str)` |
 | `0x91` | `StrArrayDelete` | `(in: int hStrArray)` |
+| `0x9A` | `chr` | `(out: string ch, in: int code)` |
+| `0x9A` | `asc` | `(out: int code, in: string ch)` |
 | `0x9B` | `SetStructureMode` | `(in: int ReadWrite)` |
+| `0xA1` | `setitemrepeat` | `(in: int ItemNum, in: bool Enabled)` |
 
 ### Unmapped Functions
 
 Functions still requiring research:
-- `setitem`, `setitemrepeat` — dynamic menu item handling
-- `callstatemachine` — nested state machine calls
-- Various conversion and DTM functions
+- DTM/WinEldi functions (not available in this INPA build)
+- Remaining conversion helpers (e.g., hexconvert, inttoreal, realtoint, bytetoint, inttolong, longtoreal)
+- Input/output variants not yet mapped (inputnum, input2text/hex/int, sim* helpers)
 
 **Recently mapped (see Section 8):**
-- `setmenu` (0x01), `setscreen` (0x04), `setstatemachine` (0x05), `setstate` (0x06)
+- String/conversion helpers, input/userbox functions, PEM helpers, and EDIABAS INPAapi/INP1api entries
 
 See `docs/research/system-function-ids-complete.md` for full details.
 
@@ -709,7 +748,7 @@ Items requiring further research:
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Complete system function IDs | ⚠️ 62/108 | ~46 functions unmapped |
+| Complete system function IDs | ⚠️ 97/108 | 11 functions unmapped |
 | Constant Data complex entries | ⚠️ Partial | Multi-type sequences unclear |
 | ITEMREPEAT bytecode | ⚠️ Unknown | Dynamic menu items |
 
