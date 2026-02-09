@@ -45,7 +45,7 @@ export type Opcode =
   | "JMP"
   | "CALL_USER"
   | "CALL_API"
-  | "PUSH_HANDLE"
+  | "PUSH_UI_HANDLE"
   | "SCREEN_START"
   | "LINE"
   | "ITEM"

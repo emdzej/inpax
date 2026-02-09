@@ -10,7 +10,7 @@ const Opcodes = {
   JMP: "JMP",
   CALL_USER: "CALL_USER",
   CALL_API: "CALL_API",
-  PUSH_HANDLE: "PUSH_HANDLE",
+  PUSH_UI_HANDLE: "PUSH_UI_HANDLE",
   SCREEN_START: "SCREEN_START",
   LINE: "LINE",
   ITEM: "ITEM",
@@ -87,7 +87,7 @@ export const decodeInstructions = (
 
       const handle = decodeUint16(view, cursor + 1);
       instructions.push(
-        createInstruction(Opcodes.PUSH_HANDLE, cursor, 4, [handle], buffer)
+        createInstruction(Opcodes.PUSH_UI_HANDLE, cursor, 4, [handle], buffer)
       );
       cursor += 4;
       continue;

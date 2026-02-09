@@ -15,7 +15,7 @@ describe("decodeInstructions", () => {
       0x00, 0x0e, 0x04, 0x00, // JMP 4
       0x0c, 0x80, 0x10, 0x00, // CALL_USER 16
       0x0c, 0x81, 0x48, 0x00, // CALL_API 72
-      0x02, 0x40, 0x00, 0x00, // PUSH_HANDLE 64
+      0x02, 0x40, 0x00, 0x00, // PUSH_UI_HANDLE 64
       0x21, // SCREEN_START
       0x22, // LINE
       0x24, // ITEM
@@ -35,7 +35,7 @@ describe("decodeInstructions", () => {
     expect(instructions[6]).toMatchObject({ opcode: "JMP", operands: [4], offset: 20, size: 4 });
     expect(instructions[7]).toMatchObject({ opcode: "CALL_USER", operands: [16], offset: 24, size: 4 });
     expect(instructions[8]).toMatchObject({ opcode: "CALL_API", operands: [72], offset: 28, size: 4 });
-    expect(instructions[9]).toMatchObject({ opcode: "PUSH_HANDLE", operands: [64], offset: 32, size: 4 });
+    expect(instructions[9]).toMatchObject({ opcode: "PUSH_UI_HANDLE", operands: [64], offset: 32, size: 4 });
     expect(instructions[10]).toMatchObject({ opcode: "SCREEN_START", operands: [], offset: 36, size: 1 });
     expect(instructions[11]).toMatchObject({ opcode: "LINE", operands: [], offset: 37, size: 1 });
     expect(instructions[12]).toMatchObject({ opcode: "ITEM", operands: [], offset: 38, size: 1 });
