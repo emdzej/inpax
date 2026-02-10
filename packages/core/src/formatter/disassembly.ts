@@ -39,6 +39,15 @@ const formatOperands = (instruction: Instruction, options: Required<FormatOption
     return "";
   }
 
+  // Format variable access with scope (PUSH_VAR_ADDR, PUSH_VAR_VAL)
+  if (
+    (instruction.opcode === "PUSH_VAR_ADDR" || instruction.opcode === "PUSH_VAR_VAL") &&
+    instruction.scope !== undefined
+  ) {
+    const index = instruction.operands[0];
+    return `${instruction.scope}[${index}]`;
+  }
+
   if (instruction.opcode === "CALL_API") {
     const funcId = instruction.operands[0];
     const resolved = options.resolveNames ? getSystemFunction(funcId) : undefined;
