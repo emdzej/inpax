@@ -502,20 +502,38 @@ System functions are called via `0C 81 [ID] 00`. IDs are **hardcoded** in the VM
 
 ## 9. Import32 / DLL Calls
 
-External DLL functions are imported using `import32` syntax and stored as signature strings in the IPO.
+External DLL functions are imported using `import32` (32-bit) or `import` (16-bit) syntax and stored as signature strings in the IPO.
 
 ### Source Syntax
 
 ```c
+// 32-bit DLLs
 import32 "Convention" lib "DLL::Function" Alias(parameters);
+
+// 16-bit DLLs (legacy, same bytecode format)
+import "Convention" lib "DLL::Function" Alias(parameters);
 ```
 
 ### Binary Format
 
-The IPO contains import strings in format:
+Both `import` and `import32` produce **identical bytecode format**. The IPO contains import strings in format:
 ```
 DLL::Function:convention.signature
 ```
+
+### 16-bit vs 32-bit Differences
+
+The only difference between `import` and `import32` is the **case of the calling convention letter**:
+
+| Convention | 16-bit (`import`) | 32-bit (`import32`) |
+|------------|-------------------|---------------------|
+| Pascal | `P` | `p` |
+| C/cdecl | `C` | `c` |
+| Stdcall | `S` | `s` |
+
+**Parser recommendation:** Treat calling convention case-insensitively.
+
+**Research:** See `docs/research/import16-research.md` for detailed analysis (issue #65).
 
 ### Examples from Production Files
 
@@ -525,15 +543,17 @@ api32.DLL::__apiGetConfig:c.lsS%I
 INPA_LIB32.DLL::SaveAsDialogBox:c.sSi%I
 XTRACT32.DLL::XTRACT:c.siSl%I
 kernel32::OpenFile:c.stLi%I
+user.exe::MessageBox:P.issi%I          (16-bit example)
 ```
 
 ### Signature Decoding
 
 | Char | Meaning | Direction |
 |------|---------|-----------|
-| `c` | Calling convention: cdecl | — |
-| `s` | string (LPCSTR) | input |
-| `S` | String buffer (LPSTR) | output |
+| `c`/`C` | Calling convention: cdecl | — |
+| `p`/`P` | Calling convention: pascal | — |
+| `s`/`S` (in params) | string (LPCSTR) | input |
+| `S` (in params) | String buffer (LPSTR) | output |
 | `i` | int (32-bit) | input |
 | `l` | long (32-bit) | input |
 | `%I` | Returns int | return value |
