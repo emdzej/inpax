@@ -4,13 +4,18 @@ const PREAMBLE_TAIL = [0x0a, 0x0a, 0x00] as const;
 
 const textDecoder = new TextDecoder("ascii");
 
+// Section type markers found in IPO binary format
+// Note: 0x05 marks ALL functions (not just LOGTABLE wrappers), so we use inference for that
 const SECTION_TYPE_MARKERS: Record<number, SectionType> = {
   0x01: "screen",
   0x02: "menu",
   0x03: "statemachine",
-  0x04: "logtable-data",
-  0x05: "logtable-func"
+  0x04: "logtable-data"
+  // 0x05 is intentionally omitted - it marks any function, use inferSectionType() for details
 };
+
+// Marker 0x05 is used for all functions (needs further inference)
+const FUNCTION_MARKER = 0x05;
 
 const isPrintableAscii = (byte: number): boolean => byte >= 0x20 && byte <= 0x7e;
 
@@ -43,11 +48,14 @@ const inferSectionType = (name: string): SectionType => {
     return "control";
   }
 
+  // LOGTABLE data section (prefixed with space + "LT_")
   if (/^LT_/i.test(name)) {
     return "logtable-data";
   }
 
-  if (/^lt_/i.test(name)) {
+  // LOGTABLE wrapper function (lowercase lt_ prefix)
+  // Only classify as logtable-func if it follows naming convention
+  if (/^lt_/i.test(name) && !/^LT_/.test(name)) {
     return "logtable-func";
   }
 

@@ -629,7 +629,9 @@ while (i < 5) {
 | `0x02` | MENU | INIT block (mandatory) |
 | `0x03` | STATEMACHINE | INIT block + states |
 | `0x04` | LOGTABLE data | Lookup table entries (`LT_` prefix) |
-| `0x05` | LOGTABLE wrapper | Parameter handling function |
+| `0x05` | Function | **All functions** (user, inpainit/exit, LOGTABLE wrapper) |
+
+> **Note on marker 0x05:** This marker is used for ALL function types, not just LOGTABLE wrappers. The disassembler uses naming conventions to distinguish: `lt_*` = LOGTABLE wrapper, otherwise = regular function. See `docs/research/logtable-section-type-research.md` for details (issue #72).
 
 ### SCREEN Definition
 
