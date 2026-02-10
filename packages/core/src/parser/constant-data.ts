@@ -124,6 +124,7 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
     throw new Error("Constant Data preamble not found");
   }
 
+  const dataOffset = offset;
   offset += CONSTANT_DATA_PREAMBLE.length;
   const endOffset = findNextSectionOffset(buffer, offset);
 
@@ -141,6 +142,7 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
   }
 
   const parseNext = (): void => {
+    const markerOffset = offset;
     const marker = buffer[offset];
 
     if (marker === TypeMarkers.STRING) {
@@ -153,7 +155,8 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
       const value = textDecoder.decode(valueBytes);
       constants.push({
         type: "string",
-        value
+        value,
+        offset: markerOffset
       });
 
       offset = end + 1;
@@ -168,7 +171,8 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
       const value = view.getUint8(offset + 1);
       constants.push({
         type: "int",
-        value
+        value,
+        offset: markerOffset
       });
 
       offset += 2;
@@ -183,7 +187,8 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
       const value = view.getUint16(offset + 1, true);
       constants.push({
         type: "int",
-        value
+        value,
+        offset: markerOffset
       });
 
       offset += 3;
@@ -198,7 +203,8 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
       const value = view.getUint32(offset + 1, true);
       constants.push({
         type: "long",
-        value
+        value,
+        offset: markerOffset
       });
 
       offset += 5;
@@ -213,7 +219,8 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
       const value = view.getFloat64(offset + 1, true);
       constants.push({
         type: "real",
-        value
+        value,
+        offset: markerOffset
       });
 
       offset += 9;
@@ -232,7 +239,8 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
 
       constants.push({
         type: "bool",
-        value: byte === 0x01
+        value: byte === 0x01,
+        offset: markerOffset
       });
 
       offset += 2;
@@ -261,6 +269,7 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
   }
 
   return {
-    constants
+    constants,
+    offset: dataOffset
   };
 };

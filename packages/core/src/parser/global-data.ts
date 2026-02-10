@@ -107,6 +107,7 @@ export const parseGlobalData = (buffer: Uint8Array): GlobalData => {
     throw new Error("Global Data preamble not found");
   }
 
+  const dataOffset = offset;
   offset += GLOBAL_DATA_PREAMBLE.length;
   if (offset + 2 > buffer.length) {
     throw new Error("Global Data section is truncated before variable count");
@@ -134,6 +135,7 @@ export const parseGlobalData = (buffer: Uint8Array): GlobalData => {
 
   return {
     count,
-    variables
+    variables,
+    offset: dataOffset
   };
 };

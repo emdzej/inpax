@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { decodeInstructions } from "../../parser/opcode-decoder.js";
 import { formatDisassembly, formatInstruction } from "../disassembly.js";
-import type { Instruction } from "../../parser/types.js";
+import type { Instruction, Section } from "../../parser/types.js";
 
 const bytes = (...values: number[]): Uint8Array => Uint8Array.from(values);
 
@@ -17,6 +17,43 @@ describe("formatInstruction", () => {
 
     expect(formatInstruction(instruction)).toBe(
       "0x0042: CALL_API    INPAapiInit (0x60)"
+    );
+  });
+
+  it("formats CALL_USER with resolved function name from sections", () => {
+    const instruction: Instruction = {
+      offset: 0x100,
+      opcode: "CALL_USER",
+      operands: [0x02],
+      raw: bytes(0x0b, 0x00, 0x02, 0x00),
+      size: 4
+    };
+
+    const sections = new Map<string, Section>();
+    sections.set("Global Data", { name: "Global Data", offset: 0, size: 0, type: "global" });
+    sections.set("Constant Data", { name: "Constant Data", offset: 0, size: 0, type: "constant" });
+    sections.set("my_func", { name: "my_func", offset: 0, size: 0, type: "function" });
+
+    expect(formatInstruction(instruction, { sections })).toBe(
+      "0x0100: CALL_USER   my_func (0x02)"
+    );
+  });
+
+  it("formats CALL_USER with CONTROL block #", () => {
+    const instruction: Instruction = {
+      offset: 0x200,
+      opcode: "CALL_USER",
+      operands: [0x01],
+      raw: bytes(0x0b, 0x00, 0x01, 0x00),
+      size: 4
+    };
+
+    const sections = new Map<string, Section>();
+    sections.set("Main", { name: "Main", offset: 0, size: 0, type: "function" });
+    sections.set("#", { name: "#", offset: 0, size: 0, type: "control" });
+
+    expect(formatInstruction(instruction, { sections })).toBe(
+      "0x0200: CALL_USER   # (0x01)"
     );
   });
 });

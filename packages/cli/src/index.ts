@@ -123,7 +123,7 @@ const runInfo = (filePath: string): void => {
     `  Control blocks: ${typeCounts.control ?? 0}`
   );
   console.log(
-    `  Logtable wrappers: ${typeCounts["logtable-func"] ?? 0}, Logtable data: ${typeCounts["logtable-data"] ?? 0}, Logtable entries: ${logtableEntries}`
+    `  Logtable data: ${typeCounts["logtable-data"] ?? 0}, Logtable entries: ${logtableEntries}`
   );
   console.log(`Globals: ${ipo.globalData.count}`);
   console.log(`Constants: ${constantsCount}`);
@@ -132,6 +132,27 @@ const runInfo = (filePath: string): void => {
 const runDisasm = (filePath: string, options: CliOptions): void => {
   const buffer = readFile(filePath);
   const ipo = parseIpo(buffer);
+
+  const outputs: string[] = [];
+
+  // Global Variables
+  if (ipo.globalData.count > 0) {
+    outputs.push("=== Global Variables ===");
+    ipo.globalData.variables.forEach((type, index) => {
+      outputs.push(`[${index}] offset=0x${formatHex(ipo.globalData.offset, 4)} type=${type}`);
+    });
+    outputs.push("");
+  }
+
+  // Constants
+  if (ipo.constantData.constants.length > 0) {
+    outputs.push("=== Constants ===");
+    ipo.constantData.constants.forEach((constant, index) => {
+      const value = constant.type === "string" ? `"${constant.value}"` : constant.value;
+      outputs.push(`[${index}] offset=0x${formatHex(constant.offset, 4)} type=${constant.type.padEnd(6)} value=${value}`);
+    });
+    outputs.push("");
+  }
 
   const allSections = Array.from(ipo.sections.values()).filter(
     (section) => section.type !== "global" && section.type !== "constant"
@@ -145,8 +166,6 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
     console.log("No disassemblable sections found.");
     return;
   }
-
-  const outputs: string[] = [];
   
   // Track which control sections we've output (to nest them under LINE functions)
   const outputControlSections = new Set<string>();
@@ -186,7 +205,8 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
     outputs.push(
       formatDisassembly(instructions, {
         showRawBytes: options.raw,
-        resolveNames: options.resolve
+        resolveNames: options.resolve,
+        constantData: ipo.constantData
       })
     );
     
@@ -224,7 +244,8 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
         // Indent CONTROL disassembly
         const ctrlDisasm = formatDisassembly(ctrlInstructions, {
           showRawBytes: options.raw,
-          resolveNames: options.resolve
+          resolveNames: options.resolve,
+          constantData: ipo.constantData
         });
         outputs.push(ctrlDisasm.split("\n").map((line) => `  ${line}`).join("\n"));
       }
@@ -248,7 +269,8 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
       outputs.push(
         formatDisassembly(ctrlInstructions, {
           showRawBytes: options.raw,
-          resolveNames: options.resolve
+          resolveNames: options.resolve,
+          constantData: ipo.constantData
         })
       );
     }

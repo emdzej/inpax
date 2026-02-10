@@ -242,9 +242,21 @@ export const decodeInstructions = (
           continue;
         }
 
-        const index = decodeUint16(view, cursor + 2);
+        const index = buffer[cursor + 2];
+        const scopeByte = buffer[cursor + 3];
+        const scope = scopeFromByte(scopeByte);
+
+        if (scope !== undefined) {
+          instructions.push(
+            createInstruction(Opcodes.PUSH_VAR_VAL, cursor, 4, [index], buffer, scope)
+          );
+          cursor += 4;
+          continue;
+        }
+
+        const fullIndex = decodeUint16(view, cursor + 2);
         instructions.push(
-          createInstruction(Opcodes.PUSH_VAR_VAL, cursor, 4, [index], buffer)
+          createInstruction(Opcodes.PUSH_VAR_VAL, cursor, 4, [fullIndex], buffer)
         );
         cursor += 4;
         continue;

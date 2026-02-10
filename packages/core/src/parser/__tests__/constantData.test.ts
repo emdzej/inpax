@@ -14,10 +14,10 @@ describe("parseConstantData", () => {
     expect(result.constants.length).toBe(724);
 
     // First constant should be 'inpa.h'
-    expect(result.constants[0]).toEqual({ type: "string", value: "inpa.h" });
+    expect(result.constants[0]).toMatchObject({ type: "string", value: "inpa.h" });
     
     // Second constant should be 'BMW_STD.H'
-    expect(result.constants[1]).toEqual({ type: "string", value: "BMW_STD.H" });
+    expect(result.constants[1]).toMatchObject({ type: "string", value: "BMW_STD.H" });
 
     // Check various types exist
     const types = new Set(result.constants.map((c) => c.type));
