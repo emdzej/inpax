@@ -1,236 +1,206 @@
-# Local Variables Research - Issue #63
+# Local Variables Research
 
+> **Issue:** #63  
 > **Status:** Complete  
 > **Date:** 2026-02-10  
-> **Author:** Research Agent
-
----
+> **Researcher:** Marek (via subagent)
 
 ## Executive Summary
 
-This research investigates how local variables in user-defined functions are represented in INPA bytecode. The key discovery is that **local variables use a scope-based addressing scheme** within the existing opcode format, rather than a separate "Local Data" section.
+Local variables in INPA bytecode are **NOT stored in Global Data**. Instead:
 
----
+1. Functions with local variables emit a **ENTER_LOCAL_FRAME** instruction at the start
+2. Variable references use a **scope byte** (high byte of index) to distinguish:
+   - `0x00` = Global variable
+   - `0x01` = Local variable
+   - `0x02` = Function parameter
+3. OUT parameters use a special **DEREF_OUT_PARAM** opcode (`0x07`)
 
-## Test Files
+## Test Files Compiled
 
-### LOCL01.ips — Function with local variable
+| File | Source | Description |
+|------|--------|-------------|
+| LOCL01.ipo | `test_func() { int local_x; local_x = 42; }` | Simple local variable |
+| LOCL02.ipo | `add_one(in: int x, out: int result) { int temp; ... }` | Parameters + local |
+| LOCL03.ipo | Nested functions with global + locals | Scope interaction |
+
+## Key Findings
+
+### 1. Local Frame Initialization
+
+Functions with local variables start with:
+```
+XX 00 08 51 00 00
+```
+
+Where `XX` seems to encode frame info (possibly size or flags). The `08 51` pattern (`0x51` = 'Q') is a marker.
+
+**Examples observed:**
+- `05 00 08 51 00 00` - test_func with 1 local
+- `0a 00 08 51 00 00` - add_one with 2 params + 1 local  
+- `06 00 08 51 00 00` - inpainit with 1 local
+- `07 00 08 51 00 00` - outer with 1 local
+
+Functions **without** local variables (like `inpaexit`) do NOT have this sequence.
+
+### 2. Variable Scope Encoding
+
+Variable indices are 16-bit, with the high byte indicating scope:
+
+| High Byte | Scope | Example |
+|-----------|-------|---------|
+| `0x00` | Global variable | `01 00 00` = PUSH_ADDR global[0] |
+| `0x01` | Local variable | `01 01 01` = PUSH_ADDR local[1] |
+| `0x02` | Function parameter | `01 02 02` = PUSH_ADDR param[2] |
+
+### 3. New Opcodes Discovered
+
+#### `0x07` - DEREF_OUT_PARAM
+Used to get the target address for OUT parameter assignment:
+```
+07 02 01 = DEREF_OUT_PARAM param[2], scope=01
+```
+
+This dereferences the pointer passed for an OUT parameter so you can store a value there.
+
+#### `0x0F` - CALL_PREPARE (tentative)
+Appears before function calls that pass arguments:
+```
+0f 00 00 00 = CALL_PREPARE
+```
+
+May initialize the argument passing mechanism.
+
+### 4. Global Data Section
+
+**IMPORTANT:** The Global Data section only contains **global variables**, not locals or parameters.
+
+| File | Global Count | Variables |
+|------|--------------|-----------|
+| LOCL01.ipo | 1 | (implicit from inpa.h?) |
+| LOCL02.ipo | 1 | (implicit from inpa.h?) |
+| LOCL03.ipo | 2 | global_x + 1 from inpa.h |
+
+### 5. Parameter Passing Convention
+
+For a function call like `add_one(5, val)`:
+
+1. `0F 00 00 00` - CALL_PREPARE
+2. `01 01 02` - PUSH_PARAM_ADDR of val (for OUT param, pass address)
+3. `02 02 00 00` - PUSH constant 5 (for IN param, pass value)
+4. `0C 80 04 00` - CALL_USER add_one
+
+**IN parameters:** passed by value  
+**OUT/INOUT parameters:** passed by address
+
+## Bytecode Analysis
+
+### LOCL01 - Simple Local
+
+Source:
 ```c
-test_func()
-{
+test_func() {
     int local_x;
     local_x = 42;
 }
 ```
 
-### LOCL02.ips — Function with parameters + local
+Bytecode:
+```
+05 00 08 51 00 00  ; ENTER_LOCAL_FRAME(5)
+01 01 01           ; PUSH_LOCAL_ADDR local[1]
+06 02 00           ; PUSH_CONST const[2] (=42)
+05 00 01           ; STORE
+0e 00 00 00        ; RET
+```
+
+### LOCL02 - Parameters + Local
+
+Source:
 ```c
-add_one(in: int x, out: int result)
-{
+add_one(in: int x, out: int result) {
     int temp;
     temp = x + 1;
     result = temp;
 }
 ```
 
-### LOCL03.ips — Nested functions with locals + global
-```c
-int global_x;
-
-inner() { int inner_local; inner_local = global_x; }
-outer() { int outer_local; outer_local = 1; inner(); }
+Bytecode:
 ```
+0a 00 08 51 00 00  ; ENTER_LOCAL_FRAME(10)
+01 02 00           ; PUSH_GLOBAL_ADDR ??? (misparse?)
+01 01 01           ; PUSH_LOCAL_ADDR local[1] (temp)
+09 60 00           ; ALU_ADD
+06 02 02           ; PUSH_PARAM_VAL param[2] (x)
+05 00 01           ; STORE to temp
+01 02 02           ; PUSH_PARAM_ADDR param[2]
+07 02 01           ; DEREF_OUT_PARAM - get result's target
+05 00 01           ; STORE
+0e 00 00 00        ; RET
+```
+
+## Implications for Disassembler
+
+### Required Updates
+
+1. **Add scope-aware variable display:**
+   - Parse high byte of index to determine scope
+   - Show `global[N]`, `local[N]`, or `param[N]`
+
+2. **New opcodes to implement:**
+   - `0x07` - DEREF_OUT_PARAM
+   - `0x0F` - CALL_PREPARE (tentative)
+
+3. **Local frame tracking:**
+   - Detect `XX 00 08 51 00 00` pattern
+   - Track local variable count per function
+
+4. **Parameter parsing:**
+   - Distinguish IN (by value) vs OUT/INOUT (by reference)
+
+### Section Preamble Interpretation
+
+The first byte of section preamble appears to encode something about locals:
+- `04 00 00 00 0a 0a 00` - function with locals
+- `02 00 00 00 0a 0a 00` - inpainit (with local `val`)
+- `03 00 00 00 0a 0a 00` - inpaexit (no locals)
+- `00 00 00 00 0a 0a 00` - __inpa_startup__ (system func)
+
+## Open Questions
+
+1. **Frame size calculation:** How is the `XX` in `XX 00 08 51` computed? It doesn't directly match local count.
+
+2. **Stack layout:** Exact memory layout of locals vs params on stack.
+
+3. **`0x51` marker:** Why 'Q'? Historical artifact or mnemonic?
+
+4. **INOUT semantics:** Are they identical to OUT at bytecode level?
+
+## Conclusion
+
+Local variables in INPA use a **scope byte** mechanism rather than separate sections. This is efficient and allows the VM to use a simple stack frame model. The Global Data section truly only contains globals.
+
+The key insight is that the **same opcodes** (`01` PUSH_ADDR, `05` STORE, `06` PUSH_VAL) work for all variable types - the scope byte in the index tells the VM where to look.
 
 ---
 
-## Key Findings
+## Appendix: Raw Bytecode Dumps
 
-### 1. Function Prologue Opcode (`08 51`)
-
-A new opcode sequence appears at the start of every user-defined function body:
-
+### LOCL01.ipo (239 bytes)
 ```
-[u16: frame_info] 08 51 00 00
+test_func bytecode: 0500085100000101010006020000050001000e000000
+inpainit bytecode:  03000f0000000c8004000e000000
 ```
 
-| File | Function | Frame Info | Notes |
-|------|----------|------------|-------|
-| LOCL01 | test_func | `05 00` | 1 local var |
-| LOCL02 | add_one | `0a 00` | 2 params + 1 local |
-| LOCL03 | inner | `05 00` | 1 local var |
-| LOCL03 | outer | `07 00` | 1 local var |
-
-**Interpretation:** The frame_info field likely encodes stack frame size in bytes.
-
-### 2. Variable Scope Encoding
-
-The most significant discovery is the **scope-based variable addressing**:
-
-**Format:**
+### LOCL02.ipo (272 bytes)
 ```
-[opcode] [scope] [index] 00
+add_one bytecode:  0a000851000001020000010101000960000006020200050001000102020007020100050001000e000000
+inpainit bytecode: 0600085100000f00000001010200020200000c8004000e000000
 ```
 
-**Scope Values:**
-| Scope Byte | Meaning | Example |
-|------------|---------|---------|
-| `0x00` | Global variable | `01 00 01 00` = global var #1 |
-| `0x01` | Local variable | `01 01 01 00` = local var #1 |
-| `0x02` | Function parameter | `01 02 00 00` = param #0 |
-
-**Opcodes:**
-| Opcode | Mnemonic | Purpose |
-|--------|----------|---------|
-| `0x01` | `PUSH_VAR_ADDR` | Push address for writing (L-value) |
-| `0x07` | `PUSH_VAR_VAL` | Push value for reading (R-value) |
-
-### 3. No Separate Local Data Section
-
-Unlike global variables which have a dedicated "Global Data" section with type markers, **local variables are NOT stored in any data section**. They exist only:
-1. On the stack frame (at runtime)
-2. As scope-indexed references in bytecode
-
-### 4. Parameter Handling (in/out/inout)
-
-From LOCL02 analysis:
-
-```c
-add_one(in: int x, out: int result)
-{
-    int temp;
-    temp = x + 1;
-    result = temp;
-}
+### LOCL03.ipo (295 bytes)
 ```
-
-**Parameter indexing:**
-- `x` (in param) → scope=0x02, index=0
-- `result` (out param) → scope=0x02, index=2
-- `temp` (local) → scope=0x01, index=1
-
-**Bytecode pattern for `temp = x + 1`:**
+inner bytecode:    0500085100000100010006020000050001000e000000
+outer bytecode:    0700085100000101010006020000050001000f0000000c8004000e000000
+inpainit bytecode: 06000101020006000100050001000f0000000c8005000e000000
 ```
-01 02 00 00    ; PUSH_VAR_ADDR scope=param idx=0 (x)
-01 01 01 00    ; PUSH_VAR_ADDR scope=local idx=1 (temp target)
-09 60          ; ALU_OP + (add)
-...
-05 00          ; STORE
-```
-
-**Out parameter assignment uses opcode 0x07:**
-```
-01 02 02 00    ; PUSH_VAR_ADDR scope=param idx=2 (result)
-07 02 01 00    ; PUSH_VAR_VAL scope=param idx=1 (read temp value)
-05 00          ; STORE
-```
-
-### 5. Global Variable Access (Unchanged)
-
-Global variables in functions use the same scope system with scope=0x00:
-
-From LOCL03 `inner()`:
-```
-01 00 01 00    ; PUSH_VAR_ADDR scope=global idx=1 (global_x)
-```
-
----
-
-## Bytecode Examples
-
-### LOCL01 - test_func Body
-```
-Offset  Bytes           Interpretation
-------  --------------  --------------------------------
-0x1F    05 00           Frame info (5 bytes)
-0x21    08 51 00 00     FUNC_PROLOGUE
-0x25    01 01 01 00     PUSH_VAR_ADDR local[1] (local_x)
-0x29    06 02 00 00     PUSH_CONST idx=2 (42)
-0x2D    05 00           STORE
-0x2F    01 00           ??? (padding?)
-0x31    0e 00 00 00     JMP 0 (return)
-```
-
-### LOCL02 - add_one Body (temp = x + 1; result = temp)
-```
-Offset  Bytes           Interpretation
-------  --------------  --------------------------------
-0x1F    0a 00           Frame info (10 bytes)
-0x21    08 51 00 00     FUNC_PROLOGUE
-0x25    01 02 00 00     PUSH_VAR_ADDR param[0] (x)
-0x29    01 01 01 00     PUSH_VAR_ADDR local[1] (temp)
-0x2D    09 60           ALU_OP + 
-0x2F    00 00           ??? 
-0x31    06 02 02 00     PUSH_CONST idx=2 (1)
-0x35    05 00 01 00     STORE + ???
-0x39    01 02 02 00     PUSH_VAR_ADDR param[2] (result)
-0x3D    07 02 01 00     PUSH_VAR_VAL param[1] (temp)
-0x41    05 00 01 00     STORE + ???
-0x45    0e 00 00 00     JMP 0 (return)
-```
-
----
-
-## Comparison with Existing Documentation
-
-### Previously Documented (IPO_Structure.md)
-| Opcode | Format | Description |
-|--------|--------|-------------|
-| `01 [u16]` | `PUSH_VAR_ADDR` | Push global variable address |
-| `00 01 [u16]` | `PUSH_VAR_VAL` | Push global variable value |
-
-### New Understanding
-The format is actually:
-| Opcode | Format | Description |
-|--------|--------|-------------|
-| `01 [scope] [idx] 00` | `PUSH_VAR_ADDR` | Push variable address (any scope) |
-| `07 [scope] [idx] 00` | `PUSH_VAR_VAL` | Push variable value (any scope) |
-
-Where scope: 0x00=global, 0x01=local, 0x02=param
-
----
-
-## New Opcodes Discovered
-
-| Opcode | Mnemonic | Format | Description |
-|--------|----------|--------|-------------|
-| `08 51` | `FUNC_PROLOGUE` | `08 51 00 00` | Function entry marker |
-| `07` | `PUSH_VAR_VAL` | `07 [scope] [idx] 00` | Read variable value |
-
----
-
-## Implementation Implications
-
-### For Disassembler
-1. Add `FUNC_PROLOGUE` (0x08 0x51) opcode handler
-2. Modify variable reference parsing to handle scope byte
-3. Add scope labels: `global[N]`, `local[N]`, `param[N]`
-
-### For Interpreter
-1. Implement stack frame allocation based on frame_info
-2. Handle scope-based variable resolution
-3. Parameters passed via dedicated param slots (not stack)
-
----
-
-## Unanswered Questions
-
-1. **Frame info encoding:** Is `05 00` = 5 bytes, or encoded differently?
-2. **Opcode 0x06 variations:** `06 02` vs `06 02 02 00` - what's the difference?
-3. **Padding bytes:** `01 00` after STORE - purpose unclear
-4. **inout params:** How are they different from out? (need more test cases)
-
----
-
-## Files Generated
-
-- `/Users/emdzej/Documents/LOCL01.ipo` - Compiled test file 1
-- `/Users/emdzej/Documents/LOCL02.ipo` - Compiled test file 2  
-- `/Users/emdzej/Documents/LOCL03.ipo` - Compiled test file 3
-
----
-
-## References
-
-- Issue #63: Research: Local variables in functions
-- `docs/IPO_Structure.md` - Existing bytecode documentation
-- `docs/reference/language-guide.md` - Language syntax reference
