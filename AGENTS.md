@@ -169,9 +169,8 @@ INPAapiResultAnalog(volt, "STAT_UBATT", 1);
 5. **Formatting**: Use `analogout` for visual bars for sensor values.
 
 ## Compilation
-Use `INPACOMP.EXE filename.ips` to compile.
 
-## Batch mode / headless compilation
+Use `INPACOMP.EXE filename.ips -B output.log` to compile.
 
 ⚠️ **CRITICAL: ALWAYS use `-B` flag when compiling!**
 
@@ -192,11 +191,8 @@ C:\EC-APPS\INPA\BIN\INPACOMP.exe C:\EC-APPS\INPA\SGDAT\test.ips -B C:\EC-APPS\IN
 nodes run --node="Windows Node" ["cmd", "/c", "C:\\EC-APPS\\INPA\\BIN\\INPACOMP.exe S:\\inpax-tests\\test.ips -B S:\\inpax-tests\\test.log"]
 ```
 
-**Notes:**
-- `-B` enables batch mode (no user input / background run).
-- Optional `<errors.log>` captures compiler errors to a file (useful for CI logs).
-- Other INPA programs can be invoked with a script directly on the command line, e.g.:
-  `INPALOAD.EXE \INPA\CFGDAT\STARTGER.IPO`
+ALWAYS place .ips files in C:\EC-APPS\INPA\SGDAT\
+Output will be also in C:\EC-APPS\INPA\SGDAT\
 
 **Examples (CI / validation):**
 ```
