@@ -73,4 +73,18 @@ describe("decodeInstructions", () => {
     expect(instructions).toHaveLength(1);
     expect(instructions[0]).toMatchObject({ opcode: "FUNC_PROLOGUE", operands: [], size: 4 });
   });
+
+  it("should decode PUSH_0 opcode (0x00)", () => {
+    const buffer = bytes(
+      0x00, 0x21, // PUSH_0 (from standalone 0x00) followed by SCREEN_START
+      0x00, 0xff  // PUSH_0 followed by unknown
+    );
+    const instructions = decodeInstructions(buffer);
+
+    expect(instructions).toHaveLength(4);
+    expect(instructions[0]).toMatchObject({ opcode: "PUSH_0", size: 1 });
+    expect(instructions[1]).toMatchObject({ opcode: "SCREEN_START", size: 1 });
+    expect(instructions[2]).toMatchObject({ opcode: "PUSH_0", size: 1 });
+    expect(instructions[3]).toMatchObject({ opcode: "UNKNOWN", size: 1 });
+  });
 });

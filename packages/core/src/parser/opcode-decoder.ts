@@ -1,6 +1,7 @@
 import type { Instruction, Opcode, VariableScope } from "./types.js";
 
 const Opcodes = {
+  PUSH_0: "PUSH_0", // 0x00 - push 0 to stack
   PUSH_VAR_ADDR: "PUSH_VAR_ADDR",
   PUSH_VAR_VAL: "PUSH_VAR_VAL",
   PUSH_CONST: "PUSH_CONST",
@@ -229,7 +230,7 @@ export const decodeInstructions = (
 
     if (byte0 === 0x00) {
       if (remaining < 2) {
-        instructions.push(decodeUnknown(cursor, buffer));
+        instructions.push(createInstruction(Opcodes.PUSH_0, cursor, 1, [], buffer));
         cursor += 1;
         continue;
       }
@@ -327,6 +328,12 @@ export const decodeInstructions = (
         cursor += 4;
         continue;
       }
+
+      // If byte1 is not any of the known sub-opcodes, it might be a standalone 0x00 (PUSH_0)
+      // or we should treat it as unknown. Research says 0x00 is PUSH_0.
+      instructions.push(createInstruction(Opcodes.PUSH_0, cursor, 1, [], buffer));
+      cursor += 1;
+      continue;
     }
 
     instructions.push(decodeUnknown(cursor, buffer));
