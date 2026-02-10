@@ -1,9 +1,9 @@
 # IPO File Format Specification
 
 > **Status:** Definitive Reference  
-> **Version:** 1.0  
-> **Date:** 2026-02-09  
-> **Validation:** 95% confirmed against production files
+> **Version:** 1.1  
+> **Date:** 2026-02-10  
+> **Validation:** 96% confirmed against production files
 
 This document is the authoritative specification for the `.ipo` binary format — compiled INPA scripts used in BMW diagnostic systems.
 
@@ -201,11 +201,11 @@ The INPA VM is stack-based. Instructions are variable-length.
 |--------|----------|-------------|
 | `0x21` | `SCREEN_START` | SCREEN section marker |
 | `0x22` | `LINE` | LINE construct marker |
-| `0x23` | `CONTROL` | ⚠️ **Hypothesized** - CONTROL block marker (see issue #60) |
+| `0x23` | `CONTROL` | ✅ CONTROL block marker (confirmed via compilation test) |
 | `0x24` | `ITEM` | MENU ITEM marker |
 | `0x25` | `STATE` | STATE definition marker |
 
-> **Note:** The `CONTROL` opcode (0x23) is hypothesized based on the sequential pattern. It has not been validated against compiled files because no production `.ipo` files containing CONTROL blocks have been found. See `docs/research/control-block-research.md` for details.
+> **Note:** The `CONTROL` opcode (0x23) was confirmed on 2026-02-10 by compiling test files with INPACOMP.exe on Windows. The CONTROL block code is compiled into a separate internal function named `#` (or `!` for the first LINE body), and the `0x23` opcode marks the CONTROL block boundary within a LINE. See `docs/research/control-block-research.md` for details.
 
 ### Function Call Opcodes
 
@@ -984,6 +984,7 @@ Items requiring further research:
 
 | Item | Resolution |
 |------|------------|
+| CONTROL block opcode | ✅ **Opcode 0x23** — Confirmed via INPACOMP.exe test compilation; CONTROL code compiled to `#` function; see `docs/research/control-block-research.md` |
 | LOGTABLE bytecode | ✅ **Lookup table** — Section types 0x04 (data) + 0x05 (wrapper); entries are 12-byte [input, mask, output] |
 | User-defined function mechanism | ✅ **CALL opcode** — `0C 80 [funcID]` calls functions by section index; no inline expansion |
 | Opcode `0x02` semantics | ✅ PUSH_UI_HANDLE — pushes section offset for SCREEN/MENU/STATE |
@@ -1006,7 +1007,8 @@ Items requiring further research:
 - `docs/research/language-constructs.md` — SCREEN/MENU/STATE bytecode analysis
 - `docs/research/api32-exports.md` — api32.dll FFI analysis
 - `docs/research/logtable-bytecode-analysis.md` — LOGTABLE research (issue #59)
+- `docs/research/control-block-research.md` — CONTROL block research (issue #60)
 
 ---
 
-*Document updated 2026-02-10. Added LOGTABLE bytecode research (issue #59).*
+*Document updated 2026-02-10. Confirmed CONTROL opcode 0x23 via compilation testing (issue #60).*

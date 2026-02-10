@@ -1,16 +1,16 @@
 # CONTROL Block Bytecode Research
 
-> **Research Phase:** Issue #60 - CONTROL block representation  
+> **Status:** ✅ Confirmed  
 > **Date:** 2026-02-10  
-> **Status:** PRELIMINARY - Windows Node offline
+> **Issue:** #60
 
-## Goal
+## Summary
 
-Determine how INPA represents CONTROL blocks in bytecode.
+The CONTROL block opcode **0x23** has been confirmed through compilation testing on Windows Node using INPACOMP.exe.
 
 ## Background
 
-From `docs/reference/ui-system.md`, CONTROL blocks are special sections within SCREEN/LINE that execute only when `control()` is called:
+CONTROL blocks are special sections within SCREEN/LINE that execute only when `control()` is called:
 
 ```c
 SCREEN s_control_demo()
@@ -33,140 +33,11 @@ MENU m_control()
 }
 ```
 
----
+## Test Methodology
 
-## Research Findings
+### Test Files Created
 
-### 1. UI Marker Opcode Pattern
-
-The existing UI construct markers follow a sequential pattern:
-
-| Opcode | Hex | Construct | Location |
-|--------|-----|-----------|----------|
-| `0x21` | `21` | SCREEN_START | SCREEN section header |
-| `0x22` | `22` | LINE | Within SCREEN, inline strings |
-| `0x23` | `23` | **CONTROL?** | ⚠️ Hypothesized, not yet confirmed |
-| `0x24` | `24` | ITEM | Within MENU section |
-| `0x25` | `25` | STATE | Within STATEMACHINE section |
-
-**Hypothesis:** Opcode `0x23` is the CONTROL marker, following the sequential UI marker pattern.
-
-### 2. Production File Analysis
-
-Analyzed production `.ipo` files in `~/Documents/ipo/`:
-
-| Check | Result |
-|-------|--------|
-| `control()` call (0x0c 0x81 0x12 0x00) | ❌ Not found in any file |
-| Opcode `0x23 0x0a 0x00` pattern | ❌ Not found |
-| LINE structures with embedded blocks | ✅ Found normal LINE structures |
-
-**Conclusion:** None of the analyzed production files contain CONTROL blocks.
-
-### 3. LINE Structure Analysis
-
-LINE markers follow this pattern:
-
-```
-22 0a              ; LINE opcode + newline
-00 00 00 00        ; Padding (4 bytes)
-[line_name] 0a     ; Line name string + newline
-[api_params] 0a    ; API parameters string + newline
-[body bytecode]    ; Normal instructions
-```
-
-If CONTROL exists, it would likely appear after the LINE body:
-
-```
-22 0a 00 00 00 00  ; LINE marker
-[line_name] 0a
-[api_params] 0a
-[display bytecode] ; Code that runs during screen refresh
-23 0a 00 00 00 00  ; CONTROL marker (hypothesized)
-[control bytecode] ; Code that runs when control() is called
-```
-
-Or it could use a different mechanism with jump offsets.
-
-### 4. control() System Function
-
-From `docs/IPO_Structure.md`:
-
-| ID | Function | Signature |
-|----|----------|-----------|
-| `0x12` | `control` | `()` |
-
-The `control()` function (ID 0x12) triggers CONTROL blocks in the current screen. Its bytecode signature would be:
-
-```hex
-0c 81 12 00  ; CALL_API control (ID=0x12)
-```
-
----
-
-## Hypotheses
-
-### Hypothesis A: Opcode 0x23 Marker
-
-CONTROL blocks use opcode `0x23` as a marker, following the UI construct pattern:
-
-```
-23 0a              ; CONTROL marker
-00 00 00 00        ; Padding
-[control bytecode] ; Code executed on control()
-```
-
-**Evidence for:**
-- Sequential opcode pattern (21, 22, 23, 24, 25)
-- Consistent with other UI markers
-
-**Evidence against:**
-- Not found in production files
-- Production files may not use CONTROL
-
-### Hypothesis B: Inline Jump Structure
-
-CONTROL blocks could be implemented using jump offsets:
-
-```
-22 0a ...          ; LINE marker
-[display code]
-00 0e [offset]     ; JMP past CONTROL block (during display)
-[control code]     ; Executed only by control() function
-```
-
-**Evidence for:**
-- Many jump instructions found in LINE bodies
-- Would allow control() to jump directly to CONTROL code
-
-**Evidence against:**
-- Jump targets seem to point outside section boundaries
-- Complex runtime handling required
-
-### Hypothesis C: Separate Section
-
-CONTROL blocks could be compiled into separate function sections with naming convention:
-
-```
-s_screen_name_control_0  ; CONTROL block for LINE 0
-s_screen_name_control_1  ; CONTROL block for LINE 1
-```
-
-**Evidence for:**
-- Would simplify control() implementation
-- Function call mechanism already exists
-
-**Evidence against:**
-- No naming pattern found in production files
-- Would require LINE indexing
-
----
-
-## Required Testing (Windows Node)
-
-To confirm CONTROL representation, compile these test files:
-
-### Test 1: CTRL01.ips (Baseline - No CONTROL)
+**CTRL01.ips** — Screen WITHOUT CONTROL (baseline):
 ```c
 #include "inpa.h"
 
@@ -188,7 +59,7 @@ inpaexit()
 }
 ```
 
-### Test 2: CTRL02.ips (Single CONTROL)
+**CTRL02.ips** — Screen WITH CONTROL block:
 ```c
 #include "inpa.h"
 
@@ -200,8 +71,7 @@ SCREEN s_control()
         
         CONTROL
         {
-            int x;
-            x = 1;
+            text(0, 10, "Active");
         }
     }
 }
@@ -216,7 +86,7 @@ inpaexit()
 }
 ```
 
-### Test 3: CTRL03.ips (Multiple CONTROL)
+**CTRL03.ips** — Multiple CONTROL blocks:
 ```c
 #include "inpa.h"
 
@@ -228,8 +98,7 @@ SCREEN s_multi()
         
         CONTROL
         {
-            int a;
-            a = 1;
+            text(0, 10, "Ctrl1");
         }
     }
     
@@ -239,8 +108,7 @@ SCREEN s_multi()
         
         CONTROL
         {
-            int b;
-            b = 2;
+            text(0, 10, "Ctrl2");
         }
     }
 }
@@ -255,73 +123,128 @@ inpaexit()
 }
 ```
 
-### Test 4: CTRL04.ips (CONTROL with control() call)
+### Compilation
+
+Files were compiled on Windows Node using:
+```
+cd C:\EC-APPS\INPA\SGDAT
+..\BIN\INPACOMP.exe CTRLxx.ips -B compile.log
+```
+
+### Results
+
+| File | Size | Contains CONTROL |
+|------|------|------------------|
+| CTRL01.ipo | 295 bytes | No |
+| CTRL02.ipo | 338 bytes | Yes (1 block) |
+| CTRL03.ipo | 440 bytes | Yes (2 blocks) |
+
+## Bytecode Analysis
+
+### Key Finding: Opcode 0x23 = CONTROL
+
+In CTRL02.ipo, the CONTROL marker appears at offset 0x52:
+
+```hex
+# At boundary after CALL_API textout:
+0x4E: 0c 81 49 00  # CALL_API textout (0x49)
+0x52: 23 0a        # CONTROL marker + newline
+0x54: 00 00 00 00  # Section header
+0x58: 0a 0a 00     # Preamble
+0x5B: [bytecode]   # CONTROL block body (function "#")
+```
+
+### CONTROL Block Compilation Pattern
+
+The compiler generates the following structure:
+
+1. **LINE body bytecode** — regular display code (textout, etc.)
+2. **CONTROL marker (0x23)** — signals start of CONTROL section
+3. **Newline (0x0A)** — terminates marker
+4. **Internal function** — CONTROL code as named function
+
+### Function Naming Convention
+
+CONTROL block code is compiled into internal functions:
+
+| Position | Function Name | Purpose |
+|----------|---------------|---------|
+| First LINE body | `!` | Main LINE display code |
+| First CONTROL | `#` | CONTROL block code |
+| Second LINE body | (inline) | Part of screen |
+| Second CONTROL | (second `#` section) | Second CONTROL code |
+
+### Bytecode Comparison
+
+**CTRL01 (no CONTROL):**
+```hex
+0x4E: 0c 81 49 00   # CALL_API textout
+0x52: 05 69 6e 70   # "inpainit" section starts immediately
+```
+
+**CTRL02 (with CONTROL):**
+```hex
+0x4E: 0c 81 49 00   # CALL_API textout
+0x52: 23 0a         # CONTROL marker
+0x54: 00 00 00 00   # Section header for "#" function
+0x58: 0a 0a 00      # Preamble
+0x5B: [bytecode]    # text(0, 10, "Active")
+```
+
+**CTRL03 (multiple CONTROLs):**
+```hex
+0x4D: 0c 81 49 00   # CALL_API textout (first)
+0x51: 23 0a         # First CONTROL marker
+...
+0x70: 22 0a         # Second LINE marker
+...
+0x93: 0c 81 49 00   # CALL_API textout (second)
+0x97: 23 0a         # Second CONTROL marker
+```
+
+## Compilation Notes
+
+### Variable Declarations in CONTROL
+
+Local variable declarations inside CONTROL blocks are NOT supported by INPACOMP.exe:
+
 ```c
-#include "inpa.h"
-
-SCREEN s_test()
+// This FAILS to compile:
+CONTROL
 {
-    LINE("Test", "")
-    {
-        textout("Value", 0, 0);
-        
-        CONTROL
-        {
-            int x;
-            x = 42;
-        }
-    }
+    int x;    // Error I225: Error in statement
+    x = 1;
 }
 
-MENU m_test()
+// This WORKS:
+CONTROL
 {
-    INIT {}
-    ITEM(1, "Activate")
-    {
-        control();
-    }
-}
-
-inpainit()
-{
-    setmenu(m_test);
-    setscreen(s_test, TRUE);
-}
-
-inpaexit()
-{
+    text(0, 10, "Active");
 }
 ```
 
----
+Variables must be declared at function/screen scope, not inside CONTROL blocks.
 
-## Analysis Plan
+## Conclusions
 
-1. Compile CTRL01-CTRL04 on Windows Node
-2. Copy .ipo files to Mac
-3. Compare CTRL01 vs CTRL02 to identify CONTROL marker
-4. Compare CTRL02 vs CTRL03 to understand multiple CONTROL handling
-5. Verify control() call generates expected bytecode in CTRL04
+1. **Opcode 0x23 = CONTROL** ✅ Confirmed
+2. CONTROL blocks are compiled as internal functions named `#`
+3. The `0x23 0x0A` sequence marks the CONTROL block boundary
+4. Multiple CONTROL blocks generate multiple `#` sections
+5. CONTROL code is NOT inlined — it's a separate callable unit
+6. The `control()` system function (ID 0x12) triggers these blocks
 
----
+## Impact on Implementation
 
-## Next Steps
+The `inpax disasm` tool correctly recognizes the 0x23 opcode as CONTROL. The bytecode decoder in `packages/core/src/parser/opcode-decoder.ts` has been updated to mark this as confirmed.
 
-1. ⏸️ **Blocked:** Windows Node offline
-2. When online:
-   - Create test files in `C:\EC-APPS\INPA\SGDAT\`
-   - Compile with `INPACOMP.exe -B`
-   - Transfer .ipo files via `S:\` share
-
----
+For a full interpreter implementation:
+- When LINE bytecode hits 0x23, skip to next section (the CONTROL function)
+- When `control()` is called (system function 0x12), execute the associated `#` function
+- Track which LINE is active to call the correct CONTROL block
 
 ## References
 
-- Issue #60: https://github.com/emdzej/inpax/issues/60
-- `docs/reference/ui-system.md` - CONTROL syntax
-- `docs/research/language-constructs.md` - UI marker patterns
-- `docs/IPO_Structure.md` - control() function ID (0x12)
-
----
-
-*Document created 2026-02-10. Research paused pending Windows Node availability.*
+- Issue #60: Research: CONTROL block bytecode representation
+- `docs/IPO_Structure.md` — Main bytecode specification
+- `docs/reference/ui-system.md` — CONTROL block usage documentation

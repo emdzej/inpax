@@ -13,7 +13,7 @@ const Opcodes = {
   PUSH_UI_HANDLE: "PUSH_UI_HANDLE",
   SCREEN_START: "SCREEN_START",
   LINE: "LINE",
-  CONTROL: "CONTROL", // Hypothesized: 0x23 - needs confirmation (issue #60)
+  CONTROL: "CONTROL", // Confirmed: 0x23 - CONTROL block marker
   ITEM: "ITEM",
   STATE: "STATE",
   UNKNOWN: "UNKNOWN"
@@ -127,8 +127,7 @@ export const decodeInstructions = (
       continue;
     }
 
-    // NOTE: 0x23 hypothesized as CONTROL marker (issue #60)
-    // Needs confirmation via compilation testing on Windows Node
+    // CONTROL opcode (0x23) - confirmed 2026-02-10 via INPACOMP.exe compilation test
     if (byte0 === 0x23) {
       instructions.push(createInstruction(Opcodes.CONTROL, cursor, 1, [], buffer));
       cursor += 1;
