@@ -39,7 +39,8 @@ export type SectionType =
   | "menu"
   | "statemachine"
   | "logtable-data"
-  | "logtable-func";
+  | "logtable-func"
+  | "control";
 
 export type Section = {
   readonly name: string;
@@ -61,7 +62,7 @@ export type Opcode =
   | "PUSH_UI_HANDLE"
   | "SCREEN_START"
   | "LINE"
-  | "CONTROL" // Hypothesized: 0x23 - needs confirmation (issue #60)
+  | "CONTROL" // Confirmed: 0x23 - CONTROL block marker (issue #60)
   | "ITEM"
   | "STATE"
   | "UNKNOWN";
