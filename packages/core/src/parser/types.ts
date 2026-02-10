@@ -20,13 +20,25 @@ export type ConstantData = {
   readonly constants: readonly Constant[];
 };
 
+export type LogtableEntry = {
+  readonly input: number;
+  readonly mask: number;
+  readonly output: number;
+};
+
+export type LogtableData = {
+  readonly entries: readonly LogtableEntry[];
+};
+
 export type SectionType =
   | "global"
   | "constant"
   | "function"
   | "screen"
   | "menu"
-  | "statemachine";
+  | "statemachine"
+  | "logtable-data"
+  | "logtable-func";
 
 export type Section = {
   readonly name: string;

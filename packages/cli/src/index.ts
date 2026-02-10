@@ -6,6 +6,7 @@ import process from "node:process";
 
 import {
   decodeInstructions,
+  decodeLogtable,
   formatDisassembly,
   parseIpo
 } from "@inpax/core";
@@ -105,6 +106,11 @@ const runInfo = (filePath: string): void => {
   const version = ipo.header.version.join(".");
   const title = path.basename(filePath);
   const constantsCount = ipo.constantData.constants.length;
+  const logtableDataSections = sections.filter((section) => section.type === "logtable-data");
+  const logtableEntries = logtableDataSections.reduce((acc, section) => {
+    const logtable = decodeLogtable(buffer, section.offset, section.size);
+    return acc + logtable.entries.length;
+  }, 0);
 
   console.log(`Title: ${title}`);
   console.log(`Version: ${version}`);
@@ -112,6 +118,9 @@ const runInfo = (filePath: string): void => {
   console.log(`Sections: ${sections.length}`);
   console.log(
     `  Functions: ${typeCounts.function ?? 0}, Screens: ${typeCounts.screen ?? 0}, Menus: ${typeCounts.menu ?? 0}, State machines: ${typeCounts.statemachine ?? 0}`
+  );
+  console.log(
+    `  Logtable wrappers: ${typeCounts["logtable-func"] ?? 0}, Logtable data: ${typeCounts["logtable-data"] ?? 0}, Logtable entries: ${logtableEntries}`
   );
   console.log(`Globals: ${ipo.globalData.count}`);
   console.log(`Constants: ${constantsCount}`);
@@ -132,10 +141,31 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
 
   const outputs: string[] = [];
   for (const section of sections) {
-    const instructions = decodeInstructions(buffer, section.offset, section.size);
     outputs.push(
       `## ${section.name} (${section.type}, offset 0x${formatHex(section.offset, 4)}, size ${section.size})`
     );
+
+    if (section.type === "logtable-data") {
+      const logtable = decodeLogtable(buffer, section.offset, section.size);
+      outputs.push(`Entries: ${logtable.entries.length}`);
+
+      if (logtable.entries.length === 0) {
+        outputs.push("<empty>");
+        continue;
+      }
+
+      outputs.push(
+        logtable.entries
+          .map(
+            (entry, index) =>
+              `  [${index}] input=0x${formatHex(entry.input, 8)} mask=0x${formatHex(entry.mask, 8)} output=0x${formatHex(entry.output, 8)}`
+          )
+          .join("\n")
+      );
+      continue;
+    }
+
+    const instructions = decodeInstructions(buffer, section.offset, section.size);
 
     if (instructions.length === 0) {
       outputs.push("<empty>");

@@ -4,6 +4,7 @@ import { parseGlobalData } from "./global-data.js";
 import { parseHeader } from "./header.js";
 import { parseSections } from "./sections.js";
 import { decodeInstructions } from "./opcode-decoder.js";
+import { decodeLogtable } from "./logtable-decoder.js";
 import { parseImport32 } from "./import32.js";
 
 export type {
@@ -13,6 +14,8 @@ export type {
   IpoFile,
   IpoHeader,
   Instruction,
+  LogtableData,
+  LogtableEntry,
   Opcode,
   Section,
   SectionType,
@@ -28,6 +31,7 @@ export type {
 export { parseConstantData } from "./constant-data.js";
 export { parseGlobalData } from "./global-data.js";
 export { decodeInstructions } from "./opcode-decoder.js";
+export { decodeLogtable } from "./logtable-decoder.js";
 export { parseImport32 } from "./import32.js";
 
 export const parseIpo = (buffer: Buffer): IpoFile => {

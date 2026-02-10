@@ -1,5 +1,6 @@
 export {
   decodeInstructions,
+  decodeLogtable,
   parseConstantData,
   parseGlobalData,
   parseIpo,
@@ -23,6 +24,8 @@ export type {
   Import32ReturnType,
   IpoFile,
   IpoHeader,
+  LogtableData,
+  LogtableEntry,
   Opcode,
   Section,
   SectionType,
