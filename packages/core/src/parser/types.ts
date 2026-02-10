@@ -3,7 +3,7 @@ export type IpoHeader = {
   readonly magic: string;
 };
 
-export type VariableType = "bool" | "byte" | "int" | "real" | "string";
+export type VariableType = "bool" | "byte" | "int" | "long" | "real" | "string";
 
 export type GlobalData = {
   readonly count: number;
@@ -13,6 +13,7 @@ export type GlobalData = {
 export type Constant =
   | { readonly type: "string"; readonly value: string }
   | { readonly type: "int"; readonly value: number }
+  | { readonly type: "long"; readonly value: number }
   | { readonly type: "real"; readonly value: number }
   | { readonly type: "bool"; readonly value: boolean };
 

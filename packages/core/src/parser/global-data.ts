@@ -8,8 +8,9 @@ const GLOBAL_DATA_HEADER = new Uint8Array([0x01, 0x00, 0x04]);
 
 const TypeMarkers = {
   BOOL: 0x01,
+  BYTE: 0x02,
   INT: 0x03,
-  BYTE: 0x04,
+  LONG: 0x04,
   REAL: 0x05,
   STRING: 0x06,
   STRING_ALT: 0x12
@@ -63,10 +64,12 @@ const toVariableType = (marker: number): VariableType => {
   switch (marker) {
     case TypeMarkers.BOOL:
       return "bool";
-    case TypeMarkers.INT:
-      return "int";
     case TypeMarkers.BYTE:
       return "byte";
+    case TypeMarkers.INT:
+      return "int";
+    case TypeMarkers.LONG:
+      return "long";
     case TypeMarkers.REAL:
       return "real";
     case TypeMarkers.STRING:

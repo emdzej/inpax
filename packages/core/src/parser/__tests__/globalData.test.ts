@@ -22,6 +22,7 @@ const countTypes = (types: readonly VariableType[]): Record<VariableType, number
       bool: 0,
       byte: 0,
       int: 0,
+      long: 0,
       real: 0,
       string: 0
     }
@@ -45,8 +46,9 @@ describe("parseGlobalData", () => {
     expect(result.variables).toHaveLength(67);
     expect(countTypes(result.variables)).toEqual({
       bool: 1,
-      byte: 1,
+      byte: 0,
       int: 1,
+      long: 1,
       real: 0,
       string: 64
     });

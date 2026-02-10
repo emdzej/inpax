@@ -8,9 +8,9 @@ const CONSTANT_DATA_PREAMBLE = new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x0a, 0x0
 
 const TypeMarkers = {
   BOOL: 0x01,
-  CHAR: 0x02,
+  BYTE: 0x02,
   INT: 0x03,
-  BYTE: 0x04,
+  LONG: 0x04,
   REAL: 0x05,
   STRING: 0x06
 } as const;
@@ -160,9 +160,9 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
       return;
     }
 
-    if (marker === TypeMarkers.CHAR) {
+    if (marker === TypeMarkers.BYTE) {
       if (offset + 2 > endOffset) {
-        throw new Error("Constant Data char value is truncated");
+        throw new Error("Constant Data byte value is truncated");
       }
 
       const value = view.getUint8(offset + 1);
@@ -190,14 +190,14 @@ export const parseConstantData = (buffer: Uint8Array): ConstantData => {
       return;
     }
 
-    if (marker === TypeMarkers.BYTE) {
+    if (marker === TypeMarkers.LONG) {
       if (offset + 5 > endOffset) {
-        throw new Error("Constant Data byte value is truncated");
+        throw new Error("Constant Data long value is truncated");
       }
 
       const value = view.getUint32(offset + 1, true);
       constants.push({
-        type: "int",
+        type: "long",
         value
       });
 
