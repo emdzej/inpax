@@ -1078,7 +1078,6 @@ Items requiring further research:
 | RET/function return opcode | ⚠️ Unknown | No explicit RET found; functions may return at section boundary |
 | Complete system function IDs | ⚠️ 97/108 | 11 functions unmapped |
 | Constant Data complex entries | ⚠️ Partial | Multi-type sequences unclear |
-| ITEMREPEAT bytecode | ⚠️ Unknown | Dynamic menu items |
 
 ### Resolved (formerly unresolved)
 
@@ -1094,6 +1093,7 @@ Items requiring further research:
 | LINE/ITEM bytecode | ✅ Validated — opcodes 0x22 and 0x24 respectively |
 | UI setter function IDs | ✅ setmenu=0x01, setscreen=0x04, setstatemachine=0x05, setstate=0x06 |
 | Long type marker | ✅ **`0x04`** — 32-bit signed integer; Byte corrected to `0x02`; see `docs/research/long-type-research.md` (issue #64) |
+| setitemrepeat bytecode | ✅ **System function 0xA1** — Standard `CALL_API` call, no ITEM structure changes; see `docs/research/itemrepeat-research.md` (issue #66) |
 
 ---
 
@@ -1113,7 +1113,8 @@ Items requiring further research:
 - `docs/research/control-block-research.md` — CONTROL block research (issue #60)
 - `docs/research/local-variables-research.md` — Local variables research (issue #63)
 - `docs/research/long-type-research.md` — Long type marker research (issue #64)
+- `docs/research/itemrepeat-research.md` — setitemrepeat bytecode research (issue #66)
 
 ---
 
-*Document updated 2026-02-10. Corrected type markers: Byte=0x02, Long=0x04 (issue #64).*
+*Document updated 2026-02-10. Added setitemrepeat system function ID 0xA1 (issue #66).*
