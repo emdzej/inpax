@@ -94,7 +94,7 @@ IPO files are organized into named sections. Section names are ASCII strings ter
 
 ### Section Detection
 
-Sections are identified by their name string followed by `0x0A`. The preamble `00 00 00 00 0a 0a 00` appears after special sections like `Global Data` and `Constant Data`.
+Sections are identified by their name string followed by `0x0A`. The preamble `[func_id u32] 0a 0a 00` appears after special sections like `Global Data` and `Constant Data`.
 
 ---
 
@@ -106,7 +106,7 @@ Defines the types of all global variables. Variable **names are not stored** —
 
 ```
 "Global Data\n"                      ; Section marker
-00 00 00 00 0a 0a 00                 ; Preamble (7 bytes)
+[func_id u32] 0a 0a 00                 ; Preamble (7 bytes)
 [u16 LE: variable_count]             ; Number of variables (little-endian)
 01 00                                ; Unknown field (always 01 00)
 04                                   ; Separator
@@ -117,7 +117,7 @@ Defines the types of all global variables. Variable **names are not stored** —
 
 ```hex
 47 6c 6f 62 61 6c 20 44 61 74 61 0a  ; "Global Data\n"
-00 00 00 00 0a 0a 00                 ; Preamble
+[func_id u32] 0a 0a 00                 ; Preamble
 78 01                                ; Count = 0x0178 = 376 (LE)
 01 00                                ; Unknown
 04                                   ; Separator
@@ -139,7 +139,7 @@ Stores literal values: strings, integers, reals, and booleans.
 
 ```
 "Constant Data\n"                    ; Section marker
-00 00 00 00 0a 0a 00                 ; Preamble
+[func_id u32] 0a 0a 00                 ; Preamble
 [constant entries...]                 ; Type-prefixed values
 ```
 
@@ -238,7 +238,7 @@ Variable access opcodes (`01` and `07`) use a scope-based addressing scheme:
 User-defined functions have a header structure before bytecode:
 
 ```
-[func_name]\n [func_id u16] [type u16] 0a 0a 00 [frame_size u16] 08 51 00 00 [bytecode...]
+[func_name]\n [func_id u32] [type u16] 0a 0a 00 [frame_size u16] 08 51 00 00 [bytecode...]
 ```
 
 - **func_id:** Unique function identifier (used in CALL_USER)
@@ -649,9 +649,9 @@ SCREEN s_main() {
 **Bytecode structure:**
 ```hex
 01 73 5f 6d 61 69 6e 0a      ; Section type (0x01) + name "s_main\n"
-00 00 00 00 0a 0a 00         ; Preamble
+[func_id u32] 0a 0a 00         ; Preamble
 00 00 21 0a                  ; Opcode 0x21 (SCREEN_START)
-00 00 00 00 0a 0a 00         ; ...
+[func_id u32] 0a 0a 00         ; ...
 00 00 22 0a                  ; Opcode 0x22 (LINE marker)
 00 00 00 00 56 6f 6c...      ; "Voltage\n"
 56 0a                        ; "V\n"
@@ -709,7 +709,7 @@ MENU m_main() {
 **Bytecode structure:**
 ```hex
 02 6d 5f 6d 61 69 6e 0a      ; Section type (0x02) + name "m_main\n"
-00 00 00 00 0a 0a 00         ; Preamble
+[func_id u32] 0a 0a 00         ; Preamble
 [INIT block bytecode]        ; setmenutitle etc
 24                           ; Opcode 0x24 (ITEM marker)
 01 00                        ; ITEM key = 1 (u16 LE)
@@ -765,11 +765,11 @@ STATEMACHINE sm_name() {
 **Section header:**
 ```hex
 03 73 6d 5f 6e 61 6d 65 0a   ; Section type (0x03) + name "sm_name\n"
-00 00 00 00 0a 0a 00         ; Preamble
+[func_id u32] 0a 0a 00         ; Preamble
 [INIT block header]
 [INIT bytecode]
 25 73 74 61 74 65 5f 6f 6e 65 0a  ; Opcode 0x25 (STATE) + "state_one\n"
-00 00 00 00 0a 0a 00         ; State preamble
+[func_id u32] 0a 0a 00         ; State preamble
 [state_one bytecode]
 25 ...                       ; Next state
 ```
@@ -1038,7 +1038,7 @@ add(1, 2, result);
 **Hex dump (3 variables: string, int, bool):**
 ```hex
 47 6c 6f 62 61 6c 20 44 61 74 61 0a  ; "Global Data\n"
-00 00 00 00 0a 0a 00                 ; Preamble
+[func_id u32] 0a 0a 00                 ; Preamble
 03 00                                ; Count = 3
 01 00 04                             ; Header + separator
 06 03 01                             ; Types: String, Int, Bool
