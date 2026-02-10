@@ -206,17 +206,58 @@ Variable access opcodes (`01` and `07`) use a scope-based addressing scheme:
 | `0x01` | Local variable | `01 01 01 00` = local var #1 address |
 | `0x02` | Function parameter | `01 02 00 00` = param #0 address |
 
+**Opcode Format:** `[01|07] [scope] [index] 00`
+- `01` = PUSH_VAR_ADDR (for assignment LHS)
+- `07` = PUSH_VAR_VAL (for reading)
+
+**Index Conventions:**
+- **Global:** 0-indexed, matches Global Data section order
+- **Local:** 1-indexed (LOCAL[0] is reserved, first declared local is LOCAL[1])
+- **Param:** 0-indexed, `in` params first, then `out` params (gaps may exist)
+
 **Note:** This replaces the earlier understanding that `01 [u16]` was only for globals. The third byte is the index within that scope, and the fourth byte is always `00`.
+
+#### Function Frame Structure
+
+User-defined functions have a header structure before bytecode:
+
+```
+[func_name]\n [func_id u16] [type u16] 0a 0a 00 [frame_size u16] 08 51 00 00 [bytecode...]
+```
+
+- **func_id:** Unique function identifier (used in CALL_USER)
+- **type:** Always 0x0000 for user functions
+- **frame_size:** Stack frame size in bytes
+
+**Frame Size Calculation:**
+```
+frame_size ≈ 3 (base) + 2×locals + 2×params + 2×(has_calls ? 1 : 0)
+```
+
+Where:
+- Base (3 bytes): Return address + frame pointer
+- Each local variable: 2 bytes (int = 16-bit)
+- Each parameter slot: 2 bytes
+- Call overhead: +2 bytes if function calls other functions
+
+**Example Frame Sizes:**
+| Function | Locals | Params | Calls | Frame |
+|----------|--------|--------|-------|-------|
+| `f()` with 1 local | 1 | 0 | N | 5 |
+| `f()` with 1 local, calls | 1 | 0 | Y | 7 |
+| `f(in: int, out: int)` + 1 local | 1 | 2 | N | 10 |
 
 #### Function Prologue
 
-User-defined functions begin with a frame info field followed by `FUNC_PROLOGUE`:
+User-defined functions begin with `FUNC_PROLOGUE` marker:
 
 ```
-[u16: frame_info] 08 51 00 00 [function bytecode...]
+08 51 00 00
 ```
 
-The frame_info field encodes stack frame requirements (likely size in bytes). See `docs/research/local-variables-research.md` for details.
+System functions (`inpainit`, `inpaexit`) may omit prologue if they have no locals.
+
+See `docs/research/local-variables-research.md` for complete analysis.
 
 ### UI Construct Markers
 
