@@ -19,6 +19,7 @@ export type {
   Opcode,
   Section,
   SectionType,
+  VariableScope,
   VariableType
 } from "./types.js";
 export type {

@@ -1,4 +1,4 @@
-import type { Instruction, Opcode } from "./types.js";
+import type { Instruction, Opcode, VariableScope } from "./types.js";
 
 const Opcodes = {
   PUSH_VAR_ADDR: "PUSH_VAR_ADDR",
@@ -16,8 +16,28 @@ const Opcodes = {
   CONTROL: "CONTROL", // Confirmed: 0x23 - CONTROL block marker
   ITEM: "ITEM",
   STATE: "STATE",
+  FUNC_PROLOGUE: "FUNC_PROLOGUE", // 08 51 00 00 - function entry marker
   UNKNOWN: "UNKNOWN"
 } as const;
+
+const Scopes = {
+  GLOBAL: "global",
+  LOCAL: "local",
+  PARAM: "param"
+} as const;
+
+const scopeFromByte = (byte: number): VariableScope | undefined => {
+  switch (byte) {
+    case 0x00:
+      return Scopes.GLOBAL;
+    case 0x01:
+      return Scopes.LOCAL;
+    case 0x02:
+      return Scopes.PARAM;
+    default:
+      return undefined;
+  }
+};
 
 type OpcodeName = (typeof Opcodes)[keyof typeof Opcodes];
 
@@ -26,13 +46,15 @@ const createInstruction = (
   offset: number,
   size: number,
   operands: readonly number[],
-  buffer: Uint8Array
+  buffer: Uint8Array,
+  scope?: VariableScope
 ): Instruction => ({
   offset,
   opcode: opcode as Opcode,
   operands,
   raw: buffer.slice(offset, offset + size),
-  size
+  size,
+  ...(scope !== undefined && { scope })
 });
 
 const decodeUnknown = (offset: number, buffer: Uint8Array): Instruction =>
@@ -59,17 +81,30 @@ export const decodeInstructions = (
     const byte0 = buffer[cursor];
 
     if (byte0 === 0x01) {
-      if (remaining < 3) {
+      // PUSH_VAR_ADDR with scope-based addressing
+      // Format: 01 [scope] [idx] 00
+      if (remaining < 4) {
         instructions.push(decodeUnknown(cursor, buffer));
         cursor += 1;
         continue;
       }
 
-      const index = decodeUint16(view, cursor + 1);
-      instructions.push(
-        createInstruction(Opcodes.PUSH_VAR_ADDR, cursor, 3, [index], buffer)
-      );
-      cursor += 3;
+      const scopeByte = buffer[cursor + 1];
+      const scope = scopeFromByte(scopeByte);
+
+      if (scope !== undefined && buffer[cursor + 3] === 0x00) {
+        // Scope-based addressing: 01 [scope] [idx] 00
+        const index = buffer[cursor + 2];
+        instructions.push(
+          createInstruction(Opcodes.PUSH_VAR_ADDR, cursor, 4, [index], buffer, scope)
+        );
+        cursor += 4;
+        continue;
+      }
+
+      // Fallback for unknown format
+      instructions.push(decodeUnknown(cursor, buffer));
+      cursor += 1;
       continue;
     }
 
@@ -142,6 +177,52 @@ export const decodeInstructions = (
 
     if (byte0 === 0x25) {
       instructions.push(createInstruction(Opcodes.STATE, cursor, 1, [], buffer));
+      cursor += 1;
+      continue;
+    }
+
+    // FUNC_PROLOGUE opcode (0x08 0x51 0x00 0x00) - function entry marker
+    if (byte0 === 0x08) {
+      if (
+        remaining >= 4 &&
+        buffer[cursor + 1] === 0x51 &&
+        buffer[cursor + 2] === 0x00 &&
+        buffer[cursor + 3] === 0x00
+      ) {
+        instructions.push(
+          createInstruction(Opcodes.FUNC_PROLOGUE, cursor, 4, [], buffer)
+        );
+        cursor += 4;
+        continue;
+      }
+
+      instructions.push(decodeUnknown(cursor, buffer));
+      cursor += 1;
+      continue;
+    }
+
+    // PUSH_VAR_VAL with scope-based addressing (0x07)
+    // Format: 07 [scope] [idx] 00
+    if (byte0 === 0x07) {
+      if (remaining < 4) {
+        instructions.push(decodeUnknown(cursor, buffer));
+        cursor += 1;
+        continue;
+      }
+
+      const scopeByte = buffer[cursor + 1];
+      const scope = scopeFromByte(scopeByte);
+
+      if (scope !== undefined && buffer[cursor + 3] === 0x00) {
+        const index = buffer[cursor + 2];
+        instructions.push(
+          createInstruction(Opcodes.PUSH_VAR_VAL, cursor, 4, [index], buffer, scope)
+        );
+        cursor += 4;
+        continue;
+      }
+
+      instructions.push(decodeUnknown(cursor, buffer));
       cursor += 1;
       continue;
     }

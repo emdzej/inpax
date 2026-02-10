@@ -65,7 +65,10 @@ export type Opcode =
   | "CONTROL" // Confirmed: 0x23 - CONTROL block marker (issue #60)
   | "ITEM"
   | "STATE"
+  | "FUNC_PROLOGUE" // 08 51 00 00 - function entry marker (issue #67)
   | "UNKNOWN";
+
+export type VariableScope = "global" | "local" | "param";
 
 export type Instruction = {
   readonly offset: number;
@@ -73,6 +76,7 @@ export type Instruction = {
   readonly operands: readonly number[];
   readonly raw: Uint8Array;
   readonly size: number;
+  readonly scope?: VariableScope;
 };
 
 export type IpoFile = {
