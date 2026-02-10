@@ -171,8 +171,9 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
   const outputControlSections = new Set<string>();
   
   for (const section of regularSections) {
+    const idStr = section.id !== undefined ? `id=0x${formatHex(section.id, 2)}, ` : "";
     outputs.push(
-      `## ${section.name} (${section.type}, offset 0x${formatHex(section.offset, 4)}, size ${section.size})`
+      `## ${section.name} (${section.type}, ${idStr}offset 0x${formatHex(section.offset, 4)}, size ${section.size})`
     );
 
     if (section.type === "logtable-data") {
@@ -255,8 +256,9 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
   // Output any remaining control sections that weren't nested
   for (const ctrlSection of controlSections) {
     if (!outputControlSections.has(ctrlSection.name)) {
+      const idStr = ctrlSection.id !== undefined ? `id=0x${formatHex(ctrlSection.id, 2)}, ` : "";
       outputs.push(
-        `## ${ctrlSection.name} (control, offset 0x${formatHex(ctrlSection.offset, 4)}, size ${ctrlSection.size})`
+        `## ${ctrlSection.name} (control, ${idStr}offset 0x${formatHex(ctrlSection.offset, 4)}, size ${ctrlSection.size})`
       );
       
       const ctrlInstructions = decodeInstructions(buffer, ctrlSection.offset, ctrlSection.size);

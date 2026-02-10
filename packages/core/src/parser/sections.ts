@@ -20,17 +20,16 @@ const FUNCTION_MARKER = 0x05;
 const isPrintableAscii = (byte: number): boolean => byte >= 0x20 && byte <= 0x7e;
 
 const isSectionPreamble = (buffer: Uint8Array, offset: number): boolean => {
-  if (offset + 7 > buffer.length) {
+  if (offset + 8 > buffer.length) {
     return false;
   }
 
+  // Check if we have 0x0a at offset+5 and 0x00 at offset+6
+  // Format: [name] 0a [func_id:u32] 0a 0a 00
   return (
-    buffer[offset + 1] === 0x00 &&
-    buffer[offset + 2] === 0x00 &&
-    buffer[offset + 3] === 0x00 &&
-    buffer[offset + 4] === PREAMBLE_TAIL[0] &&
-    buffer[offset + 5] === PREAMBLE_TAIL[1] &&
-    buffer[offset + 6] === PREAMBLE_TAIL[2]
+    buffer[offset + 5] === PREAMBLE_TAIL[0] &&
+    buffer[offset + 6] === PREAMBLE_TAIL[1] &&
+    buffer[offset + 7] === PREAMBLE_TAIL[2]
   );
 };
 
@@ -80,6 +79,7 @@ type SectionCandidate = {
   startOffset: number;
   contentOffset: number;
   type: SectionType;
+  id?: number;
 };
 
 export function parseSections(buffer: Uint8Array): Map<string, Section> {
@@ -98,7 +98,7 @@ export function parseSections(buffer: Uint8Array): Map<string, Section> {
     }
 
     if (end < buffer.length && buffer[end] === 0x0a) {
-      if (isSectionPreamble(buffer, end + 1)) {
+      if (isSectionPreamble(buffer, end)) {
         const nameBytes = buffer.slice(index, end);
         const rawName = textDecoder.decode(nameBytes);
         const markerOffset = index - 1;
@@ -111,14 +111,23 @@ export function parseSections(buffer: Uint8Array): Map<string, Section> {
           type === "logtable-data" && rawName.startsWith(" ")
             ? rawName.trimStart()
             : rawName;
-        const contentOffset = end + 1 + 7;
+
+        const idDataView = new DataView(
+          buffer.buffer,
+          buffer.byteOffset + end + 1,
+          4
+        );
+        const id = idDataView.getUint32(0, true);
+
+        const contentOffset = end + 8;
 
         candidates.push({
           name,
           nameOffset: index,
           startOffset: hasMarker ? markerOffset : index,
           contentOffset,
-          type
+          type,
+          id
         });
 
         index = end + 1;
@@ -149,7 +158,8 @@ export function parseSections(buffer: Uint8Array): Map<string, Section> {
       name: uniqueName,
       offset: current.contentOffset,
       size,
-      type: current.type
+      type: current.type,
+      id: current.id
     });
   }
 

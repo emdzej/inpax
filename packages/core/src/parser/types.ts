@@ -48,6 +48,7 @@ export type Section = {
   readonly offset: number;
   readonly size: number;
   readonly type: SectionType;
+  readonly id?: number;
 };
 
 export type Opcode =
