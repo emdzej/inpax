@@ -198,8 +198,11 @@ The INPA VM is stack-based. Instructions are variable-length.
 |--------|----------|-------------|
 | `0x21` | `SCREEN_START` | SCREEN section marker |
 | `0x22` | `LINE` | LINE construct marker |
+| `0x23` | `CONTROL` | ⚠️ **Hypothesized** - CONTROL block marker (see issue #60) |
 | `0x24` | `ITEM` | MENU ITEM marker |
 | `0x25` | `STATE` | STATE definition marker |
+
+> **Note:** The `CONTROL` opcode (0x23) is hypothesized based on the sequential pattern. It has not been validated against compiled files because no production `.ipo` files containing CONTROL blocks have been found. See `docs/research/control-block-research.md` for details.
 
 ### Function Call Opcodes
 
