@@ -1,12 +1,35 @@
 # LOGTABLE Bytecode Research
 
 > **Issue:** #59  
-> **Status:** IN PROGRESS - Awaiting Windows Node  
+> **Status:** ✅ COMPLETE  
 > **Date:** 2026-02-10
 
 ## Overview
 
-LOGTABLE is a boolean logic mapping construct in INPA. This document tracks research into its bytecode representation.
+LOGTABLE is a boolean logic mapping construct in INPA. Research completed — see `logtable-bytecode-analysis.md` for full findings.
+
+## Key Findings
+
+**LOGTABLE compiles to a lookup table, NOT expanded to if-else chains.**
+
+1. **Section type 0x04** — LOGTABLE data section (prefixed with `LT_` and space)
+2. **Section type 0x05** — LOGTABLE wrapper function
+3. **Entry format** — 12 bytes: `[u32 input_value] [u32 input_mask] [u32 output_value]`
+4. **Mask-based matching** — `(input & mask) == (input_value & mask)`
+5. **OTHER case** — mask = 0x00000000 (matches any input)
+6. **Don't care (X)** — partial mask covering only relevant bit positions
+
+## Test Files
+
+Compiled on Windows Node, analyzed on Mac:
+- `~/Documents/LOGT01.ipo` — minimal (1 output, 2 inputs)
+- `~/Documents/LOGT02.ipo` — with X wildcards (1 output, 3 inputs)
+- `~/Documents/LOGT03.ipo` — multiple outputs (2 outputs, 2 inputs)
+
+## Documentation Updated
+
+- `docs/IPO_Structure.md` — Added Section 13: LOGTABLE
+- `docs/research/logtable-bytecode-analysis.md` — Full analysis
 
 ## Language Syntax
 

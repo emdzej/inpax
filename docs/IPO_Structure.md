@@ -23,9 +23,10 @@ This document is the authoritative specification for the `.ipo` binary format �
 10. [Control Flow](#10-control-flow)
 11. [UI Constructs](#11-ui-constructs)
 12. [State Machines](#12-state-machines)
-13. [User-Defined Function Calls](#13-user-defined-function-calls)
-14. [Examples](#14-examples)
-15. [Appendix: Unresolved Items](#appendix-unresolved-items)
+13. [LOGTABLE](#13-logtable)
+14. [User-Defined Function Calls](#14-user-defined-function-calls)
+15. [Examples](#15-examples)
+16. [Appendix: Unresolved Items](#appendix-unresolved-items)
 
 ---
 
@@ -88,6 +89,8 @@ IPO files are organized into named sections. Section names are ASCII strings ter
 | `<screen_name>` | SCREEN definitions |
 | `<menu_name>` | MENU definitions |
 | `<statemachine_name>` | State machine definitions |
+| `<logtable_name>` | LOGTABLE wrapper function (type 0x05) |
+| `LT_<logtable_name>` | LOGTABLE lookup data (type 0x04) |
 
 ### Section Detection
 
@@ -525,6 +528,8 @@ while (i < 5) {
 | `0x01` | SCREEN | Opcode `0x21` marker |
 | `0x02` | MENU | INIT block (mandatory) |
 | `0x03` | STATEMACHINE | INIT block + states |
+| `0x04` | LOGTABLE data | Lookup table entries (`LT_` prefix) |
+| `0x05` | LOGTABLE wrapper | Parameter handling function |
 
 ### SCREEN Definition
 
@@ -717,7 +722,107 @@ inpainit() {
 
 ---
 
-## 13. User-Defined Function Calls
+## 13. LOGTABLE
+
+LOGTABLE is a boolean logic mapping construct that compiles to a **lookup table**, not if-else chains.
+
+### Source Syntax
+
+```c
+LOGTABLE table_name(out: bool out1 out2, in: bool in1 in2 in3)
+{
+    // Output : Input
+    0y00: 0y000;  // Exact match
+    0y01: 0y10X;  // X = don't care
+    0y10: 0y010;
+    0y11: OTHER;  // Default case
+}
+
+// Usage:
+bool o1, o2;
+table_name(o1, o2, TRUE, FALSE, TRUE);
+```
+
+### Compilation Output
+
+The compiler generates **two sections** for each LOGTABLE:
+
+| Section | Type | Purpose |
+|---------|------|---------|
+| `lt_name` | `0x05` | Wrapper function (parameter handling) |
+| `LT_lt_name` | `0x04` | Lookup table data (space before `LT_`) |
+
+### Lookup Table Binary Format
+
+After the section header and preamble:
+
+```
+[u32 LE: entry_count]
+[entry × entry_count]
+```
+
+Each **entry is 12 bytes**:
+
+```c
+struct LogtableEntry {
+    u32 input_value;    // Input bit pattern to match
+    u32 input_mask;     // Bitmask for comparison
+    u32 output_value;   // Output bit pattern
+}
+```
+
+### Mask Encoding
+
+| Pattern | Mask Value | Meaning |
+|---------|------------|---------|
+| Exact match | `0xFFFFFFFF` | All bits must match |
+| Don't care (X) | Partial mask | Only masked bits checked |
+| OTHER | `0x00000000` | Matches any input (default) |
+
+### Runtime Evaluation
+
+```
+for entry in table:
+    if (input & entry.mask) == (entry.input_value & entry.mask):
+        return entry.output_value
+```
+
+### Example: Don't Care (X)
+
+**Source:**
+```c
+LOGTABLE lt_test(out: bool o1, in: bool i1 i2 i3)
+{
+    0y0: 0y00X;   // output=0 when i1=0, i2=0, i3=any
+    0y1: 0yX1X;   // output=1 when i2=1 (i1,i3=any)
+    0y0: OTHER;
+}
+```
+
+**Compiled entries:**
+```
+Entry 0: input=0b000, mask=0b110 (0x06), output=0  ; 0y00X
+Entry 1: input=0b010, mask=0b010 (0x02), output=1  ; 0yX1X  
+Entry 2: input=0,     mask=0 (OTHER),    output=0  ; default
+```
+
+### Multiple Outputs
+
+Multiple output bits are packed into a single integer:
+
+```c
+LOGTABLE lt_multi(out: bool o1 o2, in: bool i1 i2)
+{
+    0y00: 0y00;  // o1=0, o2=0 → output=0b00
+    0y01: 0y01;  // o1=0, o2=1 → output=0b01
+    0y10: 0y10;  // o1=1, o2=0 → output=0b10
+    0y11: 0y11;  // o1=1, o2=1 → output=0b11
+}
+```
+
+---
+
+## 14. User-Defined Function Calls
 
 ### Mechanism: CALL Opcode (Not Inline Expansion)
 
@@ -788,7 +893,7 @@ add(1, 2, result);
 
 ---
 
-## 14. Examples
+## 15. Examples
 
 ### Example 1: Variable Assignment
 
@@ -879,6 +984,7 @@ Items requiring further research:
 
 | Item | Resolution |
 |------|------------|
+| LOGTABLE bytecode | ✅ **Lookup table** — Section types 0x04 (data) + 0x05 (wrapper); entries are 12-byte [input, mask, output] |
 | User-defined function mechanism | ✅ **CALL opcode** — `0C 80 [funcID]` calls functions by section index; no inline expansion |
 | Opcode `0x02` semantics | ✅ PUSH_UI_HANDLE — pushes section offset for SCREEN/MENU/STATE |
 | State machine bytecode | ✅ Validated — section type 0x03, opcode 0x25 for states |
@@ -899,7 +1005,8 @@ Items requiring further research:
 - `docs/research/system-function-ids-complete.md` — System function mapping
 - `docs/research/language-constructs.md` — SCREEN/MENU/STATE bytecode analysis
 - `docs/research/api32-exports.md` — api32.dll FFI analysis
+- `docs/research/logtable-bytecode-analysis.md` — LOGTABLE research (issue #59)
 
 ---
 
-*Document updated 2026-02-10. Added user-defined function call mechanism research (issue #58).*
+*Document updated 2026-02-10. Added LOGTABLE bytecode research (issue #59).*
