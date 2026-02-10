@@ -186,14 +186,37 @@ The INPA VM is stack-based. Instructions are variable-length.
 
 | Opcode | Arguments | Mnemonic | Description |
 |--------|-----------|----------|-------------|
-| `01 [u16]` | Index | `PUSH_VAR_ADDR` | Push address of global variable (for assignment) |
-| `00 01 [u16]` | Index | `PUSH_VAR_VAL` | Push value of global variable |
+| `01 [scope] [idx] 00` | Scope+Index | `PUSH_VAR_ADDR` | Push address of variable (for assignment) |
+| `07 [scope] [idx] 00` | Scope+Index | `PUSH_VAR_VAL` | Push value of variable (for reading) |
 | `00 06 [u16]` | Index | `PUSH_CONST` | Push constant from constant table |
 | `00 05` | — | `STORE` | Pop value, pop address, write value to address |
 | `00 09 [u8]` | Op | `ALU_OP` | Binary arithmetic/comparison operation |
 | `00 0B [s16]` | Offset | `JMP_FALSE` | Pop condition; if false, jump by offset |
 | `00 0E [s16]` | Offset | `JMP` | Unconditional relative jump |
 | `02 [u16] 00` | Offset | `PUSH_UI_HANDLE` | Push handle to SCREEN/MENU/STATEMACHINE/STATE |
+| `08 51 00 00` | — | `FUNC_PROLOGUE` | Function entry marker (follows frame info) |
+
+#### Variable Scope Encoding (Issue #63)
+
+Variable access opcodes (`01` and `07`) use a scope-based addressing scheme:
+
+| Scope Byte | Meaning | Example |
+|------------|---------|---------|
+| `0x00` | Global variable | `01 00 01 00` = global var #1 address |
+| `0x01` | Local variable | `01 01 01 00` = local var #1 address |
+| `0x02` | Function parameter | `01 02 00 00` = param #0 address |
+
+**Note:** This replaces the earlier understanding that `01 [u16]` was only for globals. The third byte is the index within that scope, and the fourth byte is always `00`.
+
+#### Function Prologue
+
+User-defined functions begin with a frame info field followed by `FUNC_PROLOGUE`:
+
+```
+[u16: frame_info] 08 51 00 00 [function bytecode...]
+```
+
+The frame_info field encodes stack frame requirements (likely size in bytes). See `docs/research/local-variables-research.md` for details.
 
 ### UI Construct Markers
 
@@ -984,6 +1007,8 @@ Items requiring further research:
 
 | Item | Resolution |
 |------|------------|
+| Local variables in functions | ✅ **Scope-based addressing** — `01 [scope] [idx] 00` format; scope: 0x00=global, 0x01=local, 0x02=param; see `docs/research/local-variables-research.md` (issue #63) |
+| Function prologue opcode | ✅ **`08 51 00 00`** — FUNC_PROLOGUE marker at start of function body; preceded by frame info u16 |
 | CONTROL block opcode | ✅ **Opcode 0x23** — Confirmed via INPACOMP.exe test compilation; CONTROL code compiled to `#` function; see `docs/research/control-block-research.md` |
 | LOGTABLE bytecode | ✅ **Lookup table** — Section types 0x04 (data) + 0x05 (wrapper); entries are 12-byte [input, mask, output] |
 | User-defined function mechanism | ✅ **CALL opcode** — `0C 80 [funcID]` calls functions by section index; no inline expansion |
@@ -1008,7 +1033,8 @@ Items requiring further research:
 - `docs/research/api32-exports.md` — api32.dll FFI analysis
 - `docs/research/logtable-bytecode-analysis.md` — LOGTABLE research (issue #59)
 - `docs/research/control-block-research.md` — CONTROL block research (issue #60)
+- `docs/research/local-variables-research.md` — Local variables research (issue #63)
 
 ---
 
-*Document updated 2026-02-10. Confirmed CONTROL opcode 0x23 via compilation testing (issue #60).*
+*Document updated 2026-02-10. Added local variable scope encoding from issue #63 research.*
