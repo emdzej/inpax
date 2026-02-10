@@ -59,4 +59,53 @@ describe("parseIpo", () => {
     expect(result.globalData.count).toBeGreaterThan(0);
     expect(result.globalData.variables.length).toBe(result.globalData.count);
   });
+
+  it("parses CONTROL sections in CTRL02.ipo (single CONTROL block)", () => {
+    const buffer = loadFixture("CTRL02.ipo");
+    const result = parseIpo(buffer);
+
+    expect(result.header.magic).toBe("TEST-Infotext\n");
+    assertCoreSections(result.sections);
+
+    // Should have screen section
+    expect(result.sections.has("s_control")).toBe(true);
+    expect(result.sections.get("s_control")?.type).toBe("screen");
+
+    // Should have LINE body function
+    expect(result.sections.has("!")).toBe(true);
+    expect(result.sections.get("!")?.type).toBe("function");
+
+    // Should have CONTROL section (named "#")
+    expect(result.sections.has("#")).toBe(true);
+    expect(result.sections.get("#")?.type).toBe("control");
+  });
+
+  it("parses multiple CONTROL sections in CTRL03.ipo", () => {
+    const buffer = loadFixture("CTRL03.ipo");
+    const result = parseIpo(buffer);
+
+    expect(result.header.magic).toBe("TEST-Infotext\n");
+    assertCoreSections(result.sections);
+
+    // Should have screen section
+    expect(result.sections.has("s_multi")).toBe(true);
+    expect(result.sections.get("s_multi")?.type).toBe("screen");
+
+    // Should have LINE body function
+    expect(result.sections.has("!")).toBe(true);
+    expect(result.sections.get("!")?.type).toBe("function");
+
+    // Should have two CONTROL sections (named "#" and "#_2")
+    expect(result.sections.has("#")).toBe(true);
+    expect(result.sections.get("#")?.type).toBe("control");
+
+    expect(result.sections.has("#_2")).toBe(true);
+    expect(result.sections.get("#_2")?.type).toBe("control");
+
+    // Count control sections
+    const controlSections = Array.from(result.sections.values()).filter(
+      (s) => s.type === "control"
+    );
+    expect(controlSections.length).toBe(2);
+  });
 });

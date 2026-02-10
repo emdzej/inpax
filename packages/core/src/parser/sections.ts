@@ -38,6 +38,11 @@ const inferSectionType = (name: string): SectionType => {
     return "constant";
   }
 
+  // CONTROL block internal functions (named "#", "##", etc.)
+  if (/^#+$/.test(name)) {
+    return "control";
+  }
+
   if (/^LT_/i.test(name)) {
     return "logtable-data";
   }
@@ -119,6 +124,7 @@ export function parseSections(buffer: Uint8Array): Map<string, Section> {
   candidates.sort((a, b) => a.startOffset - b.startOffset);
 
   const sections = new Map<string, Section>();
+  const nameCounts = new Map<string, number>();
 
   for (let i = 0; i < candidates.length; i += 1) {
     const current = candidates[i];
@@ -126,8 +132,13 @@ export function parseSections(buffer: Uint8Array): Map<string, Section> {
     const endOffset = next ? next.startOffset : buffer.length;
     const size = Math.max(0, endOffset - current.contentOffset);
 
-    sections.set(current.name, {
-      name: current.name,
+    // Handle duplicate section names (e.g., multiple "#" CONTROL blocks)
+    const count = nameCounts.get(current.name) ?? 0;
+    nameCounts.set(current.name, count + 1);
+    const uniqueName = count === 0 ? current.name : `${current.name}_${count + 1}`;
+
+    sections.set(uniqueName, {
+      name: uniqueName,
       offset: current.contentOffset,
       size,
       type: current.type

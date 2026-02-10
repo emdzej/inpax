@@ -120,6 +120,9 @@ const runInfo = (filePath: string): void => {
     `  Functions: ${typeCounts.function ?? 0}, Screens: ${typeCounts.screen ?? 0}, Menus: ${typeCounts.menu ?? 0}, State machines: ${typeCounts.statemachine ?? 0}`
   );
   console.log(
+    `  Control blocks: ${typeCounts.control ?? 0}`
+  );
+  console.log(
     `  Logtable wrappers: ${typeCounts["logtable-func"] ?? 0}, Logtable data: ${typeCounts["logtable-data"] ?? 0}, Logtable entries: ${logtableEntries}`
   );
   console.log(`Globals: ${ipo.globalData.count}`);
@@ -130,17 +133,25 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
   const buffer = readFile(filePath);
   const ipo = parseIpo(buffer);
 
-  const sections = Array.from(ipo.sections.values()).filter(
+  const allSections = Array.from(ipo.sections.values()).filter(
     (section) => section.type !== "global" && section.type !== "constant"
   );
 
-  if (sections.length === 0) {
+  // Separate control sections from regular sections
+  const controlSections = allSections.filter((section) => section.type === "control");
+  const regularSections = allSections.filter((section) => section.type !== "control");
+
+  if (regularSections.length === 0 && controlSections.length === 0) {
     console.log("No disassemblable sections found.");
     return;
   }
 
   const outputs: string[] = [];
-  for (const section of sections) {
+  
+  // Track which control sections we've output (to nest them under LINE functions)
+  const outputControlSections = new Set<string>();
+  
+  for (const section of regularSections) {
     outputs.push(
       `## ${section.name} (${section.type}, offset 0x${formatHex(section.offset, 4)}, size ${section.size})`
     );
@@ -178,6 +189,69 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
         resolveNames: options.resolve
       })
     );
+    
+    // If this is a "!" function (LINE body), output associated CONTROL sections
+    if (section.name === "!") {
+      // Find CONTROL sections that follow this section (by offset)
+      const associatedControls = controlSections.filter(
+        (ctrl) => 
+          ctrl.offset > section.offset && 
+          !outputControlSections.has(ctrl.name)
+      );
+      
+      for (const ctrlSection of associatedControls) {
+        // Check if there's another regular section between this and the control
+        const hasIntervening = regularSections.some(
+          (s) => s.offset > section.offset && s.offset < ctrlSection.offset && s.name !== "!"
+        );
+        
+        if (hasIntervening) {
+          break;
+        }
+        
+        outputControlSections.add(ctrlSection.name);
+        outputs.push(
+          `\n  ### CONTROL (offset 0x${formatHex(ctrlSection.offset, 4)}, size ${ctrlSection.size})`
+        );
+        
+        const ctrlInstructions = decodeInstructions(buffer, ctrlSection.offset, ctrlSection.size);
+        
+        if (ctrlInstructions.length === 0) {
+          outputs.push("  <empty>");
+          continue;
+        }
+        
+        // Indent CONTROL disassembly
+        const ctrlDisasm = formatDisassembly(ctrlInstructions, {
+          showRawBytes: options.raw,
+          resolveNames: options.resolve
+        });
+        outputs.push(ctrlDisasm.split("\n").map((line) => `  ${line}`).join("\n"));
+      }
+    }
+  }
+  
+  // Output any remaining control sections that weren't nested
+  for (const ctrlSection of controlSections) {
+    if (!outputControlSections.has(ctrlSection.name)) {
+      outputs.push(
+        `## ${ctrlSection.name} (control, offset 0x${formatHex(ctrlSection.offset, 4)}, size ${ctrlSection.size})`
+      );
+      
+      const ctrlInstructions = decodeInstructions(buffer, ctrlSection.offset, ctrlSection.size);
+      
+      if (ctrlInstructions.length === 0) {
+        outputs.push("<empty>");
+        continue;
+      }
+      
+      outputs.push(
+        formatDisassembly(ctrlInstructions, {
+          showRawBytes: options.raw,
+          resolveNames: options.resolve
+        })
+      );
+    }
   }
 
   console.log(outputs.join("\n"));
