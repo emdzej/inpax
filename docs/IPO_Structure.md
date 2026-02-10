@@ -147,10 +147,12 @@ Stores literal values: strings, integers, reals, and booleans.
 
 | Type | Format | Example |
 |------|--------|---------|
-| **String** | `06 [chars...] 0a` | `"Hello"` → `06 48 65 6c 6c 6f 0a` |
-| **Int** | `03 [u16 LE value]` | `42` → `03 2a 00` |
-| **Real** | `05 [8-byte IEEE-754 LE]` | `3.14` → `05 1f 85 eb 51 b8 1e 09 40` |
 | **Bool** | `01 [value]` | `TRUE` → `01 01`, `FALSE` → `01 00` |
+| **Byte** | `02 [u8 value]` | `255` → `02 ff` |
+| **Int** | `03 [u16 LE value]` | `1000` → `03 e8 03` |
+| **Long** | `04 [u32 LE value]` | `200000` → `04 40 0d 03 00` |
+| **Real** | `05 [8-byte IEEE-754 LE]` | `3.14` → `05 1f 85 eb 51 b8 1e 09 40` |
+| **String** | `06 [chars...] 0a` | `"Hello"` → `06 48 65 6c 6c 6f 0a` |
 
 **Note:** Constants are referenced by index in bytecode via `PUSH_CONST (00 06 [idx])`.
 
@@ -160,13 +162,27 @@ Stores literal values: strings, integers, reals, and booleans.
 
 Used in both Global Data (variable types) and Constant Data (value prefixes).
 
-| Type | Byte | Description |
-|------|------|-------------|
-| **Bool** | `0x01` | Boolean (TRUE=1, FALSE=0) |
-| **Int** | `0x03` | 16-bit signed integer |
-| **Byte** | `0x04` | 8-bit unsigned integer |
-| **Real** | `0x05` | IEEE-754 double (64-bit float, little-endian) |
-| **String** | `0x06` | Null-terminated or newline-delimited string |
+| Type | Byte | Size | Description |
+|------|------|------|-------------|
+| **Bool** | `0x01` | 1 byte | Boolean (TRUE=1, FALSE=0) |
+| **Byte** | `0x02` | 1 byte | 8-bit unsigned integer (0-255) |
+| **Int** | `0x03` | 2 bytes | 16-bit signed integer |
+| **Long** | `0x04` | 4 bytes | 32-bit signed integer |
+| **Real** | `0x05` | 8 bytes | IEEE-754 double (64-bit float, little-endian) |
+| **String** | `0x06` | variable | Null-terminated or newline-delimited string |
+
+> **Note:** The complete type marker sequence was confirmed on 2026-02-10 by compiling `ALLTYPES.ips` containing all six types. See `docs/research/long-type-research.md` for details.
+
+### Constant Data Formats
+
+| Type | Format | Example |
+|------|--------|---------|
+| Bool | `01 [value]` | `01 01` (TRUE), `01 00` (FALSE) |
+| Byte | `02 [value]` | `02 ff` (255) |
+| Int | `03 [u16 LE]` | `03 e8 03` (1000 = 0x03E8) |
+| Long | `04 [u32 LE]` | `04 40 0d 03 00` (200000 = 0x00030D40) |
+| Real | `05 [8-byte IEEE-754 LE]` | `05 1f 85 eb 51 b8 1e 09 40` (3.14) |
+| String | `06 [chars...] 0a` | `06 74 65 73 74 0a` ("test") |
 
 ### Production Distribution (msd80n43.ipo, first 100 vars)
 
@@ -174,7 +190,7 @@ Used in both Global Data (variable types) and Constant Data (value prefixes).
 - Bool (0x01): 24 occurrences
 - Int (0x03): 12 occurrences
 - Real (0x05): 5 occurrences
-- Byte (0x04): 3 occurrences
+- Long (0x04): 3 occurrences (previously mislabeled as Byte)
 
 ---
 
@@ -1057,6 +1073,7 @@ Items requiring further research:
 | State machine bytecode | ✅ Validated — section type 0x03, opcode 0x25 for states |
 | LINE/ITEM bytecode | ✅ Validated — opcodes 0x22 and 0x24 respectively |
 | UI setter function IDs | ✅ setmenu=0x01, setscreen=0x04, setstatemachine=0x05, setstate=0x06 |
+| Long type marker | ✅ **`0x04`** — 32-bit signed integer; Byte corrected to `0x02`; see `docs/research/long-type-research.md` (issue #64) |
 
 ---
 
@@ -1075,7 +1092,8 @@ Items requiring further research:
 - `docs/research/logtable-bytecode-analysis.md` — LOGTABLE research (issue #59)
 - `docs/research/control-block-research.md` — CONTROL block research (issue #60)
 - `docs/research/local-variables-research.md` — Local variables research (issue #63)
+- `docs/research/long-type-research.md` — Long type marker research (issue #64)
 
 ---
 
-*Document updated 2026-02-10. Added local variable scope encoding from issue #63 research.*
+*Document updated 2026-02-10. Corrected type markers: Byte=0x02, Long=0x04 (issue #64).*
