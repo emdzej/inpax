@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Opcode Mappings (IPS ↔ IPO)
 
 This file documents **observed** opcode patterns from the simplest IPS/IPO pairs copied from the Windows node.
@@ -232,6 +231,6 @@ r = !(a == b);
 
 ## 2026-02-13 — Tests T11–T25
 
-No new opcodes were observed in the compiled IPOs for T12, T13, T19–T25. The disassembler output only showed already-known constructs (e.g., `CALL_API`, `CALL_USER`, `PUSH_UI_HANDLE`, `ALU_OP`, `JMP`, `LINE`, `ITEM`, `SCREEN_START`).
+No new opcodes were observed in the compiled IPOs for T11, T12, T13, T17, T19–T25. The disassembler output only showed already-known constructs (e.g., `CALL_API`, `CALL_USER`, `PUSH_UI_HANDLE`, `ALU_OP`, `JMP`, `LINE`, `ITEM`, `SCREEN_START`).
 
-Unsupported constructs (T11, T14–T18) failed compilation, so no new opcode data was produced.
+Unsupported constructs (T14–T16, T18) were removed from the test set.

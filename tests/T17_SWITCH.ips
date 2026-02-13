@@ -3,18 +3,16 @@
 int g_mode;
 int g_out;
 
-T17_switch()
+T17_if_chain()
 {
-  switch (g_mode) {
-    case 0:
-      g_out = 10;
-      break;
-    case 1:
+  if (g_mode == 0) {
+    g_out = 10;
+  } else {
+    if (g_mode == 1) {
       g_out = 20;
-      break;
-    default:
+    } else {
       g_out = 30;
-      break;
+    }
   }
 }
 
