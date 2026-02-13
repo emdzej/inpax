@@ -1,0 +1,43 @@
+
+> inpax@0.0.0 cli /Users/emdzej/.openclaw/workspace/inpax
+> node packages/cli/dist/index.js "disasm" "tests/ipo/T09_extern_forward.ipo" "--raw"
+
+=== Global Variables ===
+[0] offset=0x00ac type=string
+
+=== Constants ===
+[0] offset=0x00cc type=bool   value=false
+[1] offset=0x00ce type=string value="inpa.h"
+
+## inpainit (function, offset 0x0021, size 15)
+0x0021: 03          UNKNOWN
+0x0022: 00          UNKNOWN
+0x0023: 0f          UNKNOWN
+0x0024: 00          UNKNOWN
+0x0025: 00          UNKNOWN
+0x0026: 00          UNKNOWN
+0x0027: 0c 80 04 00 CALL_USER   0x04
+0x002b: 0e          UNKNOWN
+0x002c: 00          UNKNOWN
+0x002d: 00          UNKNOWN
+0x002e: 00 05       STORE
+## foo (function, offset 0x003b, size 7)
+0x003b: 01 00 0e 00 PUSH_VAR_ADDR global[14]
+0x003f: 00          UNKNOWN
+0x0040: 00 05       STORE
+## inpaexit (function, offset 0x0052, size 7)
+0x0052: 01 00 0e 00 PUSH_VAR_ADDR global[14]
+0x0056: 00          UNKNOWN
+0x0057: 00 05       STORE
+## __inpa_startup__ (function, offset 0x0071, size 11)
+0x0071: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x0075: 00          UNKNOWN
+0x0076: 00          UNKNOWN
+0x0077: 0c 80 02 00 CALL_USER   0x02
+0x007b: 05          UNKNOWN
+## __inpa_shutdown__ (function, offset 0x0095, size 11)
+0x0095: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x0099: 00          UNKNOWN
+0x009a: 00          UNKNOWN
+0x009b: 0c 80 03 00 CALL_USER   0x03
+0x009f: 11          UNKNOWN

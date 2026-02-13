@@ -1,0 +1,72 @@
+
+> inpax@0.0.0 cli /Users/emdzej/.openclaw/workspace/inpax
+> node packages/cli/dist/index.js "disasm" "tests/ipo/T11_FOR.ipo" "--raw"
+
+=== Global Variables ===
+[0] offset=0x010b type=int
+[1] offset=0x010b type=string
+
+=== Constants ===
+[0] offset=0x012c type=real   value=6.930489147945989e+193
+
+## T11_while_loop (function, offset 0x0027, size 99)
+0x0027: 18          UNKNOWN
+0x0028: 00          UNKNOWN
+0x0029: 08 51 00 00 FUNC_PROLOGUE
+0x002d: 01 01 01 00 PUSH_VAR_ADDR local[1]
+0x0031: 06          UNKNOWN
+0x0032: 00 01 00 05 PUSH_VAR_VAL 0x500
+0x0036: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x003a: 01          UNKNOWN
+0x003b: 02          UNKNOWN
+0x003c: 00 06 02 00 PUSH_CONST  0x02
+0x0040: 00 05       STORE
+0x0042: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x0046: 02          UNKNOWN
+0x0047: 00          UNKNOWN
+0x0048: 00 01 01 03 PUSH_VAR_VAL 0x301
+0x004c: 00 09 64    ALU_OP      0x64
+0x004f: 00          UNKNOWN
+0x0050: 00 05       STORE
+0x0052: 00 01 00 0b PUSH_VAR_VAL 0xb00
+0x0056: 00          UNKNOWN
+0x0057: 17          UNKNOWN
+0x0058: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x005c: 00 01 02 00 PUSH_VAR_VAL global[2]
+0x0060: 00 09 60    ALU_OP      0x60
+0x0063: 00          UNKNOWN
+0x0064: 00 06 00 01 PUSH_CONST  0x100
+0x0068: 00 05       STORE
+0x006a: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x006e: 02          UNKNOWN
+0x006f: 00          UNKNOWN
+0x0070: 00 01 01 04 PUSH_VAR_VAL 0x401
+0x0074: 00 09 60    ALU_OP      0x60
+0x0077: 00          UNKNOWN
+0x0078: 00 06 02 00 PUSH_CONST  0x02
+0x007c: 00 05       STORE
+0x007e: 00 01 00 0a PUSH_VAR_VAL 0xa00
+0x0082: 00          UNKNOWN
+0x0083: 07 00 0e 00 PUSH_VAR_VAL global[14]
+0x0087: 00          UNKNOWN
+0x0088: 00 05       STORE
+## inpainit (function, offset 0x009a, size 7)
+0x009a: 01 00 0e 00 PUSH_VAR_ADDR global[14]
+0x009e: 00          UNKNOWN
+0x009f: 00 05       STORE
+## inpaexit (function, offset 0x00b1, size 7)
+0x00b1: 01 00 0e 00 PUSH_VAR_ADDR global[14]
+0x00b5: 00          UNKNOWN
+0x00b6: 00 05       STORE
+## __inpa_startup__ (function, offset 0x00d0, size 11)
+0x00d0: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x00d4: 00          UNKNOWN
+0x00d5: 00          UNKNOWN
+0x00d6: 0c 80 02 00 CALL_USER   0x02
+0x00da: 05          UNKNOWN
+## __inpa_shutdown__ (function, offset 0x00f4, size 11)
+0x00f4: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x00f8: 00          UNKNOWN
+0x00f9: 00          UNKNOWN
+0x00fa: 0c 80 03 00 CALL_USER   0x03
+0x00fe: 11          UNKNOWN

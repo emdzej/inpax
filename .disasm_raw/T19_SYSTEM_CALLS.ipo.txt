@@ -1,0 +1,74 @@
+
+> inpax@0.0.0 cli /Users/emdzej/.openclaw/workspace/inpax
+> node packages/cli/dist/index.js "disasm" "tests/ipo/T19_SYSTEM_CALLS.ipo" "--raw"
+
+=== Global Variables ===
+[0] offset=0x00f5 type=string
+
+=== Constants ===
+[0] offset=0x0117 type=string value="inpa.h"
+[1] offset=0x011f type=int    value=1
+[2] offset=0x0122 type=int    value=2
+[3] offset=0x0125 type=int    value=2
+[4] offset=0x0128 type=int    value=4
+[5] offset=0x012b type=int    value=20
+[6] offset=0x012e type=string value="T19"
+[7] offset=0x0133 type=string value="Hello"
+[8] offset=0x013a type=string value="System call"
+[9] offset=0x0147 type=int    value=1
+[10] offset=0x014a type=int    value=1
+[11] offset=0x014d type=int    value=1
+
+## T19_system_calls (function, offset 0x0029, size 75)
+0x0029: 12          UNKNOWN
+0x002a: 00          UNKNOWN
+0x002b: 0f          UNKNOWN
+0x002c: 00          UNKNOWN
+0x002d: 00          UNKNOWN
+0x002e: 00 01 01 01 PUSH_VAR_VAL local[1]
+0x0032: 00 01 01 02 PUSH_VAR_VAL param[1]
+0x0036: 00 01 01 03 PUSH_VAR_VAL 0x301
+0x003a: 00 01 01 04 PUSH_VAR_VAL 0x401
+0x003e: 00 01 01 05 PUSH_VAR_VAL 0x501
+0x0042: 00 01 01 06 PUSH_VAR_VAL 0x601
+0x0046: 00 01 01 07 PUSH_VAR_VAL 0x701
+0x004a: 00          UNKNOWN
+0x004b: 0c 81 54 00 CALL_API    userboxopen (0x54)
+0x004f: 0f          UNKNOWN
+0x0050: 00          UNKNOWN
+0x0051: 00          UNKNOWN
+0x0052: 00 01 01 08 PUSH_VAR_VAL 0x801
+0x0056: 00 01 01 09 PUSH_VAR_VAL 0x901
+0x005a: 00 01 01 0a PUSH_VAR_VAL 0xa01
+0x005e: 00          UNKNOWN
+0x005f: 0c 81 49 00 CALL_API    textout (0x49)
+0x0063: 0f          UNKNOWN
+0x0064: 00          UNKNOWN
+0x0065: 00          UNKNOWN
+0x0066: 00 01 01 0b PUSH_VAR_VAL 0xb01
+0x006a: 00          UNKNOWN
+0x006b: 0c 81 55 00 CALL_API    userboxclose (0x55)
+0x006f: 0e          UNKNOWN
+0x0070: 00          UNKNOWN
+0x0071: 00          UNKNOWN
+0x0072: 00 05       STORE
+## inpainit (function, offset 0x0084, size 7)
+0x0084: 01 00 0e 00 PUSH_VAR_ADDR global[14]
+0x0088: 00          UNKNOWN
+0x0089: 00 05       STORE
+## inpaexit (function, offset 0x009b, size 7)
+0x009b: 01 00 0e 00 PUSH_VAR_ADDR global[14]
+0x009f: 00          UNKNOWN
+0x00a0: 00 05       STORE
+## __inpa_startup__ (function, offset 0x00ba, size 11)
+0x00ba: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x00be: 00          UNKNOWN
+0x00bf: 00          UNKNOWN
+0x00c0: 0c 80 02 00 CALL_USER   0x02
+0x00c4: 05          UNKNOWN
+## __inpa_shutdown__ (function, offset 0x00de, size 11)
+0x00de: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x00e2: 00          UNKNOWN
+0x00e3: 00          UNKNOWN
+0x00e4: 0c 80 03 00 CALL_USER   0x03
+0x00e8: 11          UNKNOWN

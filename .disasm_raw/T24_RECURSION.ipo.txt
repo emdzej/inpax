@@ -1,0 +1,84 @@
+
+> inpax@0.0.0 cli /Users/emdzej/.openclaw/workspace/inpax
+> node packages/cli/dist/index.js "disasm" "tests/ipo/T24_RECURSION.ipo" "--raw"
+
+=== Global Variables ===
+[0] offset=0x010d type=string
+
+=== Constants ===
+[0] offset=0x012d type=real   value=6.930489147945989e+193
+
+## fact (function, offset 0x001d, size 91)
+0x001d: 16          UNKNOWN
+0x001e: 00          UNKNOWN
+0x001f: 08 51 00 00 FUNC_PROLOGUE
+0x0023: 01 02 00 00 PUSH_VAR_ADDR param[0]
+0x0027: 01 01 01 00 PUSH_VAR_ADDR local[1]
+0x002b: 09          UNKNOWN
+0x002c: 66          UNKNOWN
+0x002d: 00          UNKNOWN
+0x002e: 00 05       STORE
+0x0030: 00 01 00 0b PUSH_VAR_VAL 0xb00
+0x0034: 00          UNKNOWN
+0x0035: 0a          UNKNOWN
+0x0036: 00 01 01 02 PUSH_VAR_VAL param[1]
+0x003a: 00          UNKNOWN
+0x003b: 07 02 01 00 PUSH_VAR_VAL param[1]
+0x003f: 05          UNKNOWN
+0x0040: 00 01 00 0a PUSH_VAR_VAL 0xa00
+0x0044: 00          UNKNOWN
+0x0045: 15          UNKNOWN
+0x0046: 00          UNKNOWN
+0x0047: 0f          UNKNOWN
+0x0048: 00          UNKNOWN
+0x0049: 00          UNKNOWN
+0x004a: 00 01 02 00 PUSH_VAR_VAL global[2]
+0x004e: 00 01 01 03 PUSH_VAR_VAL 0x301
+0x0052: 00 09 61    ALU_OP      0x61
+0x0055: 00          UNKNOWN
+0x0056: 00          UNKNOWN
+0x0057: 02 02 02 00 PUSH_UI_HANDLE 0x202
+0x005b: 0c 80 04 00 CALL_USER   0x04
+0x005f: 01 02 00 00 PUSH_VAR_ADDR param[0]
+0x0063: 01 02 02 00 PUSH_VAR_ADDR param[2]
+0x0067: 09          UNKNOWN
+0x0068: 62          UNKNOWN
+0x0069: 00          UNKNOWN
+0x006a: 00          UNKNOWN
+0x006b: 07 02 01 00 PUSH_VAR_VAL param[1]
+0x006f: 05          UNKNOWN
+0x0070: 00 01 00 0e PUSH_VAR_VAL 0xe00
+0x0074: 00          UNKNOWN
+0x0075: 00          UNKNOWN
+0x0076: 00 05       STORE
+## inpainit (function, offset 0x0088, size 27)
+0x0088: 06          UNKNOWN
+0x0089: 00          UNKNOWN
+0x008a: 08 51 00 00 FUNC_PROLOGUE
+0x008e: 0f          UNKNOWN
+0x008f: 00          UNKNOWN
+0x0090: 00          UNKNOWN
+0x0091: 00 01 01 04 PUSH_VAR_VAL 0x401
+0x0095: 00          UNKNOWN
+0x0096: 02 02 00 00 PUSH_UI_HANDLE 0x02
+0x009a: 0c 80 04 00 CALL_USER   0x04
+0x009e: 0e          UNKNOWN
+0x009f: 00          UNKNOWN
+0x00a0: 00          UNKNOWN
+0x00a1: 00 05       STORE
+## inpaexit (function, offset 0x00b3, size 7)
+0x00b3: 01 00 0e 00 PUSH_VAR_ADDR global[14]
+0x00b7: 00          UNKNOWN
+0x00b8: 00 05       STORE
+## __inpa_startup__ (function, offset 0x00d2, size 11)
+0x00d2: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x00d6: 00          UNKNOWN
+0x00d7: 00          UNKNOWN
+0x00d8: 0c 80 02 00 CALL_USER   0x02
+0x00dc: 05          UNKNOWN
+## __inpa_shutdown__ (function, offset 0x00f6, size 11)
+0x00f6: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x00fa: 00          UNKNOWN
+0x00fb: 00          UNKNOWN
+0x00fc: 0c 80 03 00 CALL_USER   0x03
+0x0100: 11          UNKNOWN

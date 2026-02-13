@@ -1,0 +1,132 @@
+
+> inpax@0.0.0 cli /Users/emdzej/.openclaw/workspace/inpax
+> node packages/cli/dist/index.js "disasm" "tests/ipo/T05_comparison_logic.ipo" "--raw"
+
+=== Global Variables ===
+[0] offset=0x018e type=string
+
+=== Constants ===
+[0] offset=0x01ae type=real   value=6.930489147945989e+193
+
+## inpainit (function, offset 0x0021, size 259)
+0x0021: 40          UNKNOWN
+0x0022: 00          UNKNOWN
+0x0023: 08 51 00 00 FUNC_PROLOGUE
+0x0027: 08 51 00 00 FUNC_PROLOGUE
+0x002b: 08          UNKNOWN
+0x002c: 50          UNKNOWN
+0x002d: 00          UNKNOWN
+0x002e: 00 01 01 01 PUSH_VAR_VAL local[1]
+0x0032: 00 06 02 00 PUSH_CONST  0x02
+0x0036: 00 05       STORE
+0x0038: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x003c: 01          UNKNOWN
+0x003d: 02          UNKNOWN
+0x003e: 00 06 02 01 PUSH_CONST  0x102
+0x0042: 00 05       STORE
+0x0044: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x0048: 02          UNKNOWN
+0x0049: 00          UNKNOWN
+0x004a: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x004e: 00 09 68    ALU_OP      0x68
+0x0051: 00          UNKNOWN
+0x0052: 00 06 02 02 PUSH_CONST  0x202
+0x0056: 00 05       STORE
+0x0058: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x005c: 02          UNKNOWN
+0x005d: 00          UNKNOWN
+0x005e: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x0062: 00 09 69    ALU_OP      0x69
+0x0065: 00          UNKNOWN
+0x0066: 00 06 02 02 PUSH_CONST  0x202
+0x006a: 00 05       STORE
+0x006c: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x0070: 02          UNKNOWN
+0x0071: 00          UNKNOWN
+0x0072: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x0076: 00 09 64    ALU_OP      0x64
+0x0079: 00          UNKNOWN
+0x007a: 00 06 02 02 PUSH_CONST  0x202
+0x007e: 00 05       STORE
+0x0080: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x0084: 02          UNKNOWN
+0x0085: 00          UNKNOWN
+0x0086: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x008a: 00 09 65    ALU_OP      0x65
+0x008d: 00          UNKNOWN
+0x008e: 00 06 02 02 PUSH_CONST  0x202
+0x0092: 00 05       STORE
+0x0094: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x0098: 02          UNKNOWN
+0x0099: 00          UNKNOWN
+0x009a: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x009e: 00 09 66    ALU_OP      0x66
+0x00a1: 00          UNKNOWN
+0x00a2: 00 06 02 02 PUSH_CONST  0x202
+0x00a6: 00 05       STORE
+0x00a8: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x00ac: 02          UNKNOWN
+0x00ad: 00          UNKNOWN
+0x00ae: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x00b2: 00 09 67    ALU_OP      0x67
+0x00b5: 00          UNKNOWN
+0x00b6: 00 06 02 02 PUSH_CONST  0x202
+0x00ba: 00 05       STORE
+0x00bc: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x00c0: 02          UNKNOWN
+0x00c1: 00          UNKNOWN
+0x00c2: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x00c6: 00 09 64    ALU_OP      0x64
+0x00c9: 00          UNKNOWN
+0x00ca: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x00ce: 00 01 01 03 PUSH_VAR_VAL 0x301
+0x00d2: 00 09 65    ALU_OP      0x65
+0x00d5: 00          UNKNOWN
+0x00d6: 00 09 6a    ALU_OP      0x6a
+0x00d9: 00          UNKNOWN
+0x00da: 00 06 02 02 PUSH_CONST  0x202
+0x00de: 00 05       STORE
+0x00e0: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x00e4: 02          UNKNOWN
+0x00e5: 00          UNKNOWN
+0x00e6: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x00ea: 00 09 64    ALU_OP      0x64
+0x00ed: 00          UNKNOWN
+0x00ee: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x00f2: 00 01 01 04 PUSH_VAR_VAL 0x401
+0x00f6: 00 09 65    ALU_OP      0x65
+0x00f9: 00          UNKNOWN
+0x00fa: 00 09 6b    ALU_OP      0x6b
+0x00fd: 00          UNKNOWN
+0x00fe: 00 06 02 02 PUSH_CONST  0x202
+0x0102: 00 05       STORE
+0x0104: 00 01 00 01 PUSH_VAR_VAL local[0]
+0x0108: 02          UNKNOWN
+0x0109: 00          UNKNOWN
+0x010a: 00 01 02 01 PUSH_VAR_VAL local[2]
+0x010e: 00 09 68    ALU_OP      0x68
+0x0111: 00          UNKNOWN
+0x0112: 00 09 6e    ALU_OP      0x6e
+0x0115: 00          UNKNOWN
+0x0116: 00 06 02 02 PUSH_CONST  0x202
+0x011a: 00 05       STORE
+0x011c: 00 01 00 0e PUSH_VAR_VAL 0xe00
+0x0120: 00          UNKNOWN
+0x0121: 00          UNKNOWN
+0x0122: 00 05       STORE
+## inpaexit (function, offset 0x0134, size 7)
+0x0134: 01 00 0e 00 PUSH_VAR_ADDR global[14]
+0x0138: 00          UNKNOWN
+0x0139: 00 05       STORE
+## __inpa_startup__ (function, offset 0x0153, size 11)
+0x0153: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x0157: 00          UNKNOWN
+0x0158: 00          UNKNOWN
+0x0159: 0c 80 02 00 CALL_USER   0x02
+0x015d: 05          UNKNOWN
+## __inpa_shutdown__ (function, offset 0x0177, size 11)
+0x0177: 02 00 0f 00 PUSH_UI_HANDLE 0xf00
+0x017b: 00          UNKNOWN
+0x017c: 00          UNKNOWN
+0x017d: 0c 80 03 00 CALL_USER   0x03
+0x0181: 11          UNKNOWN
