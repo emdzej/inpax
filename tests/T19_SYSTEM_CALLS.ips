@@ -1,0 +1,16 @@
+#include "inpa.h"
+
+T19_system_calls()
+{
+  userboxopen(1, 2, 2, 4, 20, "T19", "Hello");
+  textout("System call", 1, 1);
+  userboxclose(1);
+}
+
+inpainit()
+{
+}
+
+inpaexit()
+{
+}

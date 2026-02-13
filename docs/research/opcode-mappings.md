@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Opcode Mappings (IPS ↔ IPO)
 
 This file documents **observed** opcode patterns from the simplest IPS/IPO pairs copied from the Windows node.
@@ -226,3 +227,11 @@ r = !(a == b);
 - Confirm constant index encoding (LOCL01/FUNC01 suggest hidden offset or implicit constants).
 - Disambiguate `01` vs `06` (push var vs push const) using additional samples.
 - Identify exact meaning of `08 51` and `05 00 01` using more local/global variable examples.
+
+---
+
+## 2026-02-13 — Tests T11–T25
+
+No new opcodes were observed in the compiled IPOs for T12, T13, T19–T25. The disassembler output only showed already-known constructs (e.g., `CALL_API`, `CALL_USER`, `PUSH_UI_HANDLE`, `ALU_OP`, `JMP`, `LINE`, `ITEM`, `SCREEN_START`).
+
+Unsupported constructs (T11, T14–T18) failed compilation, so no new opcode data was produced.

@@ -1,0 +1,22 @@
+#include "inpa.h"
+
+struct MyData {
+  int a;
+  real b;
+};
+
+struct MyData g_data;
+
+T16_struct_def()
+{
+  g_data.a = 10;
+  g_data.b = 2.5;
+}
+
+inpainit()
+{
+}
+
+inpaexit()
+{
+}

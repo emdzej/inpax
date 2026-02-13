@@ -1,0 +1,27 @@
+#include "inpa.h"
+
+int g_mode;
+int g_out;
+
+T17_switch()
+{
+  switch (g_mode) {
+    case 0:
+      g_out = 10;
+      break;
+    case 1:
+      g_out = 20;
+      break;
+    default:
+      g_out = 30;
+      break;
+  }
+}
+
+inpainit()
+{
+}
+
+inpaexit()
+{
+}

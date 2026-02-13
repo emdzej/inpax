@@ -1,0 +1,20 @@
+#include "inpa.h"
+
+int arr[10];
+int g_total;
+
+T14_array()
+{
+  arr[0] = 1;
+  arr[1] = 2;
+  arr[2] = 3;
+  g_total = arr[0] + arr[1] + arr[2];
+}
+
+inpainit()
+{
+}
+
+inpaexit()
+{
+}

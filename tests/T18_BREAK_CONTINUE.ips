@@ -1,0 +1,28 @@
+#include "inpa.h"
+
+int g_sum;
+
+T18_break_continue()
+{
+  int i;
+  g_sum = 0;
+  i = 0;
+  while (i < 10) {
+    i = i + 1;
+    if (i == 5) {
+      continue;
+    }
+    if (i == 8) {
+      break;
+    }
+    g_sum = g_sum + i;
+  }
+}
+
+inpainit()
+{
+}
+
+inpaexit()
+{
+}

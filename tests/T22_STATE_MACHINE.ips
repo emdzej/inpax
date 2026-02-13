@@ -1,0 +1,25 @@
+#include "inpa.h"
+
+STATEMACHINE sm_t22()
+{
+  INIT {
+    setstate(s_idle);
+  }
+
+  s_idle {
+    setstate(s_done);
+  }
+
+  s_done {
+    stop();
+  }
+}
+
+inpainit()
+{
+  setstatemachine(sm_t22);
+}
+
+inpaexit()
+{
+}
