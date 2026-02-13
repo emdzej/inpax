@@ -179,8 +179,8 @@ r = !(a == b);
 ## 6) T06_if_else.ips / 7) T07_while_loop.ips
 
 **Observed branch opcodes (4 bytes):**
-- `00 0B [s16]` → conditional jump (if/while)
-- `00 0E [s16]` → unconditional jump (loop back)
+- `0B [s16] 00` → conditional jump (if/while)
+- `0E [s16] 00` → unconditional jump (loop back)
 
 ## 10) T10_string_ops.ips
 
@@ -216,8 +216,8 @@ r = !(a == b);
 | `09 6A 00 00` | **ALU_AND** | `T05_comparison_logic` (`(a<b)&&(b>0)`) |
 | `09 6B 00 00` | **ALU_OR** | `T05_comparison_logic` (`(a<b)||(b>0)`) |
 | `09 6E 00 00` | **ALU_NOT** | `T05_comparison_logic` (`!(a==b)`) |
-| `00 0B [s16]` | **JMP_FALSE** | `T06_if_else`, `T07_while_loop` (conditional branches) |
-| `00 0E [s16]` | **JMP** | `T07_while_loop` (loop backjump) |
+| `0B [s16] 00` | **JMP_FALSE** | `T06_if_else`, `T07_while_loop` (conditional branches) |
+| `0E [s16] 00` | **JMP** | `T07_while_loop` (loop backjump) |
 
 ---
 
