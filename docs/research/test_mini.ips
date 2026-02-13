@@ -1,5 +1,0 @@
-#include "inpa.h"
-inpainit() {
-  setmenutitle("title");
-  exit();
-}
