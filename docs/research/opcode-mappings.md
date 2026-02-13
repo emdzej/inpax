@@ -145,10 +145,10 @@ x = a / b;
 ```
 
 **Observed 4-byte ALU ops (from hex, `inpainit`):**
-- `00 09 60 00` → `a + b`
-- `00 09 61 00` → `a - b`
-- `00 09 62 00` → `a * b`
-- `00 09 63 00` → `a / b`
+- `09 60 00 00` → `a + b`
+- `09 61 00 00` → `a - b`
+- `09 62 00 00` → `a * b`
+- `09 63 00 00` → `a / b`
 
 ## 5) T05_comparison_logic.ips
 
@@ -166,15 +166,15 @@ r = !(a == b);
 ```
 
 **Observed 4-byte ALU ops (from hex, `inpainit`):**
-- `00 09 68 00` → `==`
-- `00 09 69 00` → `!=`
-- `00 09 64 00` → `<`
-- `00 09 65 00` → `>`
-- `00 09 66 00` → `<=`
-- `00 09 67 00` → `>=`
-- `00 09 6A 00` → `&&`
-- `00 09 6B 00` → `||`
-- `00 09 6E 00` → `!`
+- `09 68 00 00` → `==`
+- `09 69 00 00` → `!=`
+- `09 64 00 00` → `<`
+- `09 65 00 00` → `>`
+- `09 66 00 00` → `<=`
+- `09 67 00 00` → `>=`
+- `09 6A 00 00` → `&&`
+- `09 6B 00 00` → `||`
+- `09 6E 00 00` → `!`
 
 ## 6) T06_if_else.ips / 7) T07_while_loop.ips
 
@@ -203,19 +203,19 @@ r = !(a == b);
 | `01 01 00 00` / `01 01 01 00` | **PUSH_VAR_ADDR?** | Appears before assignment |
 | `06 02 00 00` | **PUSH_CONST?** | Appears before `STORE` in assignments |
 | `05 00 01 00` | **STORE / assign?** | Appears after addr+value push |
-| `00 09 60 00` | **ALU_ADD** | `T04_arithmetic_ops` (`x = a + b`) |
-| `00 09 61 00` | **ALU_SUB** | `T04_arithmetic_ops` (`x = a - b`) |
-| `00 09 62 00` | **ALU_MUL** | `T04_arithmetic_ops` (`x = a * b`) |
-| `00 09 63 00` | **ALU_DIV** | `T04_arithmetic_ops` (`x = a / b`) |
-| `00 09 64 00` | **ALU_LT** | `T05_comparison_logic` (`a < b`) |
-| `00 09 65 00` | **ALU_GT** | `T05_comparison_logic` (`a > b`) |
-| `00 09 66 00` | **ALU_LE** | `T05_comparison_logic` (`a <= b`) |
-| `00 09 67 00` | **ALU_GE** | `T05_comparison_logic` (`a >= b`) |
-| `00 09 68 00` | **ALU_EQ** | `T05_comparison_logic` (`a == b`) |
-| `00 09 69 00` | **ALU_NE** | `T05_comparison_logic` (`a != b`) |
-| `00 09 6A 00` | **ALU_AND** | `T05_comparison_logic` (`(a<b)&&(b>0)`) |
-| `00 09 6B 00` | **ALU_OR** | `T05_comparison_logic` (`(a<b)||(b>0)`) |
-| `00 09 6E 00` | **ALU_NOT** | `T05_comparison_logic` (`!(a==b)`) |
+| `09 60 00 00` | **ALU_ADD** | `T04_arithmetic_ops` (`x = a + b`) |
+| `09 61 00 00` | **ALU_SUB** | `T04_arithmetic_ops` (`x = a - b`) |
+| `09 62 00 00` | **ALU_MUL** | `T04_arithmetic_ops` (`x = a * b`) |
+| `09 63 00 00` | **ALU_DIV** | `T04_arithmetic_ops` (`x = a / b`) |
+| `09 64 00 00` | **ALU_LT** | `T05_comparison_logic` (`a < b`) |
+| `09 65 00 00` | **ALU_GT** | `T05_comparison_logic` (`a > b`) |
+| `09 66 00 00` | **ALU_LE** | `T05_comparison_logic` (`a <= b`) |
+| `09 67 00 00` | **ALU_GE** | `T05_comparison_logic` (`a >= b`) |
+| `09 68 00 00` | **ALU_EQ** | `T05_comparison_logic` (`a == b`) |
+| `09 69 00 00` | **ALU_NE** | `T05_comparison_logic` (`a != b`) |
+| `09 6A 00 00` | **ALU_AND** | `T05_comparison_logic` (`(a<b)&&(b>0)`) |
+| `09 6B 00 00` | **ALU_OR** | `T05_comparison_logic` (`(a<b)||(b>0)`) |
+| `09 6E 00 00` | **ALU_NOT** | `T05_comparison_logic` (`!(a==b)`) |
 | `00 0B [s16]` | **JMP_FALSE** | `T06_if_else`, `T07_while_loop` (conditional branches) |
 | `00 0E [s16]` | **JMP** | `T07_while_loop` (loop backjump) |
 

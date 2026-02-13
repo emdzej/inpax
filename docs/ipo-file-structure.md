@@ -299,9 +299,11 @@ Function IDs (block IDs) are 0-indexed section numbers within the IPO file.
 
 #### Return Mechanism
 
-**No explicit RET opcode was found.** Functions appear to return implicitly at section end.
+**`0E 00 00 00` appears to act as RET / function end.**
 
-Functions seem to start with either `0E 00 00 00` or `0F 00 00 00` instrucntions. This might be an opcode to push current PC?
+From `tests/windows-samples/test_empty.ipo`, empty function bodies consist of a single `0E 00 00 00` instruction.
+
+`0F 00 00 00` appears immediately before `CALL_USER` and likely serves as a call prologue / marker (exact semantics TBD).
 
 #### Parameter Passing
 
@@ -660,20 +662,21 @@ The INPA VM is stack-based.
 
 
 
-TO BE CONFIRMED
+**Partially confirmed from `tests/windows-samples/*`** (see `docs/research/opcode-mappings.md`).
 
 | Opcode | Arguments | Mnemonic | Description |
 |--------|-----------|----------|-------------|
 | `01 [u16] [u8]` | index ? | Push const at index? |
 | `02 [u16] 00` | index | Push variable at index? |
-| `05 [u8] [u8] 00` |  | Unknown |
-| `06 [u8] [u8] 00 ` | | Unknown |
+| `05 [u8] [u8] 00` |  | Unknown (appears after addr+value push in assignments) |
+| `06 [u8] [u8] 00 ` | | Unknown (appears before assignments; likely PUSH_CONST) |
+| `08 51 00 00` | - | ? | Appears only when local variables declared (likely local alloc / frame setup) |
 | `09 [u8] 00 00` | Op | `ALU_OP` | Binary arithmetic/comparison operation |
 | `0B 00 [u16] ` | pop? | `JMP_FALSE` | Pop condition; if false, jump by offset |
-| `0C 80 [u16]` | FuncID | `CALL_USER` | Call user-defined function |
+| `0C 80 [u16]` | FuncID | `CALL_USER` | Call user-defined function (**confirmed**) |
 | `0C 81 [u16]` | FuncID | `CALL_API` | Call system/API function |
-| `0E 00 00 00` |  | ? | Unconditional relative jump |
-| `0F 00 00 00` | - | ? | Push return offset? appears before func calls |
+| `0E 00 00 00` |  | `RET` | Function end / return (**confirmed from empty bodies**) |
+| `0F 00 00 00` | - | ? | Call prologue / marker (appears immediately before `CALL_USER`) |
 
 ### ALU Operations (`09 [op]`)
 
