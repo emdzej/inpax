@@ -202,3 +202,15 @@ INPACOMP.EXE MY_SCRIPT.IPS -B compile-errors.log
 # Fail CI if errors were logged (simple check)
 INPACOMP.EXE MY_SCRIPT.IPS -B compile-errors.log && (test ! -s compile-errors.log)
 ```
+
+## Bytecode Byte Order
+
+**IMPORTANT**: IPO instructions are 4 bytes, **opcode is the FIRST byte**.
+
+❌ Wrong: `00 09 6A 00` (looks like little-endian u32)
+✅ Correct: `09 6A 00 00` (opcode 0x09, operand 0x6A, padding)
+
+When documenting bytecode, always use the CLI disassembler output as reference:
+```
+pnpm --silent cli disasm <file.ipo>
+```
