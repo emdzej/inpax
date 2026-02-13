@@ -1,10 +1,5 @@
 export {
-  decodeInstructions,
-  decodeLogtable,
-  parseConstantData,
-  parseGlobalData,
-  parseIpo,
-  parseImport32
+  parseInpaFile
 } from "./parser/index.js";
 export {
   getSystemFunction,
@@ -15,21 +10,9 @@ export { formatDisassembly, formatInstruction } from "./formatter/disassembly.js
 export type {
   Constant,
   ConstantData,
-  GlobalData,
-  Instruction,
-  Import32Call,
-  Import32Parameter,
-  Import32ParameterDirection,
-  Import32ParameterType,
-  Import32ReturnType,
-  IpoFile,
-  IpoHeader,
-  LogtableData,
-  LogtableEntry,
-  Opcode,
-  Section,
-  SectionType,
-  VariableType
+  GlobalData
 } from "./parser/index.js";
+export * from "./parser/types.js";
+export * from "./parser/utils.js";
 export type { FormatOptions } from "./formatter/disassembly.js";
 export type { SystemFunction } from "./data/system-functions.js";

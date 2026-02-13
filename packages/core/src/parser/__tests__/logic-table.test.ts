@@ -1,0 +1,46 @@
+import { describe, it, expect } from "vitest";
+import { parseLogicTable } from "../logic-table.js";
+
+describe("parseLogicTable", () => {
+  it("should correctly parse section", () => {
+    const data = new Uint8Array([
+      0x04, 0x20, 0x4C, 0x54, 0x5F, 0x6C, 0x6F, 0x67, 0x31, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x0A, 0x0A,
+      0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x04,
+      0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xFF,
+      0xFF, 0xFF, 0xFF, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+      0x00, 0x00, 0x00,
+    ]);
+
+    const result = parseLogicTable(data, 0);
+    expect(result.result.type).toBe(0x04);
+    expect(result.result.name).toBe(" LT_log1");
+    expect(result.result.id).toBe(0);
+    expect(result.result.flags).toBe(0);
+    expect(result.result.arg1).toBeUndefined();
+    expect(result.result.arg2).toBeUndefined();
+    expect(result.result.size).toBe(4);
+    expect(result.offset).toBe(0x43);
+    expect(result.result.entries).toEqual([
+      {
+        input: 0,
+        mask: 0xFFFFFFFF,
+        output: 0,
+      },
+      {
+        input: 4,
+        mask: 0x06,
+        output: 1,
+      },
+      {
+        input: 2,
+        mask: 0xFFFFFFFF,
+        output: 2,
+      },
+      {
+        input: 0,
+        mask: 0x0,
+        output: 3,
+      },
+    ]);
+  });
+});

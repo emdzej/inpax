@@ -34,16 +34,19 @@ Variable access opcodes (`01` for address, `07` for value) use a 4-byte format:
 ### 3. Variable Indexing
 
 **Local Variables:**
+
 - Index starts at **1** (not 0)
 - LOCAL[0] appears to be reserved (possibly for return value or frame management)
 - Each declared local gets the next available index
 
 **Function Parameters:**
+
 - Index starts at **0**
 - Parameters appear in order: first `in` param, then `out` params
 - There may be hidden slots between in/out params (observed PARAM[1] gap in `add_one`)
 
 **Global Variables:**
+
 - Index starts at **0**
 - Indices correspond to order in Global Data section
 
@@ -56,6 +59,7 @@ User-defined functions have a frame info field before the prologue:
 ```
 
 **Frame Size Calculation:**
+
 - Base size: 3 bytes (likely return address + frame pointer)
 - +2 bytes per local variable (int = 2 bytes)
 - +2 bytes per parameter slot
@@ -82,6 +86,7 @@ System functions (`inpainit`, `inpaexit`) may or may not have this marker depend
 ### 6. No Separate "Local Data" Section
 
 Local variables are **NOT** stored in a separate section like Global Data. Instead:
+
 - Global Data section only contains global variable types
 - Local variable storage is implicit in the stack frame
 - Frame size in function header determines stack allocation
@@ -89,16 +94,19 @@ Local variables are **NOT** stored in a separate section like Global Data. Inste
 ## Test Files Analyzed
 
 ### LOCL01.ips
+
 ```c
 test_func() {
     int local_x;
     local_x = 42;
 }
 ```
+
 - LOCAL[1] access confirmed
 - Frame size: 5 bytes
 
 ### LOCL02.ips  
+
 ```c
 add_one(in: int x, out: int result) {
     int temp;
@@ -106,6 +114,7 @@ add_one(in: int x, out: int result) {
     result = temp;
 }
 ```
+
 - PARAM[0] = x (input)
 - PARAM[1] = hidden slot (?)
 - PARAM[2] = result (output)
@@ -113,6 +122,7 @@ add_one(in: int x, out: int result) {
 - Frame size: 10 bytes
 
 ### LOCL03.ips
+
 ```c
 int global_x;
 
@@ -127,6 +137,7 @@ outer() {
     inner();
 }
 ```
+
 - Global access: GLOBAL[1] for global_x
 - Each function has independent LOCAL[1] for its local
 - Nested calls work correctly with separate frames
@@ -134,7 +145,9 @@ outer() {
 ## Bytecode Examples
 
 ### Assignment to Local Variable
+
 Source: `local_x = 42;`
+
 ```hex
 01 01 01 00    ; PUSH_VAR_ADDR LOCAL[1]
 00 06 02 00    ; PUSH_CONST[2] (value 42 from constant table)
@@ -142,7 +155,9 @@ Source: `local_x = 42;`
 ```
 
 ### Reading Parameter
+
 Source: `temp = x + 1;`
+
 ```hex
 01 01 01 00    ; PUSH_VAR_ADDR LOCAL[1] (temp)
 07 02 00 00    ; PUSH_VAR_VAL PARAM[0] (x)
@@ -152,7 +167,9 @@ Source: `temp = x + 1;`
 ```
 
 ### Global Variable Access from Function
+
 Source: `inner_local = global_x;`
+
 ```hex
 01 01 01 00    ; PUSH_VAR_ADDR LOCAL[1] (inner_local)
 07 00 01 00    ; PUSH_VAR_VAL GLOBAL[1] (global_x)  -- Note: scope 0x00!
@@ -162,11 +179,13 @@ Source: `inner_local = global_x;`
 ## Implementation Notes
 
 ### For Disassembler
+
 1. Parse scope byte in opcodes 0x01 and 0x07
 2. Display scope name: `G[n]` for global, `L[n]` for local, `P[n]` for param
 3. Consider LOCAL[0] as reserved/return value
 
 ### For Compiler
+
 1. Track separate indices for each scope
 2. Calculate frame size based on locals + params + call requirements
 3. Generate scope-qualified variable references
@@ -182,6 +201,7 @@ Source: `inner_local = global_x;`
 ## Conclusion
 
 The INPA VM uses a straightforward scope-based addressing scheme:
+
 - Scope byte in each variable access opcode
 - 0x00 = global, 0x01 = local, 0x02 = param
 - Stack frames sized according to local/param count

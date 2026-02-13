@@ -35,10 +35,14 @@ This document is the authoritative specification for the `.ipo` binary format �
 The `.ipo` format is a compiled bytecode format for INPA scripts (`.ips` source files). It contains:
 
 - **Header** with magic signature and version info
-- **Named sections** for functions, screens, menus
-- **Global Data** — type definitions for all global variables
-- **Constant Data** — string literals, numbers, and other constants
-- **Bytecode** — stack-based virtual machine instructions
+- **Sections** 
+    - **Functions**
+    - **Screens**
+    - **Menus**    
+    - **Global Data** — type definitions for all global variables
+    - **Constant Data** — string literals, numbers, and other constants
+
+**Important**: `.ipo` files are read section by section, there is no lookup table at fixed position in the file.
 
 The INPA VM executes these files for ECU diagnostics in BMW vehicles.
 
@@ -75,7 +79,11 @@ The INPA VM executes these files for ECU diagnostics in BMW vehicles.
 
 ## 3. Section Structure
 
-IPO files are organized into named sections. Section names are ASCII strings terminated by `0x0A` (newline).
+Each section has the following structure
+
+```
+[Type u8] [Name] 0x0a [Header] [Data]
+```
 
 ### Known Section Types
 
@@ -83,8 +91,10 @@ IPO files are organized into named sections. Section names are ASCII strings ter
 |---------|---------|
 | `Global Data` | Variable type definitions |
 | `Constant Data` | String and numeric literals |
-| `inpainit` | Initialization function (required) |
-| `inpaexit` | Cleanup function (required) |
+| `inpainit` | Initialization function (required) but not referenced to by inpa by name |
+| `inpaexit` | Cleanup function (required) but not referenced to by inpa by name |
+| `__inpa_startup__"` | Cleanup function (required) |
+| `__inpa_shutdown__` | Cleanup function (required) |
 | `<function_name>` | User-defined functions |
 | `<screen_name>` | SCREEN definitions |
 | `<menu_name>` | MENU definitions |
@@ -94,7 +104,525 @@ IPO files are organized into named sections. Section names are ASCII strings ter
 
 ### Section Detection
 
+Sections are a strucutres of
+section type 8u
+
+[type u8][name string]0x0a
+[section preablme]
+[secion type dependan body]
+
+```hexpat
+import std.io;
+import std.mem;
+
+enum Terminator: u8 {
+    Terminator = 0x0a
+};
+
+enum BlockType: u8 {
+    Screen = 0x01,
+    Menu = 0x02,
+    StateMachine = 0x03,
+    LogTable = 0x04,
+    Function = 0x05,
+    Globals  = 0x11,
+    Constants = 0x12,
+    ScreenBody = 0x21,
+    ScreenLine = 0x22,
+    Control = 0x23,
+    StateBody = 0x25
+};
+
+enum VarType: u8 {
+    Void = 0x00,
+    Bool = 0x01,
+    Byte = 0x02,
+    Int = 0x03,
+    Long = 0x04,
+    Real = 0x05,
+    String = 0x06
+};
+
+struct FileHeader {
+    u16 version;
+    char name[while(std::mem::read_unsigned($, 1) != 0x0a)];
+    Terminator marker; 
+};
+
+
+
+struct GlobVar {
+    VarType type;
+};
+
+using VoidConst;
+using BoolConst;
+using ByteConst;
+using IntConst;
+using LongConst;
+using RealConst;
+using StringConst;
+
+struct Const {
+    VarType type;
+    if (type == 0x00) {
+        VoidConst value;
+    }
+    if (type == 0x01) {
+        BoolConst value;
+    }
+    if (type == 0x02) {
+        ByteConst value;
+    }
+    if (type == 0x03) {
+        IntConst value;
+    }
+    if (type == 0x04) {
+        LongConst value;
+    }
+    if (type == 0x05) {
+        RealConst value;
+    }
+    if (type == 0x06) {
+        StringConst value;
+    }
+};
+
+enum Void: u8 {
+    Void = 0x00
+};
+
+struct VoidConst {
+    Void value; 
+};
+
+struct BoolConst {
+    u8 value;
+};
+
+struct ByteConst {
+    u8 value;
+};
+
+struct IntConst {
+    u16 value;
+};
+
+struct LongConst {
+    u32 value;
+};
+
+struct RealConst {
+    double value;
+};
+
+struct StringConst {
+    char value[while(std::mem::read_unsigned($, 1) != 0x0a)];
+    Terminator terminator;
+};
+
+struct Block {
+    BlockType type;
+    char name[while(std::mem::read_unsigned($, 1) != 0x0a)];
+    u8 marker_1; // 0x0a
+    u16 block_id;
+    u16 flags;
+    char arg1[while(std::mem::read_unsigned($, 1) != 0x0a)];
+    u8 argseparator1; // = 0x0a;
+    char arg2[while(std::mem::read_unsigned($, 1) != 0x0a)];
+    u8 argseparator2; // = 0x0a;
+    u8 marker_2; // = 0x00
+    u16 size;
+};
+
+struct Instr {
+    u8 b1;
+    u8 b2;
+    u8 b3;
+    u8 b4;
+};
+
+
+
+struct Function : Block {
+    // type = 0x05  
+    Instr code[size];    
+};
+
+struct Constants : Block {
+    // type = 0x12
+    Const values[size];
+};
+
+struct Globals : Block {
+    // type = 0x11
+    GlobVar vars[size];
+};
+
+struct LogTabEntry {
+    u32 input;
+    u32 mask;
+    u32 value;
+};
+
+struct LogTab: Block {
+// type = 0x04
+LogTabEntry entries[size];
+};
+
+struct Control: Function {
+    // type = 0x23;    
+};
+
+struct ScreenLine {
+    //type 0x22
+    if (std::mem::read_unsigned($, 1) != 0x22) {
+        break;
+    } 
+    Function body;
+    if (std::mem::read_unsigned($, 1) == 0x23) {
+        Control control;
+    }      
+};
+
+
+
+struct ScreenBody: Function {
+    // type -0x21    
+};
+
+struct Screen : Block {
+// type = 0x01
+   ScreenBody body;
+   ScreenLine lines[while(true)];    
+};
+
+struct MenuItem {
+    // type = 0x24
+    if (std::mem::read_unsigned($, 1) != 0x24) {
+        break;
+    }
+    Function body;
+};
+
+struct Menu: Function {
+    // type = 0x02
+    MenuItem items[while(true)];
+};
+
+struct File {
+    FileHeader header;
+    //Block blocks[];
+};
+
+Screen s2 @ 0x50;
+
+Screen s1 @ 0x70;
+
+File file @ 0x00;
+
+
+```
+
+known section types
+
+`0x05` - function
+`0x11` - global data
+`0x12` - constant data
+`0x25` - tbresearch
+
+section preamble
+
+`00 00 00 00 0A 0A 00`
+u32 section id 0x0a 0x0a
+
+Constand data section
+
+examples
+
+no const
+
+```
+Hex View  00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+ 
+00000090                                       12 43 6F 6E              .Con
+000000A0  73 74 61 6E 74 20 44 61  74 61 0A 00 00 00 00 0A  stant Data......
+000000B0  0A 00 00 00                                      ....
+```
+
+1 const int
+
+```
+Hex View  00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+ 
+000000A0                              12 43 6F 6E 73 74 61           .Consta
+000000B0  6E 74 20 44 61 74 61 0A  00 00 00 00 0A 0A 00 01  nt Data.........
+000000C0  00 03 01 00                                      ....
+```
+
+
+2 const int
+
+```
+Hex View  00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+ 
+000000B0                    12 43  6F 6E 73 74 61 6E 74 20        .Constant 
+000000C0  44 61 74 61 0A 00 00 00  00 0A 0A 00 02 00 03 01  Data............
+000000D0  00 03 01 00                                      ....
+```
+
+
+
+
+`00 00 00  00 0A 0A 00`
+
+[const lengt u16]
+
+const lengt *  const data types
+
+eg
+
+`00 00 00 00 0A 0A 00 01 00 03 01 00`
+
+1 int of value 1
+
+`00 00 00  00 0A 0A 00 02 00 03 01`
+
+2 ints of value 2
+
+globals section
+
+`00 00 00 00 0A 0A 00`
+
+
+
+menu 02
+
+only INIT func like
+
+02 6D 5F 6D 61 69 6E 0A 00 00 00 00 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00
+
+followed by 0 or more 24 sections
+24 - flags -> sequential key number
+label = w header arg1
+
+24 
+
+24 0A 00 00 01 00 46 31 20 4C 61 62 65 6C 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00
+
+
+
+screen 01
+    21 x1 body
+    22 many (LINE)
+
+01 73 5F 6D 61 69 6E 0A 00 00 00 00 0A 0A 00 00 00
+
+22 LINE
+    moze byc followed by 23 (single)
+
+0x21 - sekcja - liek function  w screen
+
+0x22 - sekcja line
+
+LINE("","") { foo()}
+
+22 0A 00 00 00 00 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00
+
+LINE("a", "b") { foo() }
+
+22 0A 00 00 00 00 61 0A 62 0A 00 02 00 0F 00 00 00 0C 80 04 00
+                  a     b
+LINE("abc", "def") {
+    foo();
+}
+
+22 0A 00 00 00 00 61 62 63 0A 64 65 66 0A 00 02 00 0F 00 00 00 0C 80 04 00
+                  a  b  c     d  e  f
+
+
+23 - control block like function
+
+
+23 0A 00 00 00 00 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00
+
+```
+SCREEN s1() {
+    LINE("l1", "") {
+        CONTROL {
+
+        }
+    }
+    LINE("l2", "") {
+        CONTROL {
+            
+        }
+    }
+    LINE("l3", "") {
+        
+    }
+}
+```
+
+```
+01 73 31 0A 00 00 00 00 0A 0A 00 00 00 
+21 0A 00 00 00 00 0A 0A 00 00 00 
+22 0A 00 00 00 00 6C 31 0A 0A 00 00 00 
+23 0A 00 00 00 00 0A 0A 00 00 00 
+22 0A 00 00 00 00 6C 32 0A 0A 00 00 00 
+23 0A 00 00 00 00 0A 0A 00 00 00
+```
+
+```
+SCREEN s1() {
+    foo();
+    LINE("l1", "") {
+        foo();
+        CONTROL {
+            foo();
+        }
+    }
+    LINE("l2", "") {
+        foo();
+        CONTROL {
+            foo();
+        }
+    }
+    LINE("l3", "") {
+        foo();
+    }
+}
+```
+
+```
+01 73 31 0A 00 00 00 00 0A 0A 00 00 00 
+21 0A 00 00 00 00 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00 
+22 0A 00 00 00 00 6C 31 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00 
+23 0A 00 00 00 00 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00 
+22 0A 00 00 00 00 6C 32 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00 
+23 0A 00 00 00 00 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00 
+22 0A 00 00 00 00 6C 33 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00
+``
+
+
+
+
 Sections are identified by their name string followed by `0x0A`. The preamble `[func_id u32] 0a 0a 00` appears after special sections like `Global Data` and `Constant Data`.
+
+STATE MACHINE (block 0x03)
+
+minimal
+
+```c
+STATEMACHINE sm_name()
+{
+         INIT {
+        
+        }
+}
+
+```
+
+```
+03 73 6D 5F 6E 61 6D 65 0A 00 00 00 00 0A 0A 00 01 00 0F 00 00 00
+```
+init is a direct function 03 - function like
+
+State with global var
+```c
+
+STATEMACHINE sm_name()
+{
+    int i;
+    INIT {
+
+    }        
+}
+```
+
+```
+03 73 6D 5F 6E 61 6D 65 0A 00 00 00 00 0A 0A 00 02 00 0F 00 00 00 08 51 00 00
+```
+
+No change in state block structure, only instruction to read variable?
+ state machine local variables are marked in global variables
+
+
+
+state m with 1 state
+
+```
+STATEMACHINE sm_name()
+{
+         INIT {
+        
+        }
+        
+        s1 {
+
+        }
+}
+```
+
+25 - state block type -  function block
+
+entire sm_name
+```
+03 73 6D 5F 6E 61 6D 65 0A 00 00 00 00 0A 0A 00 01 00 0F 00 00 00 
+25 73 31 0A 00 00 00 00 0A 0A 00 00 00
+```
+
+
+
+2 states one with a call
+
+```
+STATEMACHINE sm_name()
+{
+         INIT {
+        
+        }
+
+        s1 {
+
+        }
+
+        s2 {
+            foo();
+        }
+}
+```
+
+```
+03 73 6D 5F 6E 61 6D 65 0A 00 00 00 00 0A 0A 00 01 00 0F 00 00 00 
+25 73 31 0A 00 00 00 00 0A 0A 00 00 00 
+25 73 32 0A 01 00 00 00 0A 0A 00 02 00 0F 00 00 00 0C 80 04 00
+```
+
+
+
+
+LOGTABLE
+
+```c
+LOGTABLE log1(out: bool out1 out2, in: bool in1 in2 in3)
+{ 
+    0y00: 0y000;  // Exact match
+    0y01: 0y10X;  // X = don't care
+    0y10: 0y010;
+    0y11: OTHER;  // All other cases
+}
+```
+
+function
+followed by table block (type 04)
+
+```
+05 6C 6F 67 31 0A 04 00 00 00 0A 0A 00 04 00 11 51 03 00 11 51 02 00 10 44 00 00 0E 00 00 00 
+04 20 4C 54 5F 6C 6F 67 31 0A 00 00 00 00 0A 0A 00 04 00 00 00 00 00 FF FF FF FF 00 00 00 00 04 00 00 00 06 00 00 00 01 00 00 00 02 00 00 00 FF FF FF FF 02 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00
+```
+
+
 
 ---
 
@@ -102,7 +630,50 @@ Sections are identified by their name string followed by `0x0A`. The preamble `[
 
 Defines the types of all global variables. Variable **names are not stored** — they are referenced by index in bytecode.
 
+
+
 ### Structure
+
+Examples
+
+defautl global (no declared)
+```
+Hex View  00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+ 
+00000080                 11 47 6C  6F 62 61 6C 20 44 61 74       .Global Dat
+00000090  61 0A 00 00 00 00 0A 0A  00 01 00 00              a...........
+```
+
+1 declarded glboal int
+
+```
+Hex View  00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+ 
+00000080                 11 47 6C  6F 62 61 6C 20 44 61 74       .Global Dat
+00000090  61 0A 00 00 00 00 0A 0A  00 02 00 00 03           a............
+```
+
+2 declarded global int
+
+```
+Hex View  00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+ 
+00000080                 11 47 6C  6F 62 61 6C 20 44 61 74       .Global Dat
+00000090  61 0A 00 00 00 00 0A 0A  00 03 00 00 03 03        a.............
+```
+
+Structure
+
+0x11 Global Data 0x0a
+
+00 00 00 00 0A 0A 00
+
+u16 var count
+
+count * u8 -> data type marker (incl 00 - void?)
+
+
+
 
 ```
 "Global Data\n"                      ; Section marker
@@ -147,6 +718,7 @@ Stores literal values: strings, integers, reals, and booleans.
 
 | Type | Format | Example |
 |------|--------|---------|
+
 | **Bool** | `01 [value]` | `TRUE` → `01 01`, `FALSE` → `01 00` |
 | **Byte** | `02 [u8 value]` | `255` → `02 ff` |
 | **Int** | `03 [u16 LE value]` | `1000` → `03 e8 03` |
@@ -164,6 +736,7 @@ Used in both Global Data (variable types) and Constant Data (value prefixes).
 
 | Type | Byte | Size | Description |
 |------|------|------|-------------|
+| **Void** | `00` | 0 | found in globals? |
 | **Bool** | `0x01` | 1 byte | Boolean (TRUE=1, FALSE=0) |
 | **Byte** | `0x02` | 1 byte | 8-bit unsigned integer (0-255) |
 | **Int** | `0x03` | 2 bytes | 16-bit signed integer |
@@ -238,9 +811,12 @@ Variable access opcodes (`01` and `07`) use a scope-based addressing scheme:
 
 User-defined functions have a header structure before bytecode:
 
+
+
 ```
-[func_name]\n [func_id u32] [type u16] 0a 0a 00 [frame_size u16] 08 51 00 00 [bytecode...]
+[func_name]\n [func_id u32]  0a 0a 00 [frame_size u16] [bytecode...]
 ```
+byte code is frame size * 4 (4 byte opcodes)
 
 - **func_id:** Unique function identifier (used in CALL_USER)
 - **type:** Always 0x0000 for user functions
@@ -635,6 +1211,12 @@ while (i < 5) {
 > **Note on marker 0x05:** This marker is used for ALL function types, not just LOGTABLE wrappers. The disassembler uses naming conventions to distinguish: `lt_*` = LOGTABLE wrapper, otherwise = regular function. See `docs/research/logtable-section-type-research.md` for details (issue #72).
 
 ### SCREEN Definition
+
+screen blocks 
+scren block has no length defined
+0x21 - matches function block structure
+0x22 - matches funciton block structure (LINE ?)
+
 
 Screens are named sections containing layout calls.
 

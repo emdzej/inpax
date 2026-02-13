@@ -5,15 +5,15 @@ import path from "node:path";
 import process from "node:process";
 
 import {
-  decodeInstructions,
-  decodeLogtable,
-  formatDisassembly,
-  parseIpo
+    formatDisassembly,
+    getDataTypeName,
+    getMenuKeyName,
+    parseInpaFile
 } from "@inpax/core";
 
 type CliOptions = {
-  raw: boolean;
-  resolve: boolean;
+    raw: boolean;
+    resolve: boolean;
 };
 
 const USAGE = `Usage: inpax <command> <file.ipo> [options]
@@ -30,310 +30,309 @@ Options:
 `;
 
 const printUsage = (): void => {
-  console.log(USAGE.trimEnd());
+    console.log(USAGE.trimEnd());
 };
 
 const parseOptions = (args: string[]): CliOptions => {
-  const options: CliOptions = {
-    raw: false,
-    resolve: true
-  };
+    const options: CliOptions = {
+        raw: false,
+        resolve: true
+    };
 
-  for (const arg of args) {
-    if (arg === "--raw") {
-      options.raw = true;
-      continue;
+    for (const arg of args) {
+        if (arg === "--raw") {
+            options.raw = true;
+            continue;
+        }
+
+        if (arg === "--no-resolve") {
+            options.resolve = false;
+            continue;
+        }
+
+        if (arg === "-h" || arg === "--help") {
+            printUsage();
+            process.exit(0);
+        }
+
+        if (arg.startsWith("-")) {
+            throw new Error(`Unknown option: ${arg}`);
+        }
     }
 
-    if (arg === "--no-resolve") {
-      options.resolve = false;
-      continue;
-    }
-
-    if (arg === "-h" || arg === "--help") {
-      printUsage();
-      process.exit(0);
-    }
-
-    if (arg.startsWith("-")) {
-      throw new Error(`Unknown option: ${arg}`);
-    }
-  }
-
-  return options;
+    return options;
 };
 
 const readFile = (filePath: string): Buffer => {
-  try {
-    return readFileSync(filePath);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to read file: ${filePath}\n${message}`);
-  }
+    try {
+        return readFileSync(filePath);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to read file: ${filePath}\n${message}`);
+    }
 };
 
 const formatHex = (value: number, width = 2): string =>
-  value.toString(16).padStart(width, "0");
+    value.toString(16).padStart(width, "0");
 
 const formatHexDump = (buffer: Uint8Array): string => {
-  const lines: string[] = [];
-  const bytesPerLine = 16;
+    const lines: string[] = [];
+    const bytesPerLine = 16;
 
-  for (let offset = 0; offset < buffer.length; offset += bytesPerLine) {
-    const chunk = buffer.slice(offset, offset + bytesPerLine);
-    const hex = Array.from(chunk)
-      .map((byte) => formatHex(byte))
-      .join(" ");
-    const ascii = Array.from(chunk)
-      .map((byte) => (byte >= 0x20 && byte <= 0x7e ? String.fromCharCode(byte) : "."))
-      .join("");
-    lines.push(`${formatHex(offset, 6)}  ${hex.padEnd(bytesPerLine * 3 - 1, " ")}  ${ascii}`);
-  }
+    for (let offset = 0; offset < buffer.length; offset += bytesPerLine) {
+        const chunk = buffer.slice(offset, offset + bytesPerLine);
+        const hex = Array.from(chunk)
+            .map((byte) => formatHex(byte))
+            .join(" ");
+        const ascii = Array.from(chunk)
+            .map((byte) => (byte >= 0x20 && byte <= 0x7e ? String.fromCharCode(byte) : "."))
+            .join("");
+        lines.push(`${formatHex(offset, 6)}  ${hex.padEnd(bytesPerLine * 3 - 1, " ")}  ${ascii}`);
+    }
 
-  return lines.join("\n");
-};
-
-const runInfo = (filePath: string): void => {
-  const buffer = readFile(filePath);
-  const ipo = parseIpo(buffer);
-
-  const sections = Array.from(ipo.sections.values());
-  const typeCounts = sections.reduce<Record<string, number>>((acc, section) => {
-    acc[section.type] = (acc[section.type] ?? 0) + 1;
-    return acc;
-  }, {});
-
-  const version = ipo.header.version.join(".");
-  const title = path.basename(filePath);
-  const constantsCount = ipo.constantData.constants.length;
-  const logtableDataSections = sections.filter((section) => section.type === "logtable-data");
-  const logtableEntries = logtableDataSections.reduce((acc, section) => {
-    const logtable = decodeLogtable(buffer, section.offset, section.size);
-    return acc + logtable.entries.length;
-  }, 0);
-
-  console.log(`Title: ${title}`);
-  console.log(`Version: ${version}`);
-  console.log(`Magic: ${ipo.header.magic.trimEnd()}`);
-  console.log(`Sections: ${sections.length}`);
-  console.log(
-    `  Functions: ${typeCounts.function ?? 0}, Screens: ${typeCounts.screen ?? 0}, Menus: ${typeCounts.menu ?? 0}, State machines: ${typeCounts.statemachine ?? 0}`
-  );
-  console.log(
-    `  Control blocks: ${typeCounts.control ?? 0}`
-  );
-  console.log(
-    `  Logtable data: ${typeCounts["logtable-data"] ?? 0}, Logtable entries: ${logtableEntries}`
-  );
-  console.log(`Globals: ${ipo.globalData.count}`);
-  console.log(`Constants: ${constantsCount}`);
+    return lines.join("\n");
 };
 
 const runDisasm = (filePath: string, options: CliOptions): void => {
-  const buffer = readFile(filePath);
-  const ipo = parseIpo(buffer);
+    const buffer = readFile(filePath);
+    const ipo = parseInpaFile(buffer);
 
-  const outputs: string[] = [];
+    const outputs: string[] = [];
 
-  // Global Variables
-  if (ipo.globalData.count > 0) {
-    outputs.push("=== Global Variables ===");
-    ipo.globalData.variables.forEach((type, index) => {
-      outputs.push(`[${index}] offset=0x${formatHex(ipo.globalData.offset, 4)} type=${type}`);
-    });
-    outputs.push("");
-  }
-
-  // Constants
-  if (ipo.constantData.constants.length > 0) {
-    outputs.push("=== Constants ===");
-    ipo.constantData.constants.forEach((constant, index) => {
-      const value = constant.type === "string" ? `"${constant.value}"` : constant.value;
-      outputs.push(`[${index}] offset=0x${formatHex(constant.offset, 4)} type=${constant.type.padEnd(6)} value=${value}`);
-    });
-    outputs.push("");
-  }
-
-  const allSections = Array.from(ipo.sections.values()).filter(
-    (section) => section.type !== "global" && section.type !== "constant"
-  );
-
-  // Separate control sections from regular sections
-  const controlSections = allSections.filter((section) => section.type === "control");
-  const regularSections = allSections.filter((section) => section.type !== "control");
-
-  if (regularSections.length === 0 && controlSections.length === 0) {
-    console.log("No disassemblable sections found.");
-    return;
-  }
-  
-  // Track which control sections we've output (to nest them under LINE functions)
-  const outputControlSections = new Set<string>();
-  
-  for (const section of regularSections) {
-    const idStr = section.id !== undefined ? `id=0x${formatHex(section.id, 2)}, ` : "";
-    outputs.push(
-      `## ${section.name} (${section.type}, ${idStr}offset 0x${formatHex(section.offset, 4)}, size ${section.size})`
-    );
-
-    if (section.type === "logtable-data") {
-      const logtable = decodeLogtable(buffer, section.offset, section.size);
-      outputs.push(`Entries: ${logtable.entries.length}`);
-
-      if (logtable.entries.length === 0) {
-        outputs.push("<empty>");
-        continue;
-      }
-
-      outputs.push(
-        logtable.entries
-          .map(
-            (entry, index) =>
-              `  [${index}] input=0x${formatHex(entry.input, 8)} mask=0x${formatHex(entry.mask, 8)} output=0x${formatHex(entry.output, 8)}`
-          )
-          .join("\n")
-      );
-      continue;
-    }
-
-    const instructions = decodeInstructions(buffer, section.offset, section.size);
-
-    if (instructions.length === 0) {
-      outputs.push("<empty>");
-      continue;
-    }
-
-    outputs.push(
-      formatDisassembly(instructions, {
-        showRawBytes: options.raw,
-        resolveNames: options.resolve,
-        constantData: ipo.constantData
-      })
-    );
-    
-    // If this is a "!" function (LINE body), output associated CONTROL sections
-    if (section.name === "!") {
-      // Find CONTROL sections that follow this section (by offset)
-      const associatedControls = controlSections.filter(
-        (ctrl) => 
-          ctrl.offset > section.offset && 
-          !outputControlSections.has(ctrl.name)
-      );
-      
-      for (const ctrlSection of associatedControls) {
-        // Check if there's another regular section between this and the control
-        const hasIntervening = regularSections.some(
-          (s) => s.offset > section.offset && s.offset < ctrlSection.offset && s.name !== "!"
-        );
-        
-        if (hasIntervening) {
-          break;
-        }
-        
-        outputControlSections.add(ctrlSection.name);
-        outputs.push(
-          `\n  ### CONTROL (offset 0x${formatHex(ctrlSection.offset, 4)}, size ${ctrlSection.size})`
-        );
-        
-        const ctrlInstructions = decodeInstructions(buffer, ctrlSection.offset, ctrlSection.size);
-        
-        if (ctrlInstructions.length === 0) {
-          outputs.push("  <empty>");
-          continue;
-        }
-        
-        // Indent CONTROL disassembly
-        const ctrlDisasm = formatDisassembly(ctrlInstructions, {
-          showRawBytes: options.raw,
-          resolveNames: options.resolve,
-          constantData: ipo.constantData
+    // Global Variables
+    if (ipo.globals.variables.length > 0) {
+        outputs.push(`=== Globals @ 0x${formatHex(ipo.globals.offset, 4)} ===`);
+        ipo.globals.variables.forEach((type, index) => {
+            const typeName = getDataTypeName(type);
+            outputs.push(`[${index}] type=${typeName} (0x${formatHex(type)})`);
         });
-        outputs.push(ctrlDisasm.split("\n").map((line) => `  ${line}`).join("\n"));
-      }
+        outputs.push("");
     }
-  }
-  
-  // Output any remaining control sections that weren't nested
-  for (const ctrlSection of controlSections) {
-    if (!outputControlSections.has(ctrlSection.name)) {
-      const idStr = ctrlSection.id !== undefined ? `id=0x${formatHex(ctrlSection.id, 2)}, ` : "";
-      outputs.push(
-        `## ${ctrlSection.name} (control, ${idStr}offset 0x${formatHex(ctrlSection.offset, 4)}, size ${ctrlSection.size})`
-      );
-      
-      const ctrlInstructions = decodeInstructions(buffer, ctrlSection.offset, ctrlSection.size);
-      
-      if (ctrlInstructions.length === 0) {
-        outputs.push("<empty>");
-        continue;
-      }
-      
-      outputs.push(
-        formatDisassembly(ctrlInstructions, {
-          showRawBytes: options.raw,
-          resolveNames: options.resolve,
-          constantData: ipo.constantData
-        })
-      );
-    }
-  }
 
-  console.log(outputs.join("\n"));
+    // Constants
+    if (ipo.constants.constants.length > 0) {
+        outputs.push(`=== Constants @ 0x${formatHex(ipo.constants.offset, 4)} ===`);
+        ipo.constants.constants.forEach((constant, index) => {
+            const typeName = getDataTypeName(constant.type);
+            outputs.push(`[${index}] offset=0x${formatHex(constant.offset, 4)} type=${typeName} (0x${formatHex(constant.type)}) value=${constant.value}`);
+        });
+        outputs.push("");
+    }
+
+    // Functions
+
+    ipo.functions.forEach((func) => {
+        outputs.push(`=== Function: ${func.name} (offset 0x${formatHex(func.offset, 4)}, size ${func.size}) ===`);
+        if (func.instructions.length === 0) {
+            outputs.push("<empty>");
+        } else {
+            outputs.push(
+                formatDisassembly([...func.instructions], {
+                    showRawBytes: true,
+                    resolveNames: options.resolve,
+                    input: ipo
+                })
+            );
+        }
+        outputs.push("");
+    });
+
+    // MENUS
+
+    ipo.menus?.forEach((menu) => {
+        outputs.push(`=== Menu: ${menu.name} (offset 0x${formatHex(menu.offset, 4)}, size ${menu.size}) ===`);
+        if (menu.instructions.length === 0) {
+            outputs.push("<empty>");
+        } else {
+            outputs.push(
+                formatDisassembly([...menu.instructions], {
+                    showRawBytes: true,
+                    resolveNames: options.resolve,
+                    input: ipo
+                })
+            );
+        }
+        menu.items.forEach((item, index) => {
+            outputs.push(`  --- Item: ${item.label} (key=${getMenuKeyName(item.key)}) ---`);
+            if (item.instructions.length === 0) {
+                outputs.push("  <empty>");
+            } else {
+                outputs.push(
+                    formatDisassembly([...item.instructions], {
+                        showRawBytes: true,
+                        resolveNames: options.resolve,
+                        input: ipo
+                    }).split("\n").map((line) => `  ${line}`).join("\n")
+                );
+            }
+        });
+        outputs.push("");
+    });
+
+    // Screens
+
+        ipo.screens?.forEach((screen) => {
+        outputs.push(`=== Screen: ${screen.name} (offset 0x${formatHex(screen.offset, 4)}, size ${screen.size}) ===`);
+
+        if (screen.instructions.length === 0) {
+            outputs.push("<empty>");
+        } else {
+            outputs.push(
+                formatDisassembly([...screen.instructions], {
+                    showRawBytes: true,
+                    resolveNames: options.resolve,
+                    input: ipo
+                })
+            );
+        }
+
+        outputs.push(`--- Function ---`);
+        if (screen.function.instructions.length === 0) {
+            outputs.push("<empty>");
+        } else {
+            outputs.push(
+                formatDisassembly([...screen.function.instructions], {
+                    showRawBytes: true,
+                    resolveNames: options.resolve,
+                    input: ipo
+                })
+            );
+        }
+
+        screen.lines.forEach((line, index) => {
+            outputs.push(`  --- Line: ${line.arg1 || '""'} : ${line.arg2 || '""'} ---`);
+            if (line.instructions.length === 0) {
+                outputs.push("  <empty>");
+            } else {
+                outputs.push(
+                    formatDisassembly([...line.instructions], {
+                        showRawBytes: true,
+                        resolveNames: options.resolve,
+                        input: ipo
+                    }).split("\n").map((line) => `  ${line}`).join("\n")
+                );
+            }
+
+            if (line.control) {
+                outputs.push(`    --- Control ---`);
+                if (line.control.instructions.length === 0) {
+                    outputs.push("    <empty>");
+                } else {
+                    outputs.push(
+                        formatDisassembly([...line.control.instructions], {
+                            showRawBytes: true,
+                            resolveNames: options.resolve,
+                            input: ipo
+                        }).split("\n").map((line) => `    ${line}`).join("\n")
+                    );
+                }
+            }
+        });
+
+        outputs.push("");
+    });
+
+    // State Machines
+
+    ipo.stateMachines?.forEach((sm) => {
+        outputs.push(`=== State Machine: ${sm.name} (offset 0x${formatHex(sm.offset, 4)}, size ${sm.size}) ===`);
+        if (sm.instructions.length === 0) {
+            outputs.push("<empty>");
+        } else {
+            outputs.push(
+                formatDisassembly([...sm.instructions], {
+                    showRawBytes: true,
+                    resolveNames: options.resolve,
+                    input: ipo
+                })
+            );
+        }
+
+        sm.states.forEach((state, index) => {
+            outputs.push(`  --- State: ${state.name} ---`);
+            if (state.instructions.length === 0) {
+                outputs.push("  <empty>");
+            } else {
+                outputs.push(
+                    formatDisassembly([...state.instructions], {
+                        showRawBytes: true,
+                        resolveNames: options.resolve,
+                        input: ipo
+                    }).split("\n").map((line) => `  ${line}`).join("\n")
+                );
+            }
+        });
+
+        outputs.push("");
+    });
+
+    // Logic Tables
+
+    ipo.logicTables?.forEach((table) => {
+        outputs.push(`=== Logic Table: ${table.name} (offset 0x${formatHex(table.offset, 4)}, size ${table.size}) ===`);
+        if (table.entries.length === 0) {
+            outputs.push("<empty>");
+        } else {
+            table.entries.forEach((entry, index) => {
+                outputs.push(`  [${index}] input=0x${formatHex(entry.input)} mask=0x${formatHex(entry.mask)} output=0x${formatHex(entry.output)}`);
+            });
+        }
+        outputs.push("");
+    });
+
+    console.log(outputs.join("\n"));
 };
 
 const runDump = (filePath: string): void => {
-  const buffer = readFile(filePath);
-  console.log(formatHexDump(buffer));
+    const buffer = readFile(filePath);
+    console.log(formatHexDump(buffer));
 };
 
 const main = (): void => {
-  const args = process.argv.slice(2);
+    const args = process.argv.slice(2);
 
-  if (args.length === 0 || args[0] === "-h" || args[0] === "--help") {
-    printUsage();
-    return;
-  }
-
-  const [command, filePath, ...rest] = args;
-
-  if (!filePath || filePath.startsWith("-")) {
-    printUsage();
-    process.exitCode = 1;
-    return;
-  }
-
-  let options: CliOptions;
-  try {
-    options = parseOptions(rest);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    printUsage();
-    process.exitCode = 1;
-    return;
-  }
-
-  try {
-    switch (command) {
-      case "info":
-        runInfo(filePath);
+    if (args.length === 0 || args[0] === "-h" || args[0] === "--help") {
+        printUsage();
         return;
-      case "disasm":
-        runDisasm(filePath, options);
-        return;
-      case "dump":
-        runDump(filePath);
-        return;
-      default:
-        console.error(`Unknown command: ${command}`);
+    }
+
+    const [command, filePath, ...rest] = args;
+
+    if (!filePath || filePath.startsWith("-")) {
         printUsage();
         process.exitCode = 1;
+        return;
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    process.exitCode = 1;
-  }
+
+    let options: CliOptions;
+    try {
+        options = parseOptions(rest);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(message);
+        printUsage();
+        process.exitCode = 1;
+        return;
+    }
+
+    try {
+        switch (command) {
+            case "disasm":
+                runDisasm(filePath, options);
+                return;
+            case "dump":
+                runDump(filePath);
+                return;
+            default:
+                console.error(`Unknown command: ${command}`);
+                printUsage();
+                process.exitCode = 1;
+        }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(message);
+        process.exitCode = 1;
+    }
 };
 
 main();
