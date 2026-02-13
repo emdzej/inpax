@@ -1,0 +1,16 @@
+#include "inpa.h"
+
+inpainit()
+{
+    int dec;
+    int hex;
+    int bin;
+
+    dec = 123;
+    hex = 0x1A;
+    bin = 0y1010;
+}
+
+inpaexit()
+{
+}

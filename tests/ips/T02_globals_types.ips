@@ -1,0 +1,16 @@
+#include "inpa.h"
+
+int g_int;
+byte g_byte;
+long g_long;
+real g_real;
+bool g_bool;
+string g_str;
+
+inpainit()
+{
+}
+
+inpaexit()
+{
+}

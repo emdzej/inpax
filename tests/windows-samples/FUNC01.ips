@@ -1,0 +1,16 @@
+#include "inpa.h"
+
+helper()
+{
+    int x;
+    x = 1;
+}
+
+inpainit()
+{
+    helper();
+}
+
+inpaexit()
+{
+}

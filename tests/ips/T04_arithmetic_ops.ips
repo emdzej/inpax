@@ -1,0 +1,20 @@
+#include "inpa.h"
+
+inpainit()
+{
+    int a;
+    int b;
+    int x;
+
+    a = 4;
+    b = 2;
+
+    x = a + b;
+    x = a - b;
+    x = a * b;
+    x = a / b;
+}
+
+inpaexit()
+{
+}

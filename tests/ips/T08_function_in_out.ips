@@ -1,0 +1,19 @@
+#include "inpa.h"
+
+foo(in: int a, out: int b)
+{
+    b = a + 1;
+}
+
+inpainit()
+{
+    int x;
+    int y;
+
+    x = 1;
+    foo(x, y);
+}
+
+inpaexit()
+{
+}
