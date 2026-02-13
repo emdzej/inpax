@@ -658,51 +658,24 @@ The INPA VM is stack-based.
 
 ### Core Opcodes
 
-| Opcode | Arguments | Mnemonic | Description |
-|--------|-----------|----------|-------------|
-| `01 [scope] [idx] 00` | Scope+Index | `PUSH_VAR_ADDR` | Push address of variable (for assignment) |
-| `00` | — | `PUSH_0` | Push zero to stack (optimized form) |
-| `07 [scope] [idx] 00` | Scope+Index | `PUSH_VAR_VAL` | Push value of variable (for reading) |
-| `00 06 [u16]` | Index | `PUSH_CONST` | Push constant from constant table |
-| `00 05` | — | `STORE` | Pop value, pop address, write value to address |
-| `00 09 [u8]` | Op | `ALU_OP` | Binary arithmetic/comparison operation |
-| `00 0B [s16]` | Offset | `JMP_FALSE` | Pop condition; if false, jump by offset |
-| `00 0E [s16]` | Offset | `JMP` | Unconditional relative jump |
-| `02 [u16] 00` | Offset | `PUSH_UI_HANDLE` | Push handle to SCREEN/MENU/STATEMACHINE/STATE |
-| `08 51 00 00` | — | `FUNC_PROLOGUE` | Function entry marker (follows frame info) |
-
-#### Variable Scope Encoding
-
-Variable access opcodes (`01` and `07`) use a scope-based addressing scheme:
-
-| Scope Byte | Meaning | Example |
-|------------|---------|---------|
-| `0x00` | Global variable | `01 00 01 00` = global var #1 address |
-| `0x01` | Local variable | `01 01 01 00` = local var #1 address |
-| `0x02` | Function parameter | `01 02 00 00` = param #0 address |
-
-**Opcode Format:** `[01|07] [scope] [index] 00`
-
-- `01` = PUSH_VAR_ADDR (for assignment LHS)
-- `07` = PUSH_VAR_VAL (for reading)
-
-**Index Conventions:**
-
-- **Global:** 0-indexed, matches Global Data section order
-- **Local:** 1-indexed (LOCAL[0] is reserved, first declared local is LOCAL[1])
-- **Param:** 0-indexed, `in` params first, then `out` params (gaps may exist)
-
-**Note:** This replaces the earlier understanding that `01 [u16]` was only for globals. The third byte is the index within that scope, and the fourth byte is always `00`.
 
 
-### Function Call Opcodes
+TO BE CONFIRMED
 
 | Opcode | Arguments | Mnemonic | Description |
 |--------|-----------|----------|-------------|
+| `01 [u16] [u8]` | index ? | Push const at index? |
+| `02 [u16] 00` | index | Push variable at index? |
+| `05 [u8] [u8] 00` |  | Unknown |
+| `06 [u8] [u8] 00 ` | | Unknown |
+| `09 [u8] 00 00` | Op | `ALU_OP` | Binary arithmetic/comparison operation |
+| `0B 00 [u16] ` | pop? | `JMP_FALSE` | Pop condition; if false, jump by offset |
 | `0C 80 [u16]` | FuncID | `CALL_USER` | Call user-defined function |
 | `0C 81 [u16]` | FuncID | `CALL_API` | Call system/API function |
+| `0E 00 00 00` |  | ? | Unconditional relative jump |
+| `0F 00 00 00` | - | ? | Push return offset? appears before func calls |
 
-### ALU Operations (`00 09 [op]`)
+### ALU Operations (`09 [op]`)
 
 | Sub-Op | Symbol | Operation |
 |--------|--------|-----------|
@@ -716,21 +689,6 @@ Variable access opcodes (`01` and `07`) use a scope-based addressing scheme:
 ### Index Encoding
 
 All indices are **16-bit little-endian unsigned integers**.
-
-### Handle Format (Opcode 0x02)
-
-Handles are **section offsets** (u16 LE) pointing to:
-
-- SCREEN section header (for `setscreen`)
-- MENU section header (for `setmenu`)
-- STATEMACHINE section header (for `setstatemachine`)
-- STATE subsection (for `setstate`)
-
-**Example:**
-
-```hex
-02 40 00 00     ; Push handle to section @ file offset 0x0040
-```
 
 ---
 

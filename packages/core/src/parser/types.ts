@@ -179,6 +179,7 @@ export type Opcode =
 export type VariableScope = "global" | "local" | "param";
 
 export type InpaFile = {
+    readonly buffer: Uint8Array;
     readonly header: FileHeader;
     readonly functions: readonly UserFunction[];
     readonly screens?: readonly Screen[];
@@ -195,3 +196,20 @@ export type ParseResult<T> = {
 };
 
 export type ParseFunction<T extends SectionHeader> = (buffer: Uint8Array, startOffset: number) => ParseResult<T>;
+export const OpCodes = {
+    CALL: 0x08,
+    ALU: 0x09,
+} as const;
+
+export type OpCode = typeof OpCodes[keyof typeof OpCodes];
+
+export function getOpCodeName(opcode: OpCode): string {
+    return getKeyByValue(OpCodes, opcode) ?? `Unknown(0x${opcode.toString(16)})`;
+}
+
+export type InstructionHandler = (file: InpaFile, instruction: Instruction) => void;
+export type InstructionDisassembler = (file: InpaFile, instruction: Instruction) => string;
+
+export type InstructionHandlers = {
+    [opcode in OpCode]?: InstructionHandler;
+}

@@ -56,6 +56,9 @@ export const formatInstruction = (
     );
     line += `${rawBytes} `;
   }
+
+
+
   return line.trimEnd();
 };
 

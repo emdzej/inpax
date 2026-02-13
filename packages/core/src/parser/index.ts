@@ -25,6 +25,7 @@ export const parseInpaFile = (buffer: Buffer): InpaFile => {
     const logicTables = sections.filter(s => s.type === SectionTypeMarkers.LOGIC_TABLE);
 
     return {
+        buffer,
         header: header.result,
         globals: globalData as GlobalData,
         functions: functions as UserFunction[] || [],

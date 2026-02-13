@@ -104,7 +104,7 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
         outputs.push(`=== Globals @ 0x${formatHex(ipo.globals.offset, 4)} ===`);
         ipo.globals.variables.forEach((type, index) => {
             const typeName = getDataTypeName(type);
-            outputs.push(`[${index}] type=${typeName} (0x${formatHex(type)})`);
+            outputs.push(`[${index} : ${formatHex(index, 4)}] type=${typeName} (0x${formatHex(type)})`);
         });
         outputs.push("");
     }
@@ -114,7 +114,7 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
         outputs.push(`=== Constants @ 0x${formatHex(ipo.constants.offset, 4)} ===`);
         ipo.constants.constants.forEach((constant, index) => {
             const typeName = getDataTypeName(constant.type);
-            outputs.push(`[${index}] offset=0x${formatHex(constant.offset, 4)} type=${typeName} (0x${formatHex(constant.type)}) value=${constant.value}`);
+            outputs.push(`[${index} : ${formatHex(index, 4)}] offset=0x${formatHex(constant.offset, 4)} type=${typeName} (0x${formatHex(constant.type)}) value=${constant.value}`);
         });
         outputs.push("");
     }
@@ -122,7 +122,7 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
     // Functions
 
     ipo.functions.forEach((func) => {
-        outputs.push(`=== Function: ${func.name} (offset 0x${formatHex(func.offset, 4)}, size ${func.size}) ===`);
+        outputs.push(`=== Function: [${func.id}] ${func.name} (offset 0x${formatHex(func.offset, 4)}, size ${func.size}) ===`);
         if (func.instructions.length === 0) {
             outputs.push("<empty>");
         } else {
@@ -140,7 +140,7 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
     // MENUS
 
     ipo.menus?.forEach((menu) => {
-        outputs.push(`=== Menu: ${menu.name} (offset 0x${formatHex(menu.offset, 4)}, size ${menu.size}) ===`);
+        outputs.push(`=== Menu: [${menu.id}] ${menu.name} (offset 0x${formatHex(menu.offset, 4)}, size ${menu.size}) ===`);
         if (menu.instructions.length === 0) {
             outputs.push("<empty>");
         } else {
@@ -153,7 +153,7 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
             );
         }
         menu.items.forEach((item, index) => {
-            outputs.push(`  --- Item: ${item.label} (key=${getMenuKeyName(item.key)}) ---`);
+            outputs.push(`  --- Item: [${item.id}] ${item.label} (key=${getMenuKeyName(item.key)}) ---`);
             if (item.instructions.length === 0) {
                 outputs.push("  <empty>");
             } else {
@@ -172,7 +172,7 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
     // Screens
 
         ipo.screens?.forEach((screen) => {
-        outputs.push(`=== Screen: ${screen.name} (offset 0x${formatHex(screen.offset, 4)}, size ${screen.size}) ===`);
+        outputs.push(`=== Screen: [${screen.id}] ${screen.name} (offset 0x${formatHex(screen.offset, 4)}, size ${screen.size}) ===`);
 
         if (screen.instructions.length === 0) {
             outputs.push("<empty>");
@@ -186,7 +186,7 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
             );
         }
 
-        outputs.push(`--- Function ---`);
+        outputs.push(`--- Function: [${screen.function.id}] ${screen.function.name} ---`);
         if (screen.function.instructions.length === 0) {
             outputs.push("<empty>");
         } else {
@@ -200,7 +200,7 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
         }
 
         screen.lines.forEach((line, index) => {
-            outputs.push(`  --- Line: ${line.arg1 || '""'} : ${line.arg2 || '""'} ---`);
+            outputs.push(`  --- Line: [${line.id}] ${line.arg1 || '""'} : ${line.arg2 || '""'} ---`);
             if (line.instructions.length === 0) {
                 outputs.push("  <empty>");
             } else {
@@ -214,7 +214,7 @@ const runDisasm = (filePath: string, options: CliOptions): void => {
             }
 
             if (line.control) {
-                outputs.push(`    --- Control ---`);
+                outputs.push(`    --- Control: [${line.control.id}] ${line.control.name}   ---`);
                 if (line.control.instructions.length === 0) {
                     outputs.push("    <empty>");
                 } else {
