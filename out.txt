@@ -1,0 +1,41 @@
+
+> inpax@0.0.0 cli /Users/mjaskols/Projects/my/inpax
+> node packages/cli/dist/index.js "disasm" "/Volumes/emdzej/Documents/mj-test/mj-extern.ipo"
+
+=== Globals @ 0x00b1 ===
+[0 : 0000] type=void (0x00)
+
+=== Constants @ 0x00c8 ===
+[0 : 0000] offset=0x00e0 type=string (0x06) value=c
+[1 : 0001] offset=0x00e3 type=string (0x06) value=kernel32::GetPrivateProfileStringA:c.sssSisI%
+[2 : 0002] offset=0x0112 type=string (0x06) value=a
+[3 : 0003] offset=0x0115 type=string (0x06) value=b
+[4 : 0004] offset=0x0118 type=string (0x06) value=c
+[5 : 0005] offset=0x011b type=int (0x03) value=12
+[6 : 0006] offset=0x011e type=string (0x06) value=foo
+
+=== Function: [2] inpainit (offset 0x0010, size 12) ===
+0x0023: 08 51 00 00
+0x0027: 08 55 00 00
+0x002b: 0f 00 00 00
+0x002f: 01 01 02 00
+0x0033: 01 01 03 00
+0x0037: 01 01 04 00
+0x003b: 02 02 01 00
+0x003f: 01 01 05 00
+0x0043: 01 01 06 00
+0x0047: 02 02 00 00
+0x004b: 0d 01 01 00
+0x004f: 0e 00 00 00
+
+=== Function: [3] inpaexit (offset 0x0053, size 1) ===
+0x0066: 0e 00 00 00
+
+=== Function: [0] __inpa_startup__ (offset 0x006a, size 2) ===
+0x0085: 0f 00 00 00
+0x0089: 0c 80 02 00
+
+=== Function: [1] __inpa_shutdown__ (offset 0x008d, size 2) ===
+0x00a9: 0f 00 00 00
+0x00ad: 0c 80 03 00
+

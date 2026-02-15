@@ -156,8 +156,6 @@ Value of each byte represents variable type.
 
 > **Note:** There is **always** one `void` global varaible declared.
 
-> **Note:** It seems that local function variables are always stored in global variable table. Since variable names are not preserved, scoping of variables is done at compilation stage.
-
 #### Examples
 
 No global variables declared
@@ -658,11 +656,20 @@ LOGTABLE lt_multi(out: bool o1 o2, in: bool i1 i2)
 
 The INPA VM is stack-based.
 
+Reference scopes, used in load, store operations
+
+| Scope | Value | Description |
+| ----- | ----- | ----------- |
+| Global | `0x00` | For loading, or storing values |
+| Const | `0x01` | For loading values |
+| Local | `0x02` | For loading or storing values |
+
 ### Core Opcodes
 
 
 
 **Partially confirmed from `tests/windows-samples/*`** (see `docs/research/opcode-mappings.md`).
+TO BE CONFIRMED
 
 | Opcode | Arguments | Mnemonic | Description |
 |--------|-----------|----------|-------------|
@@ -678,24 +685,142 @@ The INPA VM is stack-based.
 | `0E 00 00 00` |  | `RET` | Function end / return (**confirmed from empty bodies**) |
 | `0F 00 00 00` | - | ? | Call prologue / marker (appears immediately before `CALL_USER`) |
 
-### ALU Operations (`09 [op]`)
+0x003b: 01 01 [01 00] // load const value @[1]
+              
+0x003f: 06 02 [00 00] // push to local stack @ 0 idx
+0x0043: 05 00 01 00 // store?
+
+0x0023: 01 01 00 00 load const
+0x0027: 06 00 01 00 assing global slot 01
+0x002b: 05 00 01 00 store
+
+#### PUSH VAL (`0x01`)
+
+Loads values onto stack
+
+`01 [scope: u8] [index: u16]`
+
+Examples
+
+`01 01 00 00` - load const from index 0 onto stack
+`01 00 02 00` - load glogal from index 2 onto stack
+
+#### PUSH ARG (`0x02`) 
+
+only after 0f 00
+push ref ARG ?
+
+`02 [scope: u8] [index: u16]`
+
+Push onto stack reference to a variable (out params)
+
+#### ASSIGN (`0x05`)
+
+`05 00 01 00`
+
+POPs target
+POPs source
+
+copies value
+
+#### PUSHVFORSTORE VAR (`0x06`)
+
+push onto stack inforamtion about where to store 
+
+`06 [scope: u8] [index: u16]`
+
+06 02 02 00
+
+#### PUSHREFSTORE OUT VAR (`0x07`) 
+
+
+`07 [scope: u8] [index: u16]`
+
+target ref arg  index
+
+ 07 02 02 00
+
+#### ALLOC (`0x08`)
+
+Allocates variable on local frame
+
+`08 [type: u8] 00 00`
+
+| Type | Variable type |
+| --- | --- |
+| `0x50` | `bool` |
+| `0x51` | `int` |
+| `0x52` | `byte` |
+| `0x53` | `long` |
+| `0x54` | `real` |
+| `0x56` | `string` |
+
+#### ALU (`09`)
+
+Performs operation on arguments poped from stack
+
+`09 [op: u8] 00 00`
+
 
 | Sub-Op | Symbol | Operation |
 |--------|--------|-----------|
 | `0x60` | `+` | Addition |
 | `0x61` | `-` | Subtraction |
 | `0x62` | `*` | Multiplication |
+| `0x63` | `/` | DIV |
 | `0x64` | `<` | Less than |
 | `0x65` | `>` | Greater than |
+| `66`   | `<=` | Less or g |
+| `67`   | `>=` | |
 | `0x68` | `==` | Equality |
+| `0x69` | `!=` | Not equal |
+| `6A` | `&&` | |
+| `6B` | `\|\|` | |
+| `6E` | `!` | |
 
-### Index Encoding
+#### JMP (`0x0A`)
 
-All indices are **16-bit little-endian unsigned integers**.
 
----
 
-## System Functions
+#### JMPC (`0x0B`)
+
+Jump conditionally (if false)
+
+`0B 00 [offset: u16]`
+
+offset in bytes
+
+`0b 00 0c 00`
+
+#### CALL (`0C`)
+
+`0C [target: u8] [id: u16]`
+
+| Target | Value | Description |
+| --- | --- | --- |
+| User defined function | `0x80` | |
+| System function | `0x81` | |
+
+#### CALLE (`0x0D`)
+
+Call external DLL, external DLL spec is stored in Constant
+
+`0D 01 [index: u16]`
+
+Paramter `index` is the constant index which contains external function signature, for example `api32.DLL::__apiSetConfig:c.lss%I`.
+
+#### RET (`0x0E`)
+
+`0E 00 00 00`
+
+#### PUSHF (`0x0F`)
+
+`0F 00 00 00`
+
+Push frame? before `CALL`
+or maybe it's alloc frame 
+
+##### System Functions
 
 System functions represent the ones defined in `inpa.h` header file. They have their own IDs range. The ids overlap with user functions therefore there is a different instruction to call a system function.
 
@@ -703,7 +828,7 @@ System functions are called via `0C 81 [ID] 00`.
 
 IDs are **hardcoded** in the VM, not sequential.
 
-### Complete Mapping (159 functions)
+##### Complete Mapping (159 functions)
 
 | ID (hex) | Function | Signature |
 |----------|----------|-----------|
@@ -874,11 +999,11 @@ IDs are **hardcoded** in the VM, not sequential.
 - SPS functions (0x92-0x96) — IDs inferred from sequential range
 - API/ELDI functions (0x97-0x99) — "no longer supported"
 
-## Import32 / DLL Calls
+##### Import32 / DLL Calls
 
 External DLL functions are imported using `import32` (32-bit) or `import` (16-bit) syntax and stored as signature strings in the IPO.
 
-### Source Syntax
+###### Source Syntax
 
 ```c
 // 32-bit DLLs
@@ -888,7 +1013,7 @@ import32 "Convention" lib "DLL::Function" Alias(parameters);
 import "Convention" lib "DLL::Function" Alias(parameters);
 ```
 
-### Binary Format
+###### Binary Format
 
 Both `import` and `import32` produce **identical bytecode format**. The IPO contains import strings in format:
 
@@ -896,7 +1021,7 @@ Both `import` and `import32` produce **identical bytecode format**. The IPO cont
 DLL::Function:convention.signature
 ```
 
-### 16-bit vs 32-bit Differences
+###### 16-bit vs 32-bit Differences
 
 The only difference between `import` and `import32` is the **case of the calling convention letter**:
 
@@ -910,18 +1035,8 @@ The only difference between `import` and `import32` is the **case of the calling
 
 **Research:** See `docs/research/import16-research.md` for detailed analysis (issue #65).
 
-### Examples from Production Files
 
-```
-kernel32::GetPrivateProfileStringA:c.sssSis%I
-api32.DLL::__apiGetConfig:c.lsS%I
-INPA_LIB32.DLL::SaveAsDialogBox:c.sSi%I
-XTRACT32.DLL::XTRACT:c.siSl%I
-kernel32::OpenFile:c.stLi%I
-user.exe::MessageBox:P.issi%I          (16-bit example)
-```
-
-### Signature Decoding
+###### Signature Decoding
 
 | Char | Meaning | Direction |
 |------|---------|-----------|
@@ -935,7 +1050,7 @@ user.exe::MessageBox:P.issi%I          (16-bit example)
 | `t` | ⚠️ Unknown (struct?) | — |
 | `L` | ⚠️ Unknown (LPARAM?) | — |
 
-### Key DLLs
+###### Key DLLs
 
 | DLL | Purpose |
 |-----|---------|

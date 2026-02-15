@@ -79,7 +79,7 @@ export type ConstantData = SectionHeader & {
 
 export type Instruction = {
     readonly offset: number;
-    readonly raw: Uint8Array;
+    readonly raw: Uint8Array<ArrayBuffer>;
 };
 
 export type UserFunction = SectionHeader & {
@@ -197,19 +197,37 @@ export type ParseResult<T> = {
 
 export type ParseFunction<T extends SectionHeader> = (buffer: Uint8Array, startOffset: number) => ParseResult<T>;
 export const OpCodes = {
-    CALL: 0x08,
+    PUSHV: 0x01,
+    STOR: 0x05,
+    PUSHT: 0x06,
+    ALLOC: 0x08,
     ALU: 0x09,
+    CALL: 0x0C,
+    CALLE: 0x0D,
+    RET: 0x0E,
+    FRAME: 0x0F,
 } as const;
 
 export type OpCode = typeof OpCodes[keyof typeof OpCodes];
 
+export const AluOpCode = {
+    ADD: 0x60,
+    SUB: 0x61,
+    MUL: 0x62,
+    DIV: 0x63,
+    LT: 0x64,
+    GT: 0x65,
+    LE: 0x66,
+    GE: 0x67,
+    EQ: 0x68,
+    NE: 0x69,
+    AND: 0x6A,
+    OR: 0x6B,
+    NOT: 0x6E,
+} as const;
+
+export type AluOpCode = typeof AluOpCode[keyof typeof AluOpCode];
+
 export function getOpCodeName(opcode: OpCode): string {
     return getKeyByValue(OpCodes, opcode) ?? `Unknown(0x${opcode.toString(16)})`;
-}
-
-export type InstructionHandler = (file: InpaFile, instruction: Instruction) => void;
-export type InstructionDisassembler = (file: InpaFile, instruction: Instruction) => string;
-
-export type InstructionHandlers = {
-    [opcode in OpCode]?: InstructionHandler;
 }

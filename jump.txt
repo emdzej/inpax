@@ -1,0 +1,71 @@
+
+> inpax@0.0.0 cli /Users/mjaskols/Projects/my/inpax
+> node packages/cli/dist/index.js "disasm" "/Volumes/emdzej/Documents/mj-test/T06_if_else.ipo"
+
+=== Globals @ 0x00e5 ===
+[0 : 0000] type=void (0x00)
+
+=== Constants @ 0x00fc ===
+[0 : 0000] offset=0x0114 type=string (0x06) value=inpa.h
+[1 : 0001] offset=0x011c type=int (0x03) value=1
+[2 : 0002] offset=0x011f type=int (0x03) value=1
+[3 : 0003] offset=0x0122 type=int (0x03) value=2
+[4 : 0004] offset=0x0125 type=int (0x03) value=2
+[5 : 0005] offset=0x0128 type=int (0x03) value=3
+[6 : 0006] offset=0x012b type=int (0x03) value=4
+
+inpainit()
+{
+    int a;
+
+    a = 1;
+
+    if (a == 1) {
+        a = 2;
+    }
+
+    if (a == 2) {
+        a = 3;
+    } else {
+        a = 4;
+    }
+}
+
+=== Function: [2] inpainit (offset 0x0010, size 25) ===
+0x0023: 08 51 00 00
+0x0027: 01 01 01 00
+0x002b: 06 02 00 00
+0x002f: 05 00 01 00
+0x0033: 01 02 00 00
+0x0037: 01 01 02 00
+0x003b: 09 68 00 00
+0x003f: 05 00 01 00
+0x0043: 0b 00 0c 00
+0x0047: 01 01 03 00
+0x004b: 06 02 00 00
+0x004f: 05 00 01 00
+0x0053: 01 02 00 00
+0x0057: 01 01 04 00
+0x005b: 09 68 00 00
+0x005f: 05 00 01 00
+0x0063: 0b 00 15 00
+0x0067: 01 01 05 00
+0x006b: 06 02 00 00
+0x006f: 05 00 01 00
+0x0073: 0a 00 18 00
+0x0077: 01 01 06 00
+0x007b: 06 02 00 00
+0x007f: 05 00 01 00
+0x0083: 0e 00 00 00
+
+=== Function: [3] inpaexit (offset 0x0087, size 1) ===
+0x009a: 0e 00 00 00
+
+=== Function: [0] __inpa_startup__ (offset 0x009e, size 2) ===
+0x00b9: 0f 00 00 00
+0x00bd: 0c 80 02 00
+
+=== Function: [1] __inpa_shutdown__ (offset 0x00c1, size 2) ===
+0x00dd: 0f 00 00 00
+0x00e1: 0c 80 03 00
+
