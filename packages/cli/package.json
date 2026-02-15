@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@inpax/core": "workspace:*",
+    "chalk": "^5.4.1",
     "commander": "^14.0.3",
     "ink": "^6.7.0",
     "react": "^19.2.4"
