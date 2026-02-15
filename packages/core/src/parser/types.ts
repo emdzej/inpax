@@ -58,6 +58,7 @@ export type SectionHeader = FileSection & {
     readonly size: number;
     readonly arg1?: string;
     readonly arg2?: string;
+    readonly dataOffset?: number;
 }
 
 export type GlobalData = SectionHeader & {

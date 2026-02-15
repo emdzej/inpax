@@ -1,5 +1,5 @@
 import { SEPARATOR, type FileHeader, type ParseResult } from "./types.js";
-import { messageWithOffset, numberToHex, parseString, textDecoder } from "./utils.js";
+import { withOffsetSuffix, numberToHex, parseString, textDecoder } from "./utils.js";
 
 const MAGIC_STRING = "TEST-Infotext";
 const MAGIC_OFFSET = 0x02;
@@ -22,13 +22,13 @@ export function parseFileHeader(buffer: Uint8Array, startOffset: number = 0x00):
 
   if (magic !== MAGIC_STRING) {
     throw new Error(
-      messageWithOffset(`Invalid IPO magic string. Found "${magic}", expected "${MAGIC_STRING}"`, offset)
-    );       
+      withOffsetSuffix(`Invalid IPO magic string. Found "${magic}", expected "${MAGIC_STRING}"`, offset)
+    );
   }
 
   offset = magicResult.offset;
 
-  return {    
+  return {
     result: {
       offset,
       version,

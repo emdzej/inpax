@@ -1,3 +1,4 @@
+import { numberToHex } from "@inpax/core";
 import { readFileSync } from "node:fs";
 
 export const readFile = (filePath: string): Buffer => {
@@ -9,9 +10,6 @@ export const readFile = (filePath: string): Buffer => {
     }
 };
 
-export const formatHex = (value: number, width = 2): string =>
-    value.toString(16).padStart(width, "0");
-
 export const formatHexDump = (buffer: Uint8Array): string => {
     const lines: string[] = [];
     const bytesPerLine = 16;
@@ -19,12 +17,12 @@ export const formatHexDump = (buffer: Uint8Array): string => {
     for (let offset = 0; offset < buffer.length; offset += bytesPerLine) {
         const chunk = buffer.slice(offset, offset + bytesPerLine);
         const hex = Array.from(chunk)
-            .map((byte) => formatHex(byte))
+            .map((byte) => numberToHex(byte))
             .join(" ");
         const ascii = Array.from(chunk)
             .map((byte) => (byte >= 0x20 && byte <= 0x7e ? String.fromCharCode(byte) : "."))
             .join("");
-        lines.push(`${formatHex(offset, 6)}  ${hex.padEnd(bytesPerLine * 3 - 1, " ")}  ${ascii}`);
+        lines.push(`${numberToHex(offset, 6)}  ${hex.padEnd(bytesPerLine * 3 - 1, " ")}  ${ascii}`);
     }
 
     return lines.join("\n");

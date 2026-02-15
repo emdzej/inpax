@@ -6,11 +6,14 @@ import {
     formatDisassembly,
     getDataTypeName,
     getMenuKeyName,
-    parseInpaFile
+    numberToHex,
+    parseInpaFile,
+    withOffsetPrefix,
+    withOffsetSuffix
 } from "@inpax/core";
 
 import { getCliOptions } from "../options.js";
-import { formatHex, readFile } from "../utils.js";
+import { readFile } from "../utils.js";
 
 const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
     const buffer = readFile(filePath);
@@ -20,20 +23,22 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
 
     // Global Variables
     if (ipo.globals.variables.length > 0) {
-        outputs.push(`=== Globals @ 0x${formatHex(ipo.globals.offset, 4)} ===`);
+        outputs.push(withOffsetPrefix(
+            `=== G: ${ipo.globals.name} ===`, ipo.globals.offset));
         ipo.globals.variables.forEach((type, index) => {
             const typeName = getDataTypeName(type);
-            outputs.push(`[${index} : ${formatHex(index, 4)}] type=${typeName} (0x${formatHex(type)})`);
+            outputs.push(`[${index} : ${numberToHex(index)}] type=${typeName} (${numberToHex(type, "0x", 2)})`);
         });
         outputs.push("");
     }
 
     // Constants
     if (ipo.constants.constants.length > 0) {
-        outputs.push(`=== Constants @ 0x${formatHex(ipo.constants.offset, 4)} ===`);
+        outputs.push(withOffsetPrefix(
+            `=== C: ${ipo.constants.name} ===`, ipo.constants.offset));
         ipo.constants.constants.forEach((constant, index) => {
             const typeName = getDataTypeName(constant.type);
-            outputs.push(`[${index} : ${formatHex(index, 4)}] offset=0x${formatHex(constant.offset, 4)} type=${typeName} (0x${formatHex(constant.type)}) value=${constant.value}`);
+            outputs.push(`[${index} : ${numberToHex(index)}] offset=${numberToHex(constant.offset)} type=${typeName} (${numberToHex(constant.type, "0x", 2)}) value=${constant.value}`);
         });
         outputs.push("");
     }
@@ -41,7 +46,8 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
     // Functions
 
     ipo.functions.forEach((func) => {
-        outputs.push(`=== Function: [${func.id}] ${func.name} (offset 0x${formatHex(func.offset, 4)}, size ${func.size}) ===`);
+        outputs.push(withOffsetPrefix(
+            `=== F: ${func.name}: [${numberToHex(func.id)}] ===`, func.offset))
         if (func.instructions.length === 0) {
             outputs.push("<empty>");
         } else {
@@ -59,7 +65,8 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
     // MENUS
 
     ipo.menus?.forEach((menu) => {
-        outputs.push(`=== Menu: [${menu.id}] ${menu.name} (offset 0x${formatHex(menu.offset, 4)}, size ${menu.size}) ===`);
+        outputs.push(withOffsetPrefix(
+            `=== M: ${menu.name}: [${numberToHex(menu.id)}] ===`, menu.offset));
         if (menu.instructions.length === 0) {
             outputs.push("<empty>");
         } else {
@@ -72,7 +79,8 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
             );
         }
         menu.items.forEach((item, index) => {
-            outputs.push(`  --- Item: [${item.id}] ${item.label} (key=${getMenuKeyName(item.key)}) ---`);
+            outputs.push(withOffsetPrefix(
+                `  --- MI: [${numberToHex(item.id)}] ${item.label} (key=${getMenuKeyName(item.key)}) ---`, item.offset));
             if (item.instructions.length === 0) {
                 outputs.push("  <empty>");
             } else {
@@ -91,7 +99,8 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
     // Screens
 
     ipo.screens?.forEach((screen) => {
-        outputs.push(`=== Screen: [${screen.id}] ${screen.name} (offset 0x${formatHex(screen.offset, 4)}, size ${screen.size}) ===`);
+        outputs.push(withOffsetPrefix(
+            `=== S: [${numberToHex(screen.id)}] ${screen.name} ===`, screen.offset));
 
         if (screen.instructions.length === 0) {
             outputs.push("<empty>");
@@ -105,7 +114,8 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
             );
         }
 
-        outputs.push(`--- Function: [${screen.function.id}] ${screen.function.name} ---`);
+        outputs.push(withOffsetPrefix(
+            `--- F: [${numberToHex(screen.function.id)}] ${screen.function.name} ---`, screen.function.offset));
         if (screen.function.instructions.length === 0) {
             outputs.push("<empty>");
         } else {
@@ -119,7 +129,8 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
         }
 
         screen.lines.forEach((line) => {
-            outputs.push(`  --- Line: [${line.id}] ${line.arg1 || '""'} : ${line.arg2 || '""'} ---`);
+            outputs.push(withOffsetPrefix(
+                `  --- L: [${numberToHex(line.id)}] ${line.arg1 || '""'} : ${line.arg2 || '""'} ---`, line.offset));
             if (line.instructions.length === 0) {
                 outputs.push("  <empty>");
             } else {
@@ -133,7 +144,8 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
             }
 
             if (line.control) {
-                outputs.push(`    --- Control: [${line.control.id}] ${line.control.name}   ---`);
+                outputs.push(withOffsetPrefix(
+                    `    --- CT: [${numberToHex(line.control.id)}] ${line.control.name} ---`, line.control.offset));
                 if (line.control.instructions.length === 0) {
                     outputs.push("    <empty>");
                 } else {
@@ -154,7 +166,8 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
     // State Machines
 
     ipo.stateMachines?.forEach((sm) => {
-        outputs.push(`=== State Machine: ${sm.name} (offset 0x${formatHex(sm.offset, 4)}, size ${sm.size}) ===`);
+        outputs.push(withOffsetPrefix(
+            `=== SM: ${sm.name} ===`, sm.offset));
         if (sm.instructions.length === 0) {
             outputs.push("<empty>");
         } else {
@@ -168,7 +181,8 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
         }
 
         sm.states.forEach((state) => {
-            outputs.push(`  --- State: ${state.name} ---`);
+            outputs.push(withOffsetPrefix(
+                `  --- ST: ${state.name} ---`, state.offset));
             if (state.instructions.length === 0) {
                 outputs.push("  <empty>");
             } else {
@@ -188,12 +202,13 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
     // Logic Tables
 
     ipo.logicTables?.forEach((table) => {
-        outputs.push(`=== Logic Table: ${table.name} (offset 0x${formatHex(table.offset, 4)}, size ${table.size}) ===`);
+        outputs.push(withOffsetPrefix(
+            `=== LT: ${table.name} ===`, table.offset));
         if (table.entries.length === 0) {
             outputs.push("<empty>");
         } else {
             table.entries.forEach((entry, index) => {
-                outputs.push(`  [${index}] input=0x${formatHex(entry.input)} mask=0x${formatHex(entry.mask)} output=0x${formatHex(entry.output)}`);
+                outputs.push(`  [${index}] input=0x${numberToHex(entry.input)} mask=0x${numberToHex(entry.mask)} output=0x${numberToHex(entry.output)}`);
             });
         }
         outputs.push("");

@@ -1,5 +1,6 @@
 import type { ConstantData, InpaFile, Instruction } from "../parser/types.js";
 import { getSystemFunction } from "../data/system-functions.js";
+import { numberToHex, withOffsetPrefix } from "../index.js";
 
 export type FormatOptions = {
   showRawBytes?: boolean;
@@ -18,22 +19,17 @@ const DEFAULT_OPTIONS: Required<FormatOptions> = {
 const OPCODE_COLUMN_WIDTH = 12;
 const RAW_BYTES_COLUMN_WIDTH = 11;
 
-const formatHex = (value: number, width = 0): string =>
-  value.toString(16).padStart(width, "0");
-
-const formatOffset = (offset: number): string => `0x${formatHex(offset, 4)}`;
-
 const formatValue = (value: number): string => {
   if (value < 0) {
-    return `-0x${formatHex(Math.abs(value), 2)}`;
+    return `-${numberToHex(Math.abs(value), "0x", 2)}`;
   }
 
-  return `0x${formatHex(value, 2)}`;
+  return `${numberToHex(value, "0x", 2)}`;
 };
 
 const formatRawBytes = (raw: Uint8Array): string =>
   Array.from(raw)
-    .map((byte) => formatHex(byte, 2))
+    .map((byte) => numberToHex(byte, "", 2))
     .join(" ");
 
 
@@ -45,17 +41,11 @@ export const formatInstruction = (
 
   let line = "";
 
-  if (resolvedOptions.showOffset) {
-    line += `${formatOffset(instruction.offset)}: `;
-  }
-
-  if (resolvedOptions.showRawBytes) {
-    const rawBytes = formatRawBytes(instruction.raw).padEnd(
+  const rawBytes = formatRawBytes(instruction.raw).padEnd(
       RAW_BYTES_COLUMN_WIDTH,
       " "
     );
-    line += `${rawBytes} `;
-  }
+    line = withOffsetPrefix(rawBytes, instruction.offset);
 
 
 

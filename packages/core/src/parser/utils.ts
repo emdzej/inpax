@@ -60,12 +60,16 @@ export function findByte(
 };
 
 
-export function numberToHex(value: number, padding = 2): string {
-    return "0x" + value.toString(16).toUpperCase().padStart(padding, "0");
+export function numberToHex(value: number, prefix: string = "0x", padding = 4): string {
+    return prefix + value.toString(16).toUpperCase().padStart(padding, "0");
 }
 
-export function messageWithOffset(message: string, offset: number): string {
-    return `${message} at offset ${numberToHex(offset)}`;
+export function withOffsetSuffix(message: string, offset: number, separator: string = "@"): string {
+    return `${message} ${separator}${numberToHex(offset)}`;
+}
+
+export function withOffsetPrefix(message: string, offset: number, separator: string = ":"): string {
+    return `${numberToHex(offset)}${separator} ${message}`;
 }
 
 export const textDecoder = new TextDecoder("ascii");

@@ -1,7 +1,7 @@
 import { parseSectionHeader } from "./common.js";
 import { parseFunction } from "./function.js";
 import { ParseResult, Screen, ScreenLine, ScreenLineControlFunction, SectionTypeMarkers } from "./types.js";
-import { messageWithOffset } from "./utils.js";
+import { withOffsetSuffix } from "./utils.js";
 
 export function parseScreen(buffer: Uint8Array, startOffset: number): ParseResult<Screen> {
     var offset = startOffset;
@@ -9,7 +9,7 @@ export function parseScreen(buffer: Uint8Array, startOffset: number): ParseResul
     offset = sectionResult.offset;
     const screenFunctionCandidate = buffer[offset];
     if (screenFunctionCandidate !== SectionTypeMarkers.SCREEN_FUNCTION) {
-        throw new Error(messageWithOffset(`Expected screen function marker after screen header, but found 0x${screenFunctionCandidate.toString(16)}`, offset));
+        throw new Error(withOffsetSuffix(`Expected screen function marker after screen header, but found 0x${screenFunctionCandidate.toString(16)}`, offset));
     }
     const screenFunctionResult = parseFunction(buffer, offset, SectionTypeMarkers.SCREEN_FUNCTION);
     offset = screenFunctionResult.offset;
