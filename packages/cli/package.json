@@ -6,7 +6,7 @@
     "inpax": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --sourcemap --clean --platform node",
+    "build": "tsup",
     "lint": "eslint src",
     "test": "echo 'No CLI tests yet'",
     "typecheck": "tsc -p tsconfig.json --noEmit"
