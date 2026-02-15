@@ -13,9 +13,12 @@
   },
   "dependencies": {
     "@inpax/core": "workspace:*",
-    "commander": "^14.0.3"
+    "commander": "^14.0.3",
+    "ink": "^6.7.0",
+    "react": "^19.2.4"
   },
   "devDependencies": {
+    "@types/react": "^19.2.14",
     "typescript": "^5.7.3"
   }
 }
