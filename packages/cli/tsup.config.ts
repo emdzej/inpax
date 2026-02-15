@@ -9,9 +9,5 @@ export default defineConfig({
     platform: "node",
     esbuildOptions(options) {
         options.jsx = "automatic";
-        options.loader = {
-            ...options.loader,
-            ".ts": "tsx"
-        };
     }
 });
