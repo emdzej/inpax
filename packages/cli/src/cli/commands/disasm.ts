@@ -3,17 +3,16 @@ import process from "node:process";
 import type { Command } from "commander";
 
 import {
-    formatDisassembly,
     getDataTypeName,
     getMenuKeyName,
     numberToHex,
-    parseInpaFile,
-    withOffsetPrefix,
-    withOffsetSuffix
+    withOffsetPrefix
 } from "@inpax/core";
 
 import { getCliOptions } from "../options.js";
 import { readFile } from "../utils.js";
+import { formatDisassembly } from "@inpax/disassembler";
+import { parseInpaFile } from "@inpax/parser";
 
 const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
     const buffer = readFile(filePath);
@@ -52,7 +51,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
             outputs.push("<empty>");
         } else {
             outputs.push(
-                formatDisassembly([...func.instructions], {
+                formatDisassembly([...func.instructions], ipo, {
                     showRawBytes: true,
                     resolveNames: options.resolve,
                     input: ipo
@@ -71,7 +70,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
             outputs.push("<empty>");
         } else {
             outputs.push(
-                formatDisassembly([...menu.instructions], {
+                formatDisassembly([...menu.instructions], ipo, {
                     showRawBytes: true,
                     resolveNames: options.resolve,
                     input: ipo
@@ -85,7 +84,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
                 outputs.push("  <empty>");
             } else {
                 outputs.push(
-                    formatDisassembly([...item.instructions], {
+                    formatDisassembly([...item.instructions], ipo, {
                         showRawBytes: true,
                         resolveNames: options.resolve,
                         input: ipo
@@ -106,7 +105,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
             outputs.push("<empty>");
         } else {
             outputs.push(
-                formatDisassembly([...screen.instructions], {
+                formatDisassembly([...screen.instructions], ipo, {
                     showRawBytes: true,
                     resolveNames: options.resolve,
                     input: ipo
@@ -120,7 +119,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
             outputs.push("<empty>");
         } else {
             outputs.push(
-                formatDisassembly([...screen.function.instructions], {
+                formatDisassembly([...screen.function.instructions], ipo, {
                     showRawBytes: true,
                     resolveNames: options.resolve,
                     input: ipo
@@ -135,7 +134,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
                 outputs.push("  <empty>");
             } else {
                 outputs.push(
-                    formatDisassembly([...line.instructions], {
+                    formatDisassembly([...line.instructions], ipo, {
                         showRawBytes: true,
                         resolveNames: options.resolve,
                         input: ipo
@@ -150,7 +149,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
                     outputs.push("    <empty>");
                 } else {
                     outputs.push(
-                        formatDisassembly([...line.control.instructions], {
+                        formatDisassembly([...line.control.instructions], ipo, {
                             showRawBytes: true,
                             resolveNames: options.resolve,
                             input: ipo
@@ -172,7 +171,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
             outputs.push("<empty>");
         } else {
             outputs.push(
-                formatDisassembly([...sm.instructions], {
+                formatDisassembly([...sm.instructions], ipo, {
                     showRawBytes: true,
                     resolveNames: options.resolve,
                     input: ipo
@@ -187,7 +186,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
                 outputs.push("  <empty>");
             } else {
                 outputs.push(
-                    formatDisassembly([...state.instructions], {
+                    formatDisassembly([...state.instructions], ipo, {
                         showRawBytes: true,
                         resolveNames: options.resolve,
                         input: ipo

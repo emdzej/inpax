@@ -694,7 +694,7 @@ TO BE CONFIRMED
 0x0027: 06 00 01 00 assing global slot 01
 0x002b: 05 00 01 00 store
 
-#### PUSH VAL (`0x01`)
+#### LOAD (`0x01`)
 
 Loads values onto stack
 
@@ -714,16 +714,21 @@ push ref ARG ?
 
 Push onto stack reference to a variable (out params)
 
-#### ASSIGN (`0x05`)
+#### MOVE (`0x05`)
 
 `05 00 01 00`
 
-POPs target
-POPs source
+POPs target info
+POPs value
 
-copies value
+copies value to target
 
-#### PUSHVFORSTORE VAR (`0x06`)
+0x00EB: 09 68 00 00
+0x00EF: 05 00 01 00 ; if value taken from stack is val not ref, copy to global 00? or some internal register?
+0x00F3: 0B 00 38 00 ; compare global 00  or interal "zero" register? jmpnz (jump not zero?)
+
+
+#### PUSHR (`0x06`)
 
 push onto stack inforamtion about where to store 
 
@@ -782,7 +787,12 @@ Performs operation on arguments poped from stack
 
 
 
-#### JMPC (`0x0B`)
+#### JMPNZ (`0x0B`)
+
+0x00EB: 09 68 00 00
+0x00EF: 05 00 01 00 ; if value taken from stack is val not ref, copy to global 00? or some internal register?
+0x00F3: 0B 00 38 00 ; compare global 00  or interal "zero" register? jmpnz (jump not zero?)
+
 
 Jump conditionally (if false)
 

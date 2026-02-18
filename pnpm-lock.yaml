@@ -41,6 +41,15 @@ importers:
       chalk:
         specifier: ^5.4.1
         version: 5.6.2
+      '@inpax/disassembler':
+        specifier: workspace:*
+        version: link:../dissassembler
+      '@inpax/interpreter':
+        specifier: workspace:*
+        version: link:../interpreter
+      '@inpax/parser':
+        specifier: workspace:*
+        version: link:../parser
       commander:
         specifier: ^14.0.3
         version: 14.0.3
@@ -64,7 +73,31 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/dissassembler:
+    dependencies:
+      '@inpax/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/interpreter:
+    dependencies:
+      '@inpax/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/parser:
+    dependencies:
+      '@inpax/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       typescript:
         specifier: ^5.7.3

@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/interpreter",
+  "name": "@inpax/parser",
   "version": "0.0.0",
   "type": "module",
   "exports": {

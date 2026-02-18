@@ -2,8 +2,7 @@ import process from "node:process";
 
 import type { Command } from "commander";
 import { Box, Text, render, useApp, useInput } from "ink";
-
-import { parseInpaFile } from "@inpax/core";
+import { parseInpaFile } from "@inpax/parser";
 
 import { readFile } from "../utils.js";
 
