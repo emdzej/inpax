@@ -224,6 +224,7 @@ OTHER   // Catch-all for unmatched cases
 | `-` | Subtraction | `a - b` |
 | `*` | Multiplication | `a * b` |
 | `/` | Division | `a / b` |
+| `-` | Negate | `-a` |
 
 **Note:** No modulo operator (%). Use functions or compute manually.
 
@@ -238,13 +239,21 @@ OTHER   // Catch-all for unmatched cases
 | `<=` | Less than or equal | `a <= b` |
 | `>=` | Greater than or equal | `a >= b` |
 
+
 ### Logical Operators
 
 | Operator | Description | Example |
 |----------|-------------|---------|
 | `&&` | Logical AND | `a && b` |
-| `||` | Logical OR | `a || b` |
+| `\|\|` | Logical OR | `a \|\| b` |
+| `^^` | Lgical XOR | `a ^^ b` |
 | `!` | Logical NOT | `!a` |
+
+### Bitwise Operations
+
+| `\|` | bitwise OR | `a \| b` |
+| `&` |  bitwise AND | `a & b` |
+| `^` | bitwsie XOR | `a ^ b` |
 
 ### String Concatenation
 

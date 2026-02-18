@@ -7,11 +7,34 @@ export function formatStoreRefInstruction(opcode: number, rawBytes: Buffer, cont
     const scope = rawBytes[1] as VariableScope;
     const index = rawBytes.readUInt16LE(2);
     var line = `${getOpCodeName(opcode)} ${getVariableScopeName(scope)} #[${index}]`;
-    if (scope === VariableScopes.CONST) {
-        const constant = context.constants.constants[index];
-        if (constant !== undefined) {
-            line += ` ; ${constant.value}`;
-        }
+
+    switch (scope) {
+        case VariableScopes.SCREEN_HANDLE:
+            const screen = context.screens?.[index];
+            if (screen !== undefined) {
+                line += ` ; ${screen.name}`;
+            }
+            break;
+        case VariableScopes.MENU_HANDLE:
+            const menu = context.menus?.[index];
+            if (menu !== undefined) {
+                line += ` ; ${menu.name}`;
+            }
+            break;
+        case VariableScopes.STATE_MACHINE_HANDLE:
+            const stateMachine = context.stateMachines?.[index];
+            if (stateMachine !== undefined) {
+                line += ` ; ${stateMachine.name}`;
+            }
+            break;
+        case VariableScopes.CONST:
+            const constant = context.constants.constants[index];
+            if (constant !== undefined) {
+                line += ` ; ${constant.value}`;
+            }
+            break;
+
     }
+
     return line;
 };

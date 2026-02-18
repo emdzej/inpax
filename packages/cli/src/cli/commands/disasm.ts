@@ -79,7 +79,7 @@ const runDisasm = (filePath: string, options: { resolve: boolean }): void => {
         }
         menu.items.forEach((item, index) => {
             outputs.push(withOffsetPrefix(
-                `  --- MI: [${numberToHex(item.id)}] ${item.label} (key=${getMenuKeyName(item.key)}) ---`, item.offset));
+                `  --- MI: [${numberToHex(item.id)}] ${item.label || "\"\""} (key=${getMenuKeyName(item.key)}) ---`, item.offset));
             if (item.instructions.length === 0) {
                 outputs.push("  <empty>");
             } else {

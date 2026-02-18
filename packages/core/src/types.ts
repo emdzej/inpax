@@ -150,7 +150,10 @@ export type StateMachine = UserFunction & {
 export const VariableScopes = {
     GLOBAL : 0x00,
     CONST: 0x01,
-    LOCAL: 0x02
+    LOCAL: 0x02,
+    SCREEN_HANDLE: 0x40,
+    MENU_HANDLE: 0x41,
+    STATE_MACHINE_HANDLE: 0x42,
 } as const;
 
 export type VariableScope = (typeof VariableScopes)[keyof typeof VariableScopes];
@@ -178,9 +181,12 @@ export const OpCodes = {
     STOREREF: 0x02,
     STORE: 0x05,
     LOADREF: 0x06,
+    LOADOUTREF: 0x07,
     ALLOC: 0x08,
     ALU: 0x09,
+    JMP: 0x0A,
     CALL: 0x0C,
+    JMPNZ: 0x0B,
     CALLEXT: 0x0D,
     RET: 0x0E,
     FRAME: 0x0F,
@@ -201,7 +207,12 @@ export const AluOpCodes = {
     NE: 0x69,
     AND: 0x6A,
     OR: 0x6B,
+    XOR: 0x6C,
+    NEG: 0x6D,
     NOT: 0x6E,
+    BAND: 0x6F,
+    BOR: 0x70,
+    BXOR: 0x71
 } as const;
 
 export type AluOpCode = typeof AluOpCodes[keyof typeof AluOpCodes];
@@ -219,7 +230,7 @@ export const AllocTypes = {
     BYTE: 0x52,
     LONG: 0x53,
     REAL: 0x54,
-    STRING: 0x56
+    STRING: 0x55
 } as const;
 
 export type AllocType = typeof AllocTypes[keyof typeof AllocTypes];

@@ -709,10 +709,25 @@ Examples
 
 only after 0f 00
 push ref ARG ?
+ 41 set menu handle?
+ 40 set screen handle?
+
+0x02 40 [idx]?
+0x2098: 02 41 00 00 ; STOREREF Unknown(0x41) #[0]
+0x209C: 0C 81 01 00 ; CALL SYSTEM #[1] ; setmenu
+0x20A0: 0F 00 00 00 ; FRAME
+0x20A4: 02 40 01 00 ; STOREREF Unknown(0x40) #[1]
+0x20A8: 01 01 D3 02 ; LOAD CONST #[723] ; true
+0x20AC: 0C 81 04 00 ; CALL SYSTEM #[4] ; setscreen
+
 
 `02 [scope: u8] [index: u16]`
 
 Push onto stack reference to a variable (out params)
+
+#### ? (`0x03`)
+
+ 03 02 00 00 ; <unknown instruction>
 
 #### MOVE (`0x05`)
 
@@ -758,7 +773,7 @@ Allocates variable on local frame
 | `0x52` | `byte` |
 | `0x53` | `long` |
 | `0x54` | `real` |
-| `0x56` | `string` |
+| `0x55` | `string` |
 
 #### ALU (`09`)
 
@@ -781,7 +796,14 @@ Performs operation on arguments poped from stack
 | `0x69` | `!=` | Not equal |
 | `6A` | `&&` | |
 | `6B` | `\|\|` | |
+| `0x6c` | `^^` | |
+| `0x6d` | `-` | |
 | `6E` | `!` | |
+| `0x6f` | `&` | |
+| `0x70` | `\|` | |
+| `0x71` | `^` | |
+
+0x064D: 09 6D 00 00 ; Unknown(0x6d) ???
 
 #### JMP (`0x0A`)
 
