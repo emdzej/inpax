@@ -1,0 +1,22 @@
+{
+  "name": "@inpax/interpreter",
+  "version": "0.1.0",
+  "description": "INPA IPO bytecode interpreter",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist/"
+  },
+  "keywords": ["inpa", "ipo", "interpreter", "bmw", "diagnostics"],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
