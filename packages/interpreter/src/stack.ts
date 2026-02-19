@@ -43,8 +43,8 @@ export class Stack<T extends StackObject = StackObject> extends EventEmitter<Sta
         return item;
     }
 
-    public peek(): T | undefined {
-        return this._stack[this._stack.length - 1];
+    public peek(index: number = this._stack.length - 1): T | undefined {
+        return this._stack[index];
     }
 
     public size(): number {

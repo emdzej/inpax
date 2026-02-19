@@ -5,3 +5,4 @@ dist/
 **/dist/
 .DS_Store
 disasm
+ref

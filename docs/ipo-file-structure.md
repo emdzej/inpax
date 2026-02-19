@@ -662,37 +662,12 @@ Reference scopes, used in load, store operations
 | ----- | ----- | ----------- |
 | Global | `0x00` | For loading, or storing values |
 | Const | `0x01` | For loading values |
-| Local | `0x02` | For loading or storing values |
+| Local | `0x02` | For loading or storing values, maybe this is STACK? index on STACK? | 
+| Screen Handle | `0x40` | |
+| Menu Handle | `0x41` | |
+| State Machine Handle | `0x42` | TBC |
 
 ### Core Opcodes
-
-
-
-**Partially confirmed from `tests/windows-samples/*`** (see `docs/research/opcode-mappings.md`).
-TO BE CONFIRMED
-
-| Opcode | Arguments | Mnemonic | Description |
-|--------|-----------|----------|-------------|
-| `01 [u16] [u8]` | index ? | Push const at index? |
-| `02 [u16] 00` | index | Push variable at index? |
-| `05 [u8] [u8] 00` |  | Unknown (appears after addr+value push in assignments) |
-| `06 [u8] [u8] 00 ` | | Unknown (appears before assignments; likely PUSH_CONST) |
-| `08 51 00 00` | - | ? | Appears only when local variables declared (likely local alloc / frame setup) |
-| `09 [u8] 00 00` | Op | `ALU_OP` | Binary arithmetic/comparison operation |
-| `0B 00 [u16] ` | pop? | `JMP_FALSE` | Pop condition; if false, jump by offset |
-| `0C 80 [u16]` | FuncID | `CALL_USER` | Call user-defined function (**confirmed**) |
-| `0C 81 [u16]` | FuncID | `CALL_API` | Call system/API function |
-| `0E 00 00 00` |  | `RET` | Function end / return (**confirmed from empty bodies**) |
-| `0F 00 00 00` | - | ? | Call prologue / marker (appears immediately before `CALL_USER`) |
-
-0x003b: 01 01 [01 00] // load const value @[1]
-              
-0x003f: 06 02 [00 00] // push to local stack @ 0 idx
-0x0043: 05 00 01 00 // store?
-
-0x0023: 01 01 00 00 load const
-0x0027: 06 00 01 00 assing global slot 01
-0x002b: 05 00 01 00 store
 
 #### LOAD (`0x01`)
 
@@ -705,7 +680,7 @@ Examples
 `01 01 00 00` - load const from index 0 onto stack
 `01 00 02 00` - load glogal from index 2 onto stack
 
-#### PUSH ARG (`0x02`) 
+#### PUSH ARG (`0x02`)
 
 only after 0f 00
 push ref ARG ?
@@ -725,8 +700,9 @@ push ref ARG ?
 
 Push onto stack reference to a variable (out params)
 
-#### ? (`0x03`)
+#### LOADINOUTREF (`0x03`)
 
+loads ref to stack?
  03 02 00 00 ; <unknown instruction>
 
 #### MOVE (`0x05`)
@@ -762,7 +738,7 @@ target ref arg  index
 
 #### ALLOC (`0x08`)
 
-Allocates variable on local frame
+push empty variable onto stack
 
 `08 [type: u8] 00 00`
 
@@ -845,7 +821,7 @@ Paramter `index` is the constant index which contains external function signatur
 
 `0E 00 00 00`
 
-#### PUSHF (`0x0F`)
+#### FRAME (`0x0F`)
 
 `0F 00 00 00`
 

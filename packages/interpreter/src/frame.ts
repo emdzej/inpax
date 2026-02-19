@@ -1,14 +1,19 @@
-import { Constant, Variable } from "@inpax/core";
+import { Stack } from "./stack.js";
 
 export class Frame {
-    private readonly _variables: Variable[] = [];
-    private readonly _constants: Constant[] = [];
+    private readonly _stack: Stack;
+    private readonly _parent?: Frame;
 
-    get variables(): Variable[] {
-        return this._variables;
+    get parent(): Frame | undefined {
+        return this._parent;
     }
 
-    get constants(): Constant[] {
-        return this._constants;
+    get stack(): Stack {
+        return this._stack;
+    }
+
+    constructor(parent?: Frame) {
+        this._stack = new Stack();
+        this._parent = parent;
     }
 }

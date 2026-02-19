@@ -1,4 +1,4 @@
-import { AluOpCode, getAluOpCodeName, getKeyByValue, InpaFile, OpCodes } from "@inpax/core";
+import { AluOpCode, getAluOpCodeName, getKeyByValue, getOpCodeName, InpaFile, OpCodes } from "@inpax/core";
 
 export function formatAluInstruction(opcode: number, rawBytes: Buffer, context: InpaFile): string {
     if (opcode != OpCodes.ALU) {
@@ -6,5 +6,5 @@ export function formatAluInstruction(opcode: number, rawBytes: Buffer, context: 
     }
 
     const aluOpcode = rawBytes[1] as AluOpCode;
-    return getAluOpCodeName(aluOpcode);
+    return `${getOpCodeName(opcode)} ${getAluOpCodeName(aluOpcode)}`;
 };

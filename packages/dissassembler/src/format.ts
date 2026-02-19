@@ -9,6 +9,7 @@ import { formatCallExtInstruction } from "./instructions/callext.js";
 import { formatJmpInstruction } from "./instructions/jmp.js";
 import { formatJmpNzInstruction } from "./instructions/jmpnz.js";
 import { formatLoadOutRefInstruction } from "./instructions/load-out-ref.js";
+import { formatLoadInOutRefInstruction } from "./instructions/load-inout-ref.js";
 
 export type FormatOptions = {
     showRawBytes?: boolean;
@@ -43,8 +44,9 @@ const formatRawBytes = (raw: Uint8Array): string =>
 
 const handlers: InstructionDisassemblyHandlers = {
     [OpCodes.ALU]: formatAluInstruction,
-    [OpCodes.LOAD]: formatLoadInstruction,
+    [OpCodes.PUSHV]: formatLoadInstruction,
     [OpCodes.STOREREF]: formatStoreRefInstruction,
+    [OpCodes.LOADINOUTREF]: formatLoadInOutRefInstruction,
     [OpCodes.LOADREF]: formatLoadRefInstruction,
     [OpCodes.LOADOUTREF]: formatLoadOutRefInstruction,
     [OpCodes.CALL]: formatCallInstruction,
@@ -53,7 +55,7 @@ const handlers: InstructionDisassemblyHandlers = {
     [OpCodes.CALLEXT]: formatCallExtInstruction,
     [OpCodes.ALLOC]: formatAllocInstruction,
     [OpCodes.RET]: (opcode) => getOpCodeName(opcode),
-    [OpCodes.STORE]: (opcode) => getOpCodeName(opcode),
+    [OpCodes.MOV]: (opcode) => getOpCodeName(opcode),
     [OpCodes.FRAME]: (opcode) => getOpCodeName(opcode),
 };
 

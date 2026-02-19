@@ -1,5 +1,6 @@
-import { Instruction, AluOpCode, numberToHex, AluOpCodes } from "@inpax/core";
+import { Instruction, AluOpCode, numberToHex, AluOpCodes, OpCode, VariableScope, VariableScopes, containsValue, withOffsetSuffix, AllocType, AllocTypes, Variable, newVariable, DataTypeMarkers } from "@inpax/core";
 import { State } from "./state.js";
+import { V } from "vitest/dist/chunks/reporters.nr4dxCkA.js";
 
 type AluHandler = (instruction: Instruction, state: State) => void;
 
@@ -92,10 +93,58 @@ const aluHandlers: AluHandlers = {
 };
 
 export function alu(instruction: Instruction, state: State): void {
-    const op = instruction.raw[2];
+    const op = instruction.raw[1] as AluOpCode;
     const handler = aluHandlers[op as AluOpCode];
     if (!handler) {
         throw new Error(`Unknown ALU operation: ${numberToHex(op)}`);
     }
     handler(instruction, state);
+}
+
+export function alloc(instruction: Instruction, state: State): void {
+    const opcode = instruction.raw[0] as OpCode;
+    const allocType = instruction.raw[1] as AllocType;
+
+    switch (allocType) {
+        case AllocTypes.BOOL:
+            state.currentFrame.stack.push(newVariable(DataTypeMarkers.BOOL) as Variable);
+            break;
+        case AllocTypes.BYTE:
+            state.currentFrame.stack.push(newVariable(DataTypeMarkers.BYTE) as Variable);
+            break;
+        case AllocTypes.INT:
+            state.currentFrame.stack.push(newVariable(DataTypeMarkers.INT) as Variable);
+            break;
+        case AllocTypes.LONG:
+            state.currentFrame.stack.push(newVariable(DataTypeMarkers.LONG) as Variable);
+            break;
+        case AllocTypes.REAL:
+            state.currentFrame.stack.push(newVariable(DataTypeMarkers.REAL) as Variable);
+            break;
+        case AllocTypes.STRING:
+            state.currentFrame.stack.push(newVariable(DataTypeMarkers.STRING) as Variable);
+            break;
+        default:
+            throw new Error(withOffsetSuffix(`Unsupported alloc type: ${numberToHex(allocType)}`, instruction.offset));
+    }
+
+}
+
+export function pushv(instruction: Instruction, state: State): void {
+    const opcode = instruction.raw[0] as OpCode;
+    const scope = instruction.raw[1] as VariableScope;
+
+    switch (scope) {
+        case VariableScopes.LOCAL:
+        case VariableScopes.GLOBAL:
+        case VariableScopes.CONST:
+        case VariableScopes.MENU_HANDLE:
+        case VariableScopes.SCREEN_HANDLE:
+        case VariableScopes.STATE_MACHINE_HANDLE:
+        default:
+            throw new Error(withOffsetSuffix(`Unsupported variable scope: ${numberToHex(scope)}`, instruction.offset));
+    };
+
+    const index = instruction.raw.readUInt16LE(2);
+
 }

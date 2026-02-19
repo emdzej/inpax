@@ -2,10 +2,17 @@
 
 import { EventEmitter } from "events";
 import { StackObject, Stack } from "./stack.js";
+import { Frame } from "./frame.js";
 
 export class State<T extends StackObject = StackObject> extends EventEmitter {
     private readonly _stack: Stack<T>;
     private _programCounter: number = 0;
+
+    private _currentFrame: Frame;
+
+    get currentFrame(): Frame {
+        return this._currentFrame;
+    }
 
     constructor(stack?: Stack<T>) {
         super();

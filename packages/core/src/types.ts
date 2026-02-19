@@ -177,9 +177,10 @@ export type ParseResult<T> = {
 
 export type ParseFunction<T extends SectionHeader> = (buffer: Uint8Array, startOffset: number) => ParseResult<T>;
 export const OpCodes = {
-    LOAD: 0x01,
+    PUSHV: 0x01,
     STOREREF: 0x02,
-    STORE: 0x05,
+    LOADINOUTREF: 0x03,
+    MOV: 0x05,
     LOADREF: 0x06,
     LOADOUTREF: 0x07,
     ALLOC: 0x08,
@@ -189,7 +190,7 @@ export const OpCodes = {
     JMPNZ: 0x0B,
     CALLEXT: 0x0D,
     RET: 0x0E,
-    FRAME: 0x0F,
+    FRAME: 0x0F, // cllear stack?
 } as const;
 
 export type OpCode = typeof OpCodes[keyof typeof OpCodes];
@@ -238,12 +239,16 @@ export type AllocType = typeof AllocTypes[keyof typeof AllocTypes];
 export const varSymbol = Symbol("variable");
 
 export type Variable =
-    { [varSymbol]: true, readonly type: 0x01; value: boolean}
-    | { [varSymbol]: true, readonly type: 0x02; value: number }
-    | { [varSymbol]: true, readonly type: 0x03; value: number }
-    | { [varSymbol]: true, readonly type: 0x04; value: number }
-    | { [varSymbol]: true, readonly type: 0x05; value: number }
-    | { [varSymbol]: true, readonly type: 0x06; value: string }
+    { [varSymbol]: true, readonly type: 0x01; value?: boolean}
+    | { [varSymbol]: true, readonly type: 0x02; value?: number }
+    | { [varSymbol]: true, readonly type: 0x03; value?: number }
+    | { [varSymbol]: true, readonly type: 0x04; value?: number }
+    | { [varSymbol]: true, readonly type: 0x05; value?: number }
+    | { [varSymbol]: true, readonly type: 0x06; value?: string }
+
+export function newVariable(type: DataTypeMarker, value?: boolean | number | string): Variable {
+    return { [varSymbol]: true, type, value } as Variable;
+}
 
 export function isVariable(obj: unknown): obj is Variable {
   return typeof obj === "object" && obj !== null && varSymbol in obj;
