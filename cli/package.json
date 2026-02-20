@@ -1,0 +1,26 @@
+{
+  "name": "@inpax/cli",
+  "version": "0.1.0",
+  "description": "INPAX CLI - IPO toolchain",
+  "type": "module",
+  "bin": {
+    "inpax": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@inpax/core": "workspace:*",
+    "commander": "^12.0.0",
+    "ink": "^5.0.1",
+    "react": "^18.3.1",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.0",
+    "typescript": "^5.0.0"
+  }
+}
