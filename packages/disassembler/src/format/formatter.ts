@@ -4,7 +4,6 @@ import {
   AluOp,
   Scope,
   CallTarget,
-  TypeMarker,
   ValueType,
   IpoFile,
   FunctionBlock,
@@ -15,20 +14,20 @@ export const OPCODE_NAMES: Record<number, string> = {
   [Opcode.LOAD]: 'LOAD',
   [Opcode.PUSHREF]: 'PUSHREF',
   [Opcode.LOADINOUTREF]: 'LOADINOUTREF',
-  [Opcode.CAST]: 'CAST',
+  [Opcode.NOP]: 'NOP',
   [Opcode.MOVE]: 'MOVE',
   [Opcode.PUSHR]: 'PUSHR',
   [Opcode.PUSHREFSTORE]: 'PUSHREFSTORE',
-  [Opcode.JMP]: 'JMP',
-  [Opcode.JMPZ]: 'JMPZ',
-  [Opcode.JMPNZ]: 'JMPNZ',
+  [Opcode.ALLOC]: 'ALLOC',
   [Opcode.ALU]: 'ALU',
+  [Opcode.JMP]: 'JMP',
+  [Opcode.JMPNZ]: 'JMPNZ',
   [Opcode.CALL]: 'CALL',
-  [Opcode.IMPORT32]: 'IMPORT32',
+  [Opcode.CALLE]: 'CALLE',
   [Opcode.RET]: 'RET',
   [Opcode.FRAME]: 'FRAME',
-  [Opcode.POP]: 'POP',
-  [Opcode.PUSHCONST]: 'PUSHCONST',
+  [Opcode.LOGTABLE]: 'LOGTABLE',
+  [Opcode.PUSHIMM]: 'PUSHIMM',
 };
 
 /** ALU operation names */
@@ -43,12 +42,6 @@ export const ALU_NAMES: Record<number, string> = {
 /** Scope names */
 export const SCOPE_NAMES: Record<number, string> = {
   [Scope.Global]: 'global', [Scope.Const]: 'const', [Scope.Local]: 'local',
-};
-
-/** Type marker names */
-const TYPE_MARKER_NAMES: Record<number, string> = {
-  [TypeMarker.Bool]: 'bool', [TypeMarker.Int]: 'int', [TypeMarker.Byte]: 'byte',
-  [TypeMarker.Long]: 'long', [TypeMarker.Real]: 'real', [TypeMarker.String]: 'string',
 };
 
 /** Value type names */
@@ -112,9 +105,11 @@ function formatOperands(opcode: number, op1: number, op2: number, ipo?: IpoFile)
     case Opcode.LOAD: case Opcode.PUSHREF: case Opcode.LOADINOUTREF:
     case Opcode.PUSHR: case Opcode.PUSHREFSTORE:
       return formatScopeIndex(op1, op2);
-    case Opcode.CAST:
-      return TYPE_MARKER_NAMES[op1] || `type_${op1.toString(16)}`;
-    case Opcode.JMP: case Opcode.JMPZ: case Opcode.JMPNZ:
+    case Opcode.NOP:
+      return '';
+    case Opcode.ALLOC:
+      return op2.toString();
+    case Opcode.JMP: case Opcode.JMPNZ:
       return `@${op2}`;
     case Opcode.ALU:
       return ALU_NAMES[op1] || `op_${op1.toString(16)}`;
@@ -124,9 +119,11 @@ function formatOperands(opcode: number, op1: number, op2: number, ipo?: IpoFile)
         return `user ${name}`;
       }
       return `sys ${SYSTEM_FUNCTION_NAMES[op2] || `sys_${op2.toString(16)}`}`;
-    case Opcode.POP:
-      return op2.toString();
-    case Opcode.PUSHCONST:
+    case Opcode.CALLE:
+      return `dll[${op2}]`;
+    case Opcode.LOGTABLE:
+      return `table[${op2}]`;
+    case Opcode.PUSHIMM:
       return formatConstant(op2, ipo);
     default:
       return (op1 || op2) ? `${op1.toString(16)}, ${op2.toString(16)}` : '';
@@ -154,11 +151,12 @@ function formatConstant(index: number, ipo?: IpoFile): string {
 
 function getComment(opcode: number): string {
   switch (opcode) {
-    case Opcode.JMPZ: return 'jump if false';
     case Opcode.JMPNZ: return 'jump if true';
     case Opcode.FRAME: return 'push call frame';
     case Opcode.MOVE: return 'assign';
     case Opcode.RET: return 'return';
+    case Opcode.ALLOC: return 'allocate locals';
+    case Opcode.LOGTABLE: return 'logic table lookup';
     default: return '';
   }
 }
@@ -180,7 +178,7 @@ export function disassembleFunction(
   const jumpTargets = new Set<number>();
   if (opts.resolveLabels) {
     for (const i of func.instructions) {
-      if ([Opcode.JMP, Opcode.JMPZ, Opcode.JMPNZ].includes(i.opcode)) {
+      if ([Opcode.JMP, Opcode.JMPNZ].includes(i.opcode)) {
         jumpTargets.add(i.operand2);
       }
     }

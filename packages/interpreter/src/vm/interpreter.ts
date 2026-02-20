@@ -143,8 +143,8 @@ export class VM {
         this.opLoadInOutRef(operand1, operand2);
         break;
 
-      case Opcode.CAST:
-        this.opCast(operand1);
+      case Opcode.NOP:
+        // No operation
         break;
 
       case Opcode.MOVE:
@@ -159,28 +159,28 @@ export class VM {
         this.opPushRefStore(operand1, operand2);
         break;
 
-      case Opcode.JMP:
-        this.opJmp(operand2);
-        return; // Don't increment IP
-
-      case Opcode.JMPZ:
-        if (this.opJmpZ(operand2)) return;
-        break;
-
-      case Opcode.JMPNZ:
-        if (this.opJmpNZ(operand2)) return;
+      case Opcode.ALLOC:
+        this.opAlloc(operand2);
         break;
 
       case Opcode.ALU:
         this.opAlu(operand1 as AluOp);
         break;
 
+      case Opcode.JMP:
+        this.opJmp(operand2);
+        return; // Don't increment IP
+
+      case Opcode.JMPNZ:
+        if (this.opJmpNZ(operand2)) return;
+        break;
+
       case Opcode.CALL:
         this.opCall(operand1 as CallTarget, operand2);
         return; // IP handled by call
 
-      case Opcode.IMPORT32:
-        this.opImport32(operand2);
+      case Opcode.CALLE:
+        this.opCallE(operand2);
         break;
 
       case Opcode.RET:
@@ -191,12 +191,12 @@ export class VM {
         this.opFrame();
         break;
 
-      case Opcode.POP:
-        this.opPop(operand2);
+      case Opcode.LOGTABLE:
+        this.opLogTable(operand2);
         break;
 
-      case Opcode.PUSHCONST:
-        this.opPushConst(operand2);
+      case Opcode.PUSHIMM:
+        this.opPushImm(operand2);
         break;
 
       default:
@@ -227,13 +227,6 @@ export class VM {
     this.opPushRef(scope, index);
   }
 
-  private opCast(typeMarker: number): void {
-    const entry = this.stack.peek();
-    const newType = this.markerToType(typeMarker);
-    entry.type = newType;
-    entry.value = this.convertValue(entry.value, newType);
-  }
-
   private opMove(): void {
     const value = this.stack.pop();
     const target = this.stack.pop();
@@ -256,17 +249,19 @@ export class VM {
     this.opPushRef(scope, index);
   }
 
-  private opJmp(offset: number): void {
-    this.state.ip = offset;
+  private opAlloc(count: number): void {
+    // Allocate local variables on stack
+    for (let i = 0; i < count; i++) {
+      this.stack.push({
+        type: ValueType.Void,
+        flags: 1,
+        value: null,
+      });
+    }
   }
 
-  private opJmpZ(offset: number): boolean {
-    const entry = this.stack.pop();
-    if (!entry.value) {
-      this.state.ip = offset;
-      return true;
-    }
-    return false;
+  private opJmp(offset: number): void {
+    this.state.ip = offset;
   }
 
   private opJmpNZ(offset: number): boolean {
@@ -389,9 +384,9 @@ export class VM {
     }
   }
 
-  private opImport32(index: number): void {
-    // DLL import call - not implemented
-    throw new Error('IMPORT32 not implemented');
+  private opCallE(index: number): void {
+    // External DLL call - not implemented
+    throw new Error(`CALLE (external DLL call) not implemented: ${index}`);
   }
 
   private doReturn(): void {
@@ -418,11 +413,17 @@ export class VM {
     this.stack.pushFrame();
   }
 
-  private opPop(count: number): void {
-    this.stack.popN(count);
+  private opLogTable(index: number): void {
+    // Logic table lookup - not fully implemented
+    console.warn(`LOGTABLE lookup at index ${index} - returning 0`);
+    this.stack.push({
+      type: ValueType.Long,
+      flags: 1,
+      value: 0,
+    });
   }
 
-  private opPushConst(index: number): void {
+  private opPushImm(index: number): void {
     const constant = this.ipo.constants.values[index];
     if (!constant) {
       throw new Error(`Constant not found: ${index}`);

@@ -34,21 +34,21 @@ enum TypeId {
   String = 6,
 }
 
-/** Opcodes */
+/** Opcodes - must match docs/opcode-reference.md */
 enum Opcode {
   LOAD = 0x01,
   PUSHREF = 0x02,
-  CAST = 0x04,
+  NOP = 0x04,
   MOVE = 0x05,
-  JMP = 0x08,
-  JMPZ = 0x09,
-  JMPNZ = 0x0a,
-  ALU = 0x0b,
+  ALLOC = 0x08,
+  ALU = 0x09,
+  JMP = 0x0a,
+  JMPNZ = 0x0b,
   CALL = 0x0c,
   RET = 0x0e,
   FRAME = 0x0f,
-  POP = 0x10,
-  PUSHCONST = 0x11,
+  LOGTABLE = 0x10,
+  PUSHIMM = 0x11,
 }
 
 /** ALU operations */
@@ -348,14 +348,14 @@ export class CodeGenerator {
       const elseInstrs = this.compileStatement(stmt.elseBranch);
       
       // Jump if false over then + jump
-      instrs.push(this.makeInstr(Opcode.JMPZ, 0, instrs.length + thenInstrs.length + 2));
+      instrs.push(this.makeInstr(Opcode.JMPNZ, 0, instrs.length + thenInstrs.length + 2));
       instrs.push(...thenInstrs);
       // Jump over else
       instrs.push(this.makeInstr(Opcode.JMP, 0, instrs.length + elseInstrs.length + 1));
       instrs.push(...elseInstrs);
     } else {
       // Jump if false over then
-      instrs.push(this.makeInstr(Opcode.JMPZ, 0, instrs.length + thenInstrs.length + 1));
+      instrs.push(this.makeInstr(Opcode.JMPNZ, 0, instrs.length + thenInstrs.length + 1));
       instrs.push(...thenInstrs);
     }
     
@@ -374,7 +374,7 @@ export class CodeGenerator {
     const bodyInstrs = this.compileStatement(stmt.body);
     
     // Jump if false past body + back jump
-    instrs.push(this.makeInstr(Opcode.JMPZ, 0, instrs.length + bodyInstrs.length + 2));
+    instrs.push(this.makeInstr(Opcode.JMPNZ, 0, instrs.length + bodyInstrs.length + 2));
     instrs.push(...bodyInstrs);
     // Jump back to condition
     instrs.push(this.makeInstr(Opcode.JMP, 0, condStart));
@@ -409,7 +409,7 @@ export class CodeGenerator {
     const updateInstrs = stmt.update ? this.compileExpr(stmt.update) : [];
     
     // Jump if false past body + update + back jump
-    instrs.push(this.makeInstr(Opcode.JMPZ, 0, instrs.length + bodyInstrs.length + updateInstrs.length + 2));
+    instrs.push(this.makeInstr(Opcode.JMPNZ, 0, instrs.length + bodyInstrs.length + updateInstrs.length + 2));
     instrs.push(...bodyInstrs);
     instrs.push(...updateInstrs);
     // Jump back to condition
@@ -455,7 +455,7 @@ export class CodeGenerator {
                  expr.type === 'int' ? TypeId.Int :
                  expr.type === 'real' ? TypeId.Real : TypeId.String;
     this.constants.push({ type, value: expr.value });
-    return [this.makeInstr(Opcode.PUSHCONST, 0, index)];
+    return [this.makeInstr(Opcode.PUSHIMM, 0, index)];
   }
 
   private compileIdentifier(expr: IdentifierExpr): number[] {
@@ -509,9 +509,10 @@ export class CodeGenerator {
     }
     
     // Pop arguments
-    if (expr.args.length > 0) {
-      instrs.push(this.makeInstr(Opcode.POP, 0, expr.args.length));
-    }
+    // TODO: Check if VM automatically cleans up after CALL
+    // if (expr.args.length > 0) {
+    //   instrs.push(this.makeInstr(Opcode.POP, 0, expr.args.length));
+    // }
     
     return instrs;
   }
