@@ -126,9 +126,18 @@ importers:
       '@inpax/core':
         specifier: workspace:*
         version: link:../core
+      '@inpax/dispatcher':
+        specifier: workspace:*
+        version: link:../dispatcher
+      '@inpax/interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
       '@inpax/parser':
         specifier: workspace:*
         version: link:../parser
+      '@inpax/providers':
+        specifier: workspace:*
+        version: link:../providers
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

@@ -1,1 +1,1 @@
-export { SystemFunctions, SystemFunctionHandler } from './system-functions.js';
+export { InternalFunctions } from './internal-functions.js';
