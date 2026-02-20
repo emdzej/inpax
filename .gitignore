@@ -6,3 +6,6 @@ dist/
 .DS_Store
 disasm
 ref
+
+# Build output
+packages/*/dist/
