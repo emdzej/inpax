@@ -53,6 +53,24 @@ export enum TokenType {
   ENDFUNC = 'ENDFUNC',
   RETURN = 'RETURN',
   EXIT = 'EXIT',
+  
+  // Keywords - Import/External
+  IMPORT = 'IMPORT',
+  EXTERNAL = 'EXTERNAL',
+  OUT = 'OUT',
+  INOUT = 'INOUT',
+  IN = 'IN',
+  
+  // Keywords - UI Blocks
+  ENDSCREEN = 'ENDSCREEN',
+  ENDMENU = 'ENDMENU',
+  ENDSTATEMACHINE = 'ENDSTATEMACHINE',
+  ENDLOGICTABLE = 'ENDLOGICTABLE',
+  CONTROL = 'CONTROL',
+  
+  // Pragmas
+  PRAGMA = 'PRAGMA',
+  INCLUDE = 'INCLUDE',
 
   // Keywords - Logical
   AND = 'AND',
@@ -162,6 +180,20 @@ export const KEYWORDS: Record<string, TokenType> = {
   'endfunc': TokenType.ENDFUNC,
   'return': TokenType.RETURN,
   'exit': TokenType.EXIT,
+  
+  // Import/External
+  'import': TokenType.IMPORT,
+  'external': TokenType.EXTERNAL,
+  'out': TokenType.OUT,
+  'inout': TokenType.INOUT,
+  'in': TokenType.IN,
+  
+  // UI block ends
+  'endscreen': TokenType.ENDSCREEN,
+  'endmenu': TokenType.ENDMENU,
+  'endstatemachine': TokenType.ENDSTATEMACHINE,
+  'endlogictable': TokenType.ENDLOGICTABLE,
+  'control': TokenType.CONTROL,
 
   // Logical
   'and': TokenType.AND,

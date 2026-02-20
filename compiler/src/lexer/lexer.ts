@@ -51,6 +51,11 @@ export class Lexer {
       return token;
     }
 
+    // Pragma/Include (#)
+    if (ch === '#') {
+      return this.readDirective();
+    }
+
     // Comment
     if (ch === ';' || (ch === '/' && this.peekNext() === '/')) {
       return this.readComment();
@@ -173,6 +178,28 @@ export class Lexer {
     }
     
     return this.makeToken(TokenType.COMMENT, value.trim());
+  }
+
+  /**
+   * Read directive (#PRAGMA, #INCLUDE)
+   */
+  private readDirective(): Token {
+    this.advance(); // Skip #
+    
+    // Read directive name
+    let name = '';
+    while (this.isAlpha(this.peek())) {
+      name += this.advance();
+    }
+    
+    const lower = name.toLowerCase();
+    if (lower === 'pragma') {
+      return this.makeToken(TokenType.PRAGMA, '#pragma');
+    } else if (lower === 'include') {
+      return this.makeToken(TokenType.INCLUDE, '#include');
+    }
+    
+    throw new Error(`Unknown directive #${name} at line ${this.line}`);
   }
 
   /**
