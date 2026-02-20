@@ -1,0 +1,27 @@
+{
+  "name": "@inpax/dis",
+  "version": "0.1.0",
+  "description": "INPA IPO bytecode disassembler",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "inpax-dis": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "clean": "rm -rf dist/"
+  },
+  "keywords": ["inpa", "ipo", "disassembler", "bmw"],
+  "license": "MIT",
+  "dependencies": {
+    "@inpax/interpreter": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
