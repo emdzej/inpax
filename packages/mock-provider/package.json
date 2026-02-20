@@ -1,0 +1,28 @@
+{
+  "name": "@inpax/mock-provider",
+  "version": "0.1.0",
+  "description": "Mock providers for INPA unit testing",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@inpax/interfaces": "workspace:*",
+    "@inpax/providers": "workspace:*",
+    "eventemitter3": "^5.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

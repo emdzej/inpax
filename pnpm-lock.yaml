@@ -162,6 +162,22 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.10)
 
+  packages/mock-provider:
+    dependencies:
+      '@inpax/interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
+      '@inpax/providers':
+        specifier: workspace:*
+        version: link:../providers
+      eventemitter3:
+        specifier: ^5.0.1
+        version: 5.0.4
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
   packages/parser:
     dependencies:
       '@inpax/core':
