@@ -1,3 +1,4 @@
+import { off } from 'process';
 import { ValueType, BlockType, Scope } from './enums.js';
 
 
@@ -29,10 +30,14 @@ export interface RefInfo {
  */
 export type Value = boolean | number | string | null;
 
+export interface FileBlock {
+    fileOffset?: number;
+}
+
 /**
  * IPO File Header
  */
-export interface IpoHeader {
+export interface IpoHeader extends FileBlock {
     versionHi: number;
     versionLo: number;
     magic: string;
@@ -41,7 +46,7 @@ export interface IpoHeader {
 /**
  * IPO Block Header
  */
-export interface BlockHeader {
+export interface BlockHeader extends FileBlock {
     type: BlockType;
     name: string;
     blockId: number;
@@ -55,7 +60,7 @@ export interface BlockHeader {
 /**
  * Parsed IPO Block (base)
  */
-export interface Block {
+export interface Block extends FileBlock {
     header: BlockHeader;
 }
 
@@ -137,7 +142,7 @@ export interface StateBlock extends Block {
 /**
  * Single VM instruction (4 bytes)
  */
-export interface Instruction {
+export interface Instruction extends FileBlock {
     opcode: number;
     operand1: number;
     operand2: number; // u16 little-endian

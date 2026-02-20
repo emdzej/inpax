@@ -354,9 +354,6 @@ export class VM {
         }
         result = (lhs.value as number) / (rhs.value as number);
         break;
-      case AluOp.MOD:
-        result = (lhs.value as number) % (rhs.value as number);
-        break;
       case AluOp.LT:
         result = (lhs.value as number) < (rhs.value as number);
         this.state.condition = result ? 1 : 0;

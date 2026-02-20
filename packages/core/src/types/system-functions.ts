@@ -322,3 +322,10 @@ export const systemFunctions = [
   { id: 0x9F, name: "StructureString", signature: "(in: long handle, in: int Offset, in: int length, inout: string value)" },
   { id: 0xA1, name: "setitemrepeat", signature: "(in: int ItemNum, in: bool Enabled)" },
 ];
+
+export type SystemFunctionInfo = (typeof systemFunctions)[number];
+
+export const SystemFunctionMap = new Map<SystemFunction, SystemFunctionInfo>(
+  systemFunctions.map((fn) => [fn.id as SystemFunction, fn]),
+);
+

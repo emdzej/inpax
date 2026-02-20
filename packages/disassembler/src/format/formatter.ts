@@ -7,6 +7,7 @@ import {
   ValueType,
   IpoFile,
   FunctionBlock,
+  SystemFunctionMap,
 } from '@inpax/core';
 
 /** Opcode names */
@@ -31,36 +32,26 @@ export const OPCODE_NAMES: Record<number, string> = {
 };
 
 /** ALU operation names */
-export const ALU_NAMES: Record<number, string> = {
-  [AluOp.ADD]: 'ADD', [AluOp.SUB]: 'SUB', [AluOp.MUL]: 'MUL', [AluOp.DIV]: 'DIV',
-  [AluOp.LT]: 'LT', [AluOp.LE]: 'LE', [AluOp.GT]: 'GT', [AluOp.GE]: 'GE',
-  [AluOp.EQ]: 'EQ', [AluOp.NE]: 'NE', [AluOp.AND]: 'AND', [AluOp.OR]: 'OR',
-  [AluOp.MOD]: 'MOD', [AluOp.NEG]: 'NEG', [AluOp.NOT]: 'NOT',
-  [AluOp.BAND]: 'BAND', [AluOp.BOR]: 'BOR', [AluOp.BXOR]: 'BXOR',
+export const ALU_NAMES: Record<AluOp, string> = {
+    [AluOp.ADD]: 'ADD', [AluOp.SUB]: 'SUB', [AluOp.MUL]: 'MUL', [AluOp.DIV]: 'DIV',
+    [AluOp.LT]: 'LT', [AluOp.LE]: 'LE', [AluOp.GT]: 'GT', [AluOp.GE]: 'GE',
+    [AluOp.EQ]: 'EQ', [AluOp.NE]: 'NE', [AluOp.AND]: 'AND', [AluOp.OR]: 'OR',
+    [AluOp.XOR]: 'XOR', [AluOp.NEG]: 'NEG', [AluOp.NOT]: 'NOT',
+    [AluOp.BAND]: 'BAND', [AluOp.BOR]: 'BOR', [AluOp.BXOR]: 'BXOR',
 };
 
 /** Scope names */
-export const SCOPE_NAMES: Record<number, string> = {
+export const SCOPE_NAMES: Record<Scope, string> = {
   [Scope.Global]: 'global', [Scope.Const]: 'const', [Scope.Local]: 'local',
+    [Scope.Screen]: 'screen', [Scope.Menu]: 'menu', [Scope.StateMachine]: 'state',
 };
 
 /** Value type names */
-export const VALUE_TYPE_NAMES: Record<number, string> = {
+export const VALUE_TYPE_NAMES: Record<ValueType, string> = {
   [ValueType.Void]: 'void', [ValueType.Bool]: 'bool', [ValueType.Byte]: 'byte',
   [ValueType.Int]: 'int', [ValueType.Long]: 'long', [ValueType.Real]: 'real',
   [ValueType.String]: 'string', [ValueType.Handle1]: 'handle1',
   [ValueType.Handle2]: 'handle2', [ValueType.Handle3]: 'handle3',
-};
-
-/** System function names */
-export const SYSTEM_FUNCTION_NAMES: Record<number, string> = {
-  0x00: 'setmenutitle', 0x01: 'setmenu', 0x02: 'setitem', 0x03: 'settitle',
-  0x04: 'setscreen', 0x09: 'settimer', 0x0a: 'testtimer', 0x0c: 'exit',
-  0x1b: 'delay', 0x1c: 'getdate', 0x1d: 'gettime',
-  0x1e: 'realtostring', 0x1f: 'stringtoreal', 0x20: 'inttostring', 0x21: 'stringtoint',
-  0x23: 'strcat', 0x24: 'strlen', 0x25: 'midstr',
-  0x50: 'apiinit', 0x51: 'apiend', 0x53: 'apijob', 0x55: 'apiresulttext',
-  0x56: 'apiresultint', 0x57: 'apiresultreal',
 };
 
 export interface DisassemblyOptions {
@@ -82,7 +73,7 @@ export function formatInstruction(
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const parts: string[] = [];
 
-  if (opts.showAddress) parts.push(`${index.toString().padStart(4, '0')}:`);
+  if (opts.showAddress) parts.push(`${index.toString(16).padStart(4, '0')}:`);
   if (opts.showRaw) {
     const raw = instr.raw.toString(16).padStart(8, '0').toUpperCase();
     parts.push(`[${raw}]`);
@@ -112,15 +103,15 @@ function formatOperands(opcode: number, op1: number, op2: number, ipo?: IpoFile)
     case Opcode.JMP: case Opcode.JMPNZ:
       return `@${op2}`;
     case Opcode.ALU:
-      return ALU_NAMES[op1] || `op_${op1.toString(16)}`;
+      return ALU_NAMES[op1 as AluOp] || `op_${op1.toString(16)}`;
     case Opcode.CALL:
       if (op1 === CallTarget.UserFunction) {
         const name = ipo?.functions.get(op2)?.header.name || `func_${op2}`;
         return `user ${name}`;
       }
-      return `sys ${SYSTEM_FUNCTION_NAMES[op2] || `sys_${op2.toString(16)}`}`;
+      return `sys ${SystemFunctionMap.get(op2)?.name || `sys_${op2.toString(16)}`}`;
     case Opcode.CALLE:
-      return `dll[${op2}]`;
+      return `dll[${ipo?.constants.values[op2]?.value || op2}]`;
     case Opcode.LOGTABLE:
       return `table[${op2}]`;
     case Opcode.PUSHIMM:
@@ -130,7 +121,7 @@ function formatOperands(opcode: number, op1: number, op2: number, ipo?: IpoFile)
   }
 }
 
-function formatScopeIndex(scope: number, index: number): string {
+function formatScopeIndex(scope: Scope, index: number): string {
   const name = SCOPE_NAMES[scope];
   if (name) return `${name}[${index}]`;
   if (scope >= 0x40) return `ui_${(scope - 0x40).toString(16)}[${index}]`;

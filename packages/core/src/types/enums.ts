@@ -60,25 +60,27 @@ export enum Opcode {
  * ALU Operations
  */
 export enum AluOp {
-    ADD = 0x60,
+   ADD = 0x60,
     SUB = 0x61,
     MUL = 0x62,
     DIV = 0x63,
     LT = 0x64,
-    LE = 0x65,
-    GT = 0x66,
+    GT = 0x65,
+    LE = 0x66,
     GE = 0x67,
     EQ = 0x68,
     NE = 0x69,
-    AND = 0x6a,
-    OR = 0x6b,
-    MOD = 0x6c,
-    NEG = 0x6d,
-    NOT = 0x6e,
-    BAND = 0x6f,
+    AND = 0x6A,
+    OR = 0x6B,
+    XOR = 0x6C,
+    NEG = 0x6D,
+    NOT = 0x6E,
+    BAND = 0x6F,
     BOR = 0x70,
-    BXOR = 0x71,
+    BXOR = 0x71
 }
+
+
 
 /**
  * Variable Scope
