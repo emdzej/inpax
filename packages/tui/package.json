@@ -1,7 +1,7 @@
 {
-  "name": "@inpax/tui-provider",
+  "name": "@inpax/tui",
   "version": "0.1.0",
-  "description": "Headless TUI state management for INPA runtime",
+  "description": "Terminal UI renderer for INPA runtime using ink",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -18,10 +18,15 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inpax/interfaces": "workspace:*",
-    "eventemitter3": "^5.0.1"
+    "@inpax/tui-provider": "workspace:*",
+    "ink": "^5.1.0",
+    "react": "^18.3.1"
   },
   "devDependencies": {
+    "@types/react": "^18.3.0",
     "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
   }
 }
