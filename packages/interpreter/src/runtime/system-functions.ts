@@ -53,19 +53,21 @@ export class SystemFunctions {
     this.register(SystemFunction.stringtoreal, this.stringtoreal);
     this.register(SystemFunction.inttostring, this.inttostring);
     this.register(SystemFunction.stringtoint, this.stringtoint);
+
+    this.register(SystemFunction.textout, this.textout);
   }
 
   /**
    * Register a system function handler
    */
-  register(id: number, handler: SystemFunctionHandler): void {
+  register(id: SystemFunction, handler: SystemFunctionHandler): void {
     this.handlers.set(id, handler.bind(this));
   }
 
   /**
    * Call a system function by ID
    */
-  call(id: number): void {
+  call(id: SystemFunction): void {
     const handler = this.handlers.get(id);
     if (!handler) {
       console.warn(`System function not implemented: 0x${id.toString(16)}`);
@@ -280,6 +282,7 @@ export class SystemFunctions {
 
   // 0x20: inttostring(in: int value, out: string result)
   private inttostring(vm: VM): void {
+    console.log('inttostring called');
     const outRef = this.popRef();
     const value = this.popInt();
     this.setOutParam(outRef, Stack.createEntry(ValueType.String, value.toString()));
@@ -290,5 +293,13 @@ export class SystemFunctions {
     const outRef = this.popRef();
     const value = this.popString();
     this.setOutParam(outRef, Stack.createEntry(ValueType.Int, parseInt(value, 10)));
+  }
+
+  // 0x49: textout(in: string text, in: int row, in: int col)
+  private textout(vm: VM): void {
+    const col = this.popInt();
+    const row = this.popInt();
+    const text = this.popString();
+    console.log(`[textout] ${text} at (${row}, ${col})`);
   }
 }

@@ -107,22 +107,22 @@ export function alloc(instruction: Instruction, state: State): void {
 
     switch (allocType) {
         case AllocTypes.BOOL:
-            state.currentFrame.stack.push(newVariable(DataTypeMarkers.BOOL) as Variable);
+            state.currentFrame?.stack.push(newVariable(DataTypeMarkers.BOOL) as Variable);
             break;
         case AllocTypes.BYTE:
-            state.currentFrame.stack.push(newVariable(DataTypeMarkers.BYTE) as Variable);
+            state.currentFrame?.stack.push(newVariable(DataTypeMarkers.BYTE) as Variable);
             break;
         case AllocTypes.INT:
-            state.currentFrame.stack.push(newVariable(DataTypeMarkers.INT) as Variable);
+            state.currentFrame?.stack.push(newVariable(DataTypeMarkers.INT) as Variable);
             break;
         case AllocTypes.LONG:
-            state.currentFrame.stack.push(newVariable(DataTypeMarkers.LONG) as Variable);
+            state.currentFrame?.stack.push(newVariable(DataTypeMarkers.LONG) as Variable);
             break;
         case AllocTypes.REAL:
-            state.currentFrame.stack.push(newVariable(DataTypeMarkers.REAL) as Variable);
+            state.currentFrame?.stack.push(newVariable(DataTypeMarkers.REAL) as Variable);
             break;
         case AllocTypes.STRING:
-            state.currentFrame.stack.push(newVariable(DataTypeMarkers.STRING) as Variable);
+            state.currentFrame?.stack.push(newVariable(DataTypeMarkers.STRING) as Variable);
             break;
         default:
             throw new Error(withOffsetSuffix(`Unsupported alloc type: ${numberToHex(allocType)}`, instruction.offset));

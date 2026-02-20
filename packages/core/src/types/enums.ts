@@ -2,16 +2,16 @@
  * IPO Value Types
  */
 export enum ValueType {
-    Void = 0,
-    Bool = 1,
-    Byte = 2,
-    Int = 3, // s16
-    Long = 4, // s32
-    Real = 5, // f64
-    String = 6,
-    Handle1 = 7,
-    Handle2 = 8,
-    Handle3 = 9,
+    Void = 0x00,
+    Bool = 0x01,
+    Byte = 0x02,
+    Int = 0x03, // s16
+    Long = 0x04, // s32
+    Real = 0x05, // f64
+    String = 0x06,
+    Handle1 = 0x07,
+    Handle2 = 0x08,
+    Handle3 = 0x09,
 }
 
 /**

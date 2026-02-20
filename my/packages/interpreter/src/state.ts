@@ -8,9 +8,9 @@ export class State<T extends StackObject = StackObject> extends EventEmitter {
     private readonly _stack: Stack<T>;
     private _programCounter: number = 0;
 
-    private _currentFrame: Frame;
+    private _currentFrame?: Frame;
 
-    get currentFrame(): Frame {
+    get currentFrame(): Frame | undefined {
         return this._currentFrame;
     }
 

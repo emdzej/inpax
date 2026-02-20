@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from 'fs';
-import { parseIpo } from '@inpax/interpreter';
+import { parseIpo } from '@inpax/parser';
 import { disassembleIpo, disassembleFunction } from './format/index.js';
 
 const args = process.argv.slice(2);

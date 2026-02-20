@@ -5,7 +5,9 @@
  */
 
 import { readFileSync } from 'fs';
-import { parseIpo, VM } from './index.js';
+import { VM } from './index.js';
+import { parseIpo } from '@inpax/parser';
+
 
 function main(): void {
   const args = process.argv.slice(2);

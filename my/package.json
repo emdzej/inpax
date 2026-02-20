@@ -1,0 +1,25 @@
+{
+  "name": "inpax",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "tsc -b",
+    "ci": "pnpm build && pnpm lint && pnpm typecheck && pnpm test",
+    "cli": "node packages/cli/dist/index.js",
+    "interpreter": "node packages/interpreter/dist/cli.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "@types/node": "^22.13.1",
+    "eslint": "^9.19.0",
+    "prettier": "^3.5.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0",
+    "vitest": "^2.1.8"
+  }
+}

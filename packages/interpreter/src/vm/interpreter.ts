@@ -85,10 +85,10 @@ export class VM {
    * Run interpreter starting from inpainit
    */
   run(): void {
-    // Start with inpainit (function ID 2)
-    const initFunc = this.ipo.functions.get(2);
+    // Start with __inpa_startup__ (function ID 0x00)
+    const initFunc = this.ipo.functions.get(0x00);
     if (!initFunc) {
-      throw new Error('inpainit function not found');
+      throw new Error('__inpa_startup__ function not found');
     }
 
     this.callFunction(initFunc);
@@ -99,6 +99,7 @@ export class VM {
    * Call a user function
    */
   callFunction(func: FunctionBlock): void {
+    console.log(`Calling function: ${func.header.name} (ID: ${func.header.blockId})`);
     this.state.currentBlock = func;
     this.state.ip = 0;
   }
@@ -128,7 +129,7 @@ export class VM {
    */
   private executeInstruction(instr: Instruction): void {
     const { opcode, operand1, operand2 } = instr;
-
+    console.log(`IP: ${this.state.ip} Opcode: 0x${opcode.toString(16)} Operands: ${operand1}, ${operand2}`);
     switch (opcode) {
       case Opcode.LOAD:
         this.opLoad(operand1, operand2);
