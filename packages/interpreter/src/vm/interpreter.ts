@@ -11,8 +11,16 @@ import {
   TypeMarker,
   Value,
 } from '@inpax/core';
+import type { IInpaRuntime } from '@inpax/interfaces';
+import { SystemFunctionDispatcher } from '@inpax/dispatcher';
+import { createNullRuntime } from '@inpax/providers';
 import { Stack } from './stack.js';
-import { SystemFunctions, SystemFunctionHandler } from '../runtime/system-functions.js';
+import { InternalFunctions } from '../runtime/internal-functions.js';
+import {
+  collectArguments,
+  writeOutParams,
+  type CollectedArgs,
+} from '../runtime/signature-handler.js';
 
 /**
  * VM State
@@ -25,6 +33,14 @@ export interface VMState {
 }
 
 /**
+ * VM Configuration
+ */
+export interface VMConfig {
+  runtime?: IInpaRuntime;
+  debug?: boolean;
+}
+
+/**
  * INPA Virtual Machine
  */
 export class VM {
@@ -32,9 +48,12 @@ export class VM {
   private stack: Stack;
   private globals: StackEntry[];
   private state: VMState;
-  private systemFunctions: SystemFunctions;
+  private runtime: IInpaRuntime;
+  private dispatcher: SystemFunctionDispatcher;
+  private internal: InternalFunctions;
+  private debug: boolean;
 
-  constructor(ipo: IpoFile) {
+  constructor(ipo: IpoFile, config: VMConfig = {}) {
     this.ipo = ipo;
     this.stack = new Stack();
     this.globals = this.initGlobals();
@@ -44,7 +63,10 @@ export class VM {
       condition: 0,
       running: false,
     };
-    this.systemFunctions = new SystemFunctions(this);
+    this.debug = config.debug ?? false;
+    this.runtime = config.runtime ?? createNullRuntime();
+    this.dispatcher = new SystemFunctionDispatcher(this.runtime);
+    this.internal = new InternalFunctions(this);
   }
 
   /**
@@ -82,9 +104,9 @@ export class VM {
   }
 
   /**
-   * Run interpreter starting from inpainit
+   * Run interpreter starting from __inpa_startup__
    */
-  run(): void {
+  async run(): Promise<void> {
     // Start with __inpa_startup__ (function ID 0x00)
     const initFunc = this.ipo.functions.get(0x00);
     if (!initFunc) {
@@ -92,7 +114,7 @@ export class VM {
     }
 
     this.callFunction(initFunc);
-    this.execute();
+    await this.execute();
   }
 
   /**
@@ -104,9 +126,9 @@ export class VM {
   }
 
   /**
-   * Main execution loop
+   * Main execution loop (async for provider calls)
    */
-  private execute(): void {
+  private async execute(): Promise<void> {
     this.state.running = true;
 
     while (this.state.running && this.state.currentBlock) {
@@ -119,15 +141,20 @@ export class VM {
       }
 
       const instr = block.instructions[this.state.ip];
-      this.executeInstruction(instr);
+      await this.executeInstruction(instr);
     }
   }
 
   /**
    * Execute single instruction
    */
-  private executeInstruction(instr: Instruction): void {
+  private async executeInstruction(instr: Instruction): Promise<void> {
     const { opcode, operand1, operand2 } = instr;
+
+    if (this.debug) {
+      console.log(`[VM] IP=${this.state.ip} OP=0x${opcode.toString(16)} op1=${operand1} op2=${operand2}`);
+    }
+
     switch (opcode) {
       case Opcode.LOAD:
         this.opLoad(operand1, operand2);
@@ -146,7 +173,7 @@ export class VM {
         break;
 
       case Opcode.MOVE:
-        this.opMove(operand2);  // operand2 = count of items to pop
+        this.opMove(operand2);
         break;
 
       case Opcode.PUSHR:
@@ -158,7 +185,7 @@ export class VM {
         break;
 
       case Opcode.ALLOC:
-        this.opAlloc(operand1);  // operand1 = type marker (0x50-0x57)
+        this.opAlloc(operand1);
         break;
 
       case Opcode.ALU:
@@ -174,7 +201,7 @@ export class VM {
         break;
 
       case Opcode.CALL:
-        this.opCall(operand1 as CallTarget, operand2);
+        await this.opCall(operand1 as CallTarget, operand2);
         return; // IP handled by call
 
       case Opcode.CALLE:
@@ -194,7 +221,7 @@ export class VM {
         break;
 
       case Opcode.PUSHIMM:
-        this.opPushImm(operand1, operand2);  // operand1=type, operand2=value
+        this.opPushImm(operand1, operand2);
         break;
 
       default:
@@ -208,87 +235,71 @@ export class VM {
 
   private opLoad(scope: Scope, index: number): void {
     const entry = this.resolveVariable(scope, index);
-    // Push copy
     this.stack.push({ ...entry, flags: 1 });
   }
 
   private opPushRef(scope: Scope, index: number): void {
     let actualIndex = index;
     if (scope === Scope.Local) {
-      //actualIndex = this.stack.getFrameOffset() + index;
-      actualIndex =  index;
+      actualIndex = index;
     }
     this.stack.push(Stack.createRef(scope, actualIndex));
   }
 
   private opLoadInOutRef(scope: Scope, index: number): void {
-    // Load bidirectional reference
     this.opPushRef(scope, index);
   }
 
   private opMove(count: number): void {
-    // MOVE pops 'count' items from stack
-    // If top-of-stack is bool, update condition register
-    // The actual assignment happens through the reference mechanism:
-    // stack has [target_ref, value] - popping performs the store
-
     const top = this.stack.peek();
-
-    // Update condition register if top is boolean
     if (top.type === ValueType.Bool) {
       this.state.condition = top.value ? 1 : 0;
     }
-
-    // Pop count items (this performs the assignment via ref mechanism)
     this.stack.popN(count);
   }
 
   private opPushR(scope: Scope, index: number): void {
-    // Push store target reference
     this.opPushRef(scope, index);
   }
 
   private opPushRefStore(scope: Scope, index: number): void {
-    // Push reference for out parameter
     this.opPushRef(scope, index);
   }
 
   private opAlloc(typeMarker: number): void {
-    // Allocate local variable of specified type with default value
-    // Type markers: 0x50=bool, 0x51=int, 0x52=byte, 0x53=long, 0x54=real, 0x55=string, 0x56/0x57=handle
     let type: ValueType;
     let value: Value;
 
     switch (typeMarker) {
-      case 0x50: // bool
+      case 0x50:
         type = ValueType.Bool;
         value = false;
         break;
-      case 0x51: // int (s16)
+      case 0x51:
         type = ValueType.Int;
         value = 0;
         break;
-      case 0x52: // byte (u8)
+      case 0x52:
         type = ValueType.Byte;
         value = 0;
         break;
-      case 0x53: // long (s32)
+      case 0x53:
         type = ValueType.Long;
         value = 0;
         break;
-      case 0x54: // real (f64)
+      case 0x54:
         type = ValueType.Real;
         value = 0.0;
         break;
-      case 0x55: // string
+      case 0x55:
         type = ValueType.String;
         value = '';
         break;
-      case 0x56: // handle1
+      case 0x56:
         type = ValueType.Handle1;
         value = null;
         break;
-      case 0x57: // handle2/array
+      case 0x57:
         type = ValueType.Handle2;
         value = null;
         break;
@@ -297,11 +308,7 @@ export class VM {
         value = null;
     }
 
-    this.stack.push({
-      type,
-      flags: 1,
-      value,
-    });
+    this.stack.push({ type, flags: 1, value });
   }
 
   private opJmp(offset: number): void {
@@ -309,8 +316,6 @@ export class VM {
   }
 
   private opJmpNZ(offset: number): boolean {
-    // JMPNZ: Jump if condition register is FALSE (0)
-    // Stack is unchanged - uses vm.condition set by ALU comparison
     if (this.state.condition === 0) {
       this.state.ip = offset;
       return true;
@@ -320,7 +325,6 @@ export class VM {
 
   private opAlu(op: AluOp): void {
     if (op === AluOp.NEG || op === AluOp.NOT) {
-      // Unary operations
       const entry = this.stack.peek();
       if (op === AluOp.NEG) {
         entry.value = -(entry.value as number);
@@ -330,7 +334,6 @@ export class VM {
       return;
     }
 
-    // Binary operations
     const [lhs, rhs] = this.stack.getTwoOperands();
     let result: Value;
 
@@ -349,9 +352,7 @@ export class VM {
         result = (lhs.value as number) * (rhs.value as number);
         break;
       case AluOp.DIV:
-        if (rhs.value === 0) {
-          throw new Error('Division by zero');
-        }
+        if (rhs.value === 0) throw new Error('Division by zero');
         result = (lhs.value as number) / (rhs.value as number);
         break;
       case AluOp.LT:
@@ -398,36 +399,85 @@ export class VM {
     }
 
     lhs.value = result;
-    this.stack.popN(1); // Pop rhs, keep lhs with result
+    this.stack.popN(1);
   }
 
-  private opCall(target: CallTarget, funcId: number): void {
+  private async opCall(target: CallTarget, funcId: number): Promise<void> {
     this.state.ip++;
 
     if (target === CallTarget.UserFunction) {
-      // User function call
       const func = this.ipo.functions.get(funcId);
-      if (!func) {
-        throw new Error(`Function not found: ${funcId}`);
-      }
+      if (!func) throw new Error(`Function not found: ${funcId}`);
 
-      // Save return address
       this.stack.pushReturnAddress(
         this.state.currentBlock!.header.blockId,
         this.state.ip
       );
-
-      // Jump to function
       this.callFunction(func);
     } else {
       // System function call
-      this.systemFunctions.call(funcId);
+      await this.callSystemFunction(funcId);
       this.stack.popFrame();
     }
   }
 
+  /**
+   * Call system function - routes to internal or dispatcher
+   */
+  private async callSystemFunction(funcId: number): Promise<void> {
+    // Check if internal (handled by interpreter)
+    if (this.dispatcher.isInternal(funcId)) {
+      this.internal.call(funcId);
+      return;
+    }
+
+    // Collect arguments from stack based on signature
+    const collected = collectArguments(funcId, this.stack);
+
+    // Dispatch to provider with input args only
+    const result = this.dispatcher.dispatch(funcId, collected.inputs);
+
+    // Handle async result
+    let returnValue: unknown;
+    if (result instanceof Promise) {
+      returnValue = await result;
+    } else {
+      returnValue = result;
+    }
+
+    // Write out params back to stack/globals
+    this.writeOutParams(collected, returnValue);
+  }
+
+  /**
+   * Write provider return values to out parameters
+   */
+  private writeOutParams(collected: CollectedArgs, returnValue: unknown): void {
+    if (collected.outRefs.length === 0) return;
+
+    // Convert return value to array of out values
+    let outValues: unknown[];
+    
+    if (returnValue === undefined || returnValue === null) {
+      outValues = [];
+    } else if (Array.isArray(returnValue)) {
+      // Provider returned tuple/array - use directly
+      outValues = returnValue;
+    } else {
+      // Single return value - wrap in array
+      outValues = [returnValue];
+    }
+
+    writeOutParams(
+      collected.outRefs,
+      collected.outParams,
+      outValues,
+      this.globals,
+      this.stack
+    );
+  }
+
   private opCallE(index: number): void {
-    // External DLL call - not implemented
     throw new Error(`CALLE (external DLL call) not implemented: ${index}`);
   }
 
@@ -435,12 +485,10 @@ export class VM {
     const ret = this.stack.popReturnAddress();
 
     if (ret.blockId === -1) {
-      // Return from top-level - stop execution
       this.state.running = false;
       return;
     }
 
-    // Restore caller context
     const callerFunc = this.ipo.functions.get(ret.blockId);
     if (!callerFunc) {
       throw new Error(`Return to unknown function: ${ret.blockId}`);
@@ -448,7 +496,7 @@ export class VM {
 
     this.state.currentBlock = callerFunc;
     this.state.ip = ret.ip;
-    this.state.condition = 0;  // Reset condition register on return
+    this.state.condition = 0;
     this.stack.popFrame();
   }
 
@@ -457,37 +505,28 @@ export class VM {
   }
 
   private opLogTable(index: number): void {
-    // Logic table lookup - not fully implemented
     console.warn(`LOGTABLE lookup at index ${index} - returning 0`);
-    this.stack.push({
-      type: ValueType.Long,
-      flags: 1,
-      value: 0,
-    });
+    this.stack.push({ type: ValueType.Long, flags: 1, value: 0 });
   }
 
   private opPushImm(typeMarker: number, rawValue: number): void {
-    // PUSHIMM: Push immediate value directly (no constant pool lookup)
-    // operand1 = type marker (0x50-0x53)
-    // operand2 = immediate value
     let type: ValueType;
     let value: Value;
 
     switch (typeMarker) {
-      case 0x50: // bool
+      case 0x50:
         type = ValueType.Bool;
         value = rawValue !== 0;
         break;
-      case 0x51: // int (s16)
+      case 0x51:
         type = ValueType.Int;
-        // Sign extend 16-bit value
         value = rawValue > 0x7FFF ? rawValue - 0x10000 : rawValue;
         break;
-      case 0x52: // byte (u8)
+      case 0x52:
         type = ValueType.Byte;
         value = rawValue & 0xFF;
         break;
-      case 0x53: // long (s32, but only 16-bit immediate)
+      case 0x53:
         type = ValueType.Long;
         value = rawValue > 0x7FFF ? rawValue - 0x10000 : rawValue;
         break;
@@ -496,11 +535,7 @@ export class VM {
         value = rawValue;
     }
 
-    this.stack.push({
-      type,
-      flags: 1,
-      value,
-    });
+    this.stack.push({ type, flags: 1, value });
   }
 
   // ============ Helper methods ============
@@ -514,48 +549,11 @@ export class VM {
       case Scope.Local:
         return this.stack.getLocal(index);
       default:
-        // UI handles (0x40+)
         throw new Error(`UI handle scope not implemented: 0x${scope.toString(16)}`);
     }
   }
 
-  private markerToType(marker: number): ValueType {
-    switch (marker) {
-      case TypeMarker.Bool:
-        return ValueType.Bool;
-      case TypeMarker.Int:
-        return ValueType.Int;
-      case TypeMarker.Byte:
-        return ValueType.Byte;
-      case TypeMarker.Long:
-        return ValueType.Long;
-      case TypeMarker.Real:
-        return ValueType.Real;
-      case TypeMarker.String:
-        return ValueType.String;
-      default:
-        return ValueType.Void;
-    }
-  }
-
-  private convertValue(value: Value, toType: ValueType): Value {
-    switch (toType) {
-      case ValueType.Bool:
-        return Boolean(value);
-      case ValueType.Byte:
-      case ValueType.Int:
-      case ValueType.Long:
-        return Math.floor(Number(value));
-      case ValueType.Real:
-        return Number(value);
-      case ValueType.String:
-        return String(value);
-      default:
-        return value;
-    }
-  }
-
-  // ============ Public API for system functions ============
+  // ============ Public API ============
 
   getStack(): Stack {
     return this.stack;
@@ -571,6 +569,10 @@ export class VM {
 
   getState(): VMState {
     return this.state;
+  }
+
+  getRuntime(): IInpaRuntime {
+    return this.runtime;
   }
 
   stop(): void {

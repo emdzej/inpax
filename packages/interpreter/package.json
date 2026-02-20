@@ -16,7 +16,10 @@
   "license": "MIT",
   "dependencies": {
     "@inpax/core": "workspace:*",
-    "@inpax/parser": "workspace:*"
+    "@inpax/dispatcher": "workspace:*",
+    "@inpax/interfaces": "workspace:*",
+    "@inpax/parser": "workspace:*",
+    "@inpax/providers": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
