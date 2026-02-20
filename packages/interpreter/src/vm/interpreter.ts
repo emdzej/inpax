@@ -143,12 +143,12 @@ export class VM {
         this.opLoadInOutRef(operand1, operand2);
         break;
 
-      case Opcode.CAST:
-        this.opCast(operand1);
+      case Opcode.NOP:
+        // No operation
         break;
 
       case Opcode.MOVE:
-        this.opMove();
+        this.opMove(operand2);  // operand2 = count of items to pop
         break;
 
       case Opcode.PUSHR:
@@ -159,28 +159,28 @@ export class VM {
         this.opPushRefStore(operand1, operand2);
         break;
 
-      case Opcode.JMP:
-        this.opJmp(operand2);
-        return; // Don't increment IP
-
-      case Opcode.JMPZ:
-        if (this.opJmpZ(operand2)) return;
-        break;
-
-      case Opcode.JMPNZ:
-        if (this.opJmpNZ(operand2)) return;
+      case Opcode.ALLOC:
+        this.opAlloc(operand1);  // operand1 = type marker (0x50-0x57)
         break;
 
       case Opcode.ALU:
         this.opAlu(operand1 as AluOp);
         break;
 
+      case Opcode.JMP:
+        this.opJmp(operand2);
+        return; // Don't increment IP
+
+      case Opcode.JMPNZ:
+        if (this.opJmpNZ(operand2)) return;
+        break;
+
       case Opcode.CALL:
         this.opCall(operand1 as CallTarget, operand2);
         return; // IP handled by call
 
-      case Opcode.IMPORT32:
-        this.opImport32(operand2);
+      case Opcode.CALLE:
+        this.opCallE(operand2);
         break;
 
       case Opcode.RET:
@@ -191,12 +191,12 @@ export class VM {
         this.opFrame();
         break;
 
-      case Opcode.POP:
-        this.opPop(operand2);
+      case Opcode.LOGTABLE:
+        this.opLogTable(operand2);
         break;
 
-      case Opcode.PUSHCONST:
-        this.opPushConst(operand2);
+      case Opcode.PUSHIMM:
+        this.opPushImm(operand2);
         break;
 
       default:
@@ -227,23 +227,21 @@ export class VM {
     this.opPushRef(scope, index);
   }
 
-  private opCast(typeMarker: number): void {
-    const entry = this.stack.peek();
-    const newType = this.markerToType(typeMarker);
-    entry.type = newType;
-    entry.value = this.convertValue(entry.value, newType);
-  }
-
-  private opMove(): void {
-    const value = this.stack.pop();
-    const target = this.stack.pop();
-
-    if (target.refInfo) {
-      // Store to reference target
-      const dest = this.resolveVariable(target.refInfo.scope, target.refInfo.index);
-      dest.value = value.value;
-      dest.type = value.type;
+  private opMove(count: number): void {
+    // MOVE pops 'count' items from stack
+    // If top-of-stack is bool, update condition register
+    // The actual assignment happens through the reference mechanism:
+    // stack has [target_ref, value] - popping performs the store
+    
+    const top = this.stack.peek();
+    
+    // Update condition register if top is boolean
+    if (top.type === ValueType.Bool) {
+      this.state.condition = top.value ? 1 : 0;
     }
+    
+    // Pop count items (this performs the assignment via ref mechanism)
+    this.stack.popN(count);
   }
 
   private opPushR(scope: Scope, index: number): void {
@@ -256,17 +254,59 @@ export class VM {
     this.opPushRef(scope, index);
   }
 
-  private opJmp(offset: number): void {
-    this.state.ip = offset;
+  private opAlloc(typeMarker: number): void {
+    // Allocate local variable of specified type with default value
+    // Type markers: 0x50=bool, 0x51=int, 0x52=byte, 0x53=long, 0x54=real, 0x55=string, 0x56/0x57=handle
+    let type: ValueType;
+    let value: Value;
+
+    switch (typeMarker) {
+      case 0x50: // bool
+        type = ValueType.Bool;
+        value = false;
+        break;
+      case 0x51: // int (s16)
+        type = ValueType.Int;
+        value = 0;
+        break;
+      case 0x52: // byte (u8)
+        type = ValueType.Byte;
+        value = 0;
+        break;
+      case 0x53: // long (s32)
+        type = ValueType.Long;
+        value = 0;
+        break;
+      case 0x54: // real (f64)
+        type = ValueType.Real;
+        value = 0.0;
+        break;
+      case 0x55: // string
+        type = ValueType.String;
+        value = '';
+        break;
+      case 0x56: // handle1
+        type = ValueType.Handle1;
+        value = null;
+        break;
+      case 0x57: // handle2/array
+        type = ValueType.Handle2;
+        value = null;
+        break;
+      default:
+        type = ValueType.Void;
+        value = null;
+    }
+
+    this.stack.push({
+      type,
+      flags: 1,
+      value,
+    });
   }
 
-  private opJmpZ(offset: number): boolean {
-    const entry = this.stack.pop();
-    if (!entry.value) {
-      this.state.ip = offset;
-      return true;
-    }
-    return false;
+  private opJmp(offset: number): void {
+    this.state.ip = offset;
   }
 
   private opJmpNZ(offset: number): boolean {
@@ -389,9 +429,9 @@ export class VM {
     }
   }
 
-  private opImport32(index: number): void {
-    // DLL import call - not implemented
-    throw new Error('IMPORT32 not implemented');
+  private opCallE(index: number): void {
+    // External DLL call - not implemented
+    throw new Error(`CALLE (external DLL call) not implemented: ${index}`);
   }
 
   private doReturn(): void {
@@ -418,11 +458,17 @@ export class VM {
     this.stack.pushFrame();
   }
 
-  private opPop(count: number): void {
-    this.stack.popN(count);
+  private opLogTable(index: number): void {
+    // Logic table lookup - not fully implemented
+    console.warn(`LOGTABLE lookup at index ${index} - returning 0`);
+    this.stack.push({
+      type: ValueType.Long,
+      flags: 1,
+      value: 0,
+    });
   }
 
-  private opPushConst(index: number): void {
+  private opPushImm(index: number): void {
     const constant = this.ipo.constants.values[index];
     if (!constant) {
       throw new Error(`Constant not found: ${index}`);

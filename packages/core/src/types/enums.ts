@@ -34,25 +34,26 @@ export enum BlockType {
 
 /**
  * VM Opcodes
+ * Based on docs/opcode-reference.md and research/opcode-mappings.md
  */
 export enum Opcode {
     LOAD = 0x01,
     PUSHREF = 0x02,
     LOADINOUTREF = 0x03,
-    CAST = 0x04,
+    NOP = 0x04,          // was CAST
     MOVE = 0x05,
     PUSHR = 0x06,
     PUSHREFSTORE = 0x07,
-    JMP = 0x08,
-    JMPZ = 0x09,
-    JMPNZ = 0x0a,
-    ALU = 0x0b,
+    ALLOC = 0x08,        // was JMP - allocate local variable
+    ALU = 0x09,          // was JMPZ - arithmetic/logic operations
+    JMP = 0x0a,          // was JMPNZ - unconditional jump
+    JMPNZ = 0x0b,        // was ALU - conditional jump (if not zero)
     CALL = 0x0c,
-    IMPORT32 = 0x0d,
+    CALLE = 0x0d,        // was IMPORT32 - external DLL call
     RET = 0x0e,
     FRAME = 0x0f,
-    POP = 0x10,
-    PUSHCONST = 0x11,
+    LOGTABLE = 0x10,     // was POP - logic table lookup
+    PUSHIMM = 0x11,      // was PUSHCONST - push immediate value
 }
 
 /**
