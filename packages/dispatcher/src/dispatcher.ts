@@ -3,192 +3,99 @@
  * Maps system function IDs to provider method calls
  */
 
+import { SystemFunction } from '@inpax/core';
 import type { IInpaRuntime } from '@inpax/interfaces';
-
-/** System function IDs */
-export const SysFuncId = {
-  // Menu (0x00-0x02, 0xA1)
-  SETMENUTITLE: 0x00,
-  SETMENU: 0x01,
-  SETITEM: 0x02,
-  SETITEMREPEAT: 0xa1,
-
-  // Screen (0x03-0x04, 0x1A, 0x50-0x51)
-  SETTITLE: 0x03,
-  SETSCREEN: 0x04,
-  SETCOLOR: 0x1a,
-  CLEARRECT: 0x50,
-  BLANKSCREEN: 0x51,
-
-  // Text Output (0x48-0x4A, 0x4E-0x4F)
-  TEXT: 0x48,
-  TEXTOUT: 0x49,
-  FTEXTOUT: 0x4a,
-  HEXDUMP: 0x4e,
-  FTEXTCLEAR: 0x4f,
-
-  // Data Output (0x4B-0x4D)
-  DIGITALOUT: 0x4b,
-  ANALOGOUT: 0x4c,
-  MULTIANALOGOUT: 0x4d,
-
-  // Input (0x3E-0x47)
-  GETINPUTSTATE: 0x3e,
-  INPUTTEXT: 0x3f,
-  INPUTNUM: 0x40,
-  INPUTHEX: 0x41,
-  INPUTDIGITAL: 0x42,
-  INPUT2TEXT: 0x43,
-  INPUT2HEXNUM: 0x44,
-  INPUT2HEX: 0x45,
-  INPUTINT: 0x46,
-  INPUT2INT: 0x47,
-
-  // Message Boxes (0x52-0x58)
-  MESSAGEBOX: 0x52,
-  INFOBOX: 0x53,
-  USERBOXOPEN: 0x54,
-  USERBOXCLOSE: 0x55,
-  USERBOXFTEXTOUT: 0x56,
-  USERBOXCLEAR: 0x57,
-  USERBOXSETCOLOR: 0x58,
-
-  // Simulation (0x5E-0x5F)
-  SIMNUM: 0x5e,
-  SIMDIGITAL: 0x5f,
-
-  // EDIABAS (0x60-0x6C)
-  INPAAPI_INIT: 0x60,
-  INPAAPI_END: 0x61,
-  INPAAPI_JOB: 0x62,
-  INPAAPI_RESULTTEXT: 0x63,
-  INPAAPI_RESULTINT: 0x64,
-  INPAAPI_RESULTSETS: 0x65,
-  INPAAPI_RESULTDIGITAL: 0x66,
-  INPAAPI_RESULTANALOG: 0x67,
-  INPAAPI_RESULTBINARY: 0x68,
-  INPAAPI_CHECKJOBSTATUS: 0x69,
-  INPAAPI_FSLESEN2: 0x6a,
-  INPAAPI_FSLESEN: 0x6b,
-  INPAAPI_FSMODE: 0x6c,
-
-  // INP1 (0x6D-0x77)
-  INP1API_INIT: 0x6d,
-  INP1API_END: 0x6e,
-  INP1API_JOB: 0x6f,
-  INP1API_STATE: 0x70,
-  INP1API_RESULTTEXT: 0x71,
-  INP1API_RESULTINT: 0x72,
-  INP1API_RESULTSETS: 0x73,
-  INP1API_RESULTREAL: 0x74,
-  INP1API_RESULTBINARY: 0x75,
-  INP1API_ERRORCODE: 0x76,
-  INP1API_ERRORTEXT: 0x77,
-
-  // Print (0x17-0x18)
-  PRINTSCREEN: 0x17,
-  PRINTFILE: 0x18,
-
-  // PEM (0x2B-0x3D)
-  PEM_INITIALISIERE: 0x2b,
-  PEM_PROTOKOLLKOPF: 0x2c,
-  PEM_PROTOKOLLZEILE: 0x2d,
-  PEM_SGZKOPFZEILE: 0x2e,
-  PEM_TRENNLINIE: 0x2f,
-  PEM_ENDLINIE: 0x30,
-  PEM_LOESCHETABZEILENPUFFER: 0x31,
-  PEM_UEBERTRAGETABZEILENPUFFER: 0x32,
-  PEM_PROTOKOLLAUSGABE: 0x33,
-  PEM_DRUCKEETIKETT: 0x34,
-  PEM_PRINTFORMULAR: 0x35,
-  PEM_PRINTERFF: 0x36,
-  PEM_FREEMEM: 0x37,
-  PEM_LOADFORMULAR: 0x38,
-  PEM_DEFAULTDRUCKFELD: 0x39,
-  PEM_DEFAULTBESETZEN: 0x3a,
-  PEM_FORGETFORMULAR: 0x3b,
-  PEM_WRITEDRUCKFELD: 0x3d,
-
-  // DTM (0x7D-0x8B)
-  DTM_FINDLOGUNIT: 0x7d,
-  DTM_GETSGVAR: 0x7e,
-  DTM_GETSGART: 0x7f,
-  DTM_GETVARWERT: 0x80,
-  DTM_SETUPGETVARWERT: 0x81,
-  DTM_SETUPGETSTARTPOSITION: 0x82,
-  DTM_SETUPGETNEXTASSOC: 0x83,
-  DTM_LOGUNITEINTRAGEN: 0x84,
-  DTM_SGEINTRAGEN: 0x85,
-  DTM_LOESCHEAUFTRAG: 0x86,
-  DTM_VARIABLEEINTRAGEN: 0x87,
-  DTM_VARIABLELOESCHEN: 0x88,
-  DTM_LOESCHEALLEVARIABLEN: 0x89,
-  DTM_SETUPVARIABLEEINTRAGEN: 0x8a,
-  DTM_SETUPVARIABLELOESCHEN: 0x8b,
-
-  // External (0x59-0x5D)
-  WINHELP: 0x59,
-  WINHELPKEY: 0x5a,
-  CALLWIN: 0x5b,
-  VIEWOPEN: 0x5c,
-  VIEWCLOSE: 0x5d,
-
-  // SPS (0x92-0x96)
-  SPS_INIT: 0x92,
-  SPS_END: 0x93,
-  SPS_LESEVONSPS: 0x94,
-  SPS_SENDEANSPS: 0x95,
-  SPS_LESEVAKWERTE: 0x96,
-} as const;
 
 /** Set of async function IDs */
 const ASYNC_FUNCTIONS = new Set<number>([
   // Input dialogs
-  SysFuncId.INPUTTEXT,
-  SysFuncId.INPUTNUM,
-  SysFuncId.INPUTHEX,
-  SysFuncId.INPUTDIGITAL,
-  SysFuncId.INPUT2TEXT,
-  SysFuncId.INPUT2HEXNUM,
-  SysFuncId.INPUT2HEX,
-  SysFuncId.INPUTINT,
-  SysFuncId.INPUT2INT,
+  SystemFunction.inputtext,
+  SystemFunction.inputnum,
+  SystemFunction.inputhex,
+  SystemFunction.inputdigital,
+  SystemFunction.input2text,
+  SystemFunction.input2hexnum,
+  SystemFunction.input2hex,
+  SystemFunction.inputint,
+  SystemFunction.input2int,
   // Message boxes
-  SysFuncId.MESSAGEBOX,
-  SysFuncId.INFOBOX,
+  SystemFunction.messagebox,
+  SystemFunction.infobox,
   // Simulation
-  SysFuncId.SIMNUM,
-  SysFuncId.SIMDIGITAL,
+  SystemFunction.simnum,
+  SystemFunction.simdigital,
   // EDIABAS
-  SysFuncId.INPAAPI_INIT,
-  SysFuncId.INPAAPI_END,
-  SysFuncId.INPAAPI_JOB,
-  SysFuncId.INPAAPI_FSLESEN,
-  SysFuncId.INPAAPI_FSLESEN2,
+  SystemFunction.INPAapiInit,
+  SystemFunction.INPAapiEnd,
+  SystemFunction.INPAapiJob,
+  SystemFunction.INPAapiFsLesen,
+  SystemFunction.INPAapiFsLesen2,
   // INP1
-  SysFuncId.INP1API_INIT,
+  SystemFunction.INP1apiInit,
 ]);
 
 /** Internal functions handled by interpreter */
 const INTERNAL_FUNCTIONS = new Set<number>([
-  // State Machine (0x05-0x08)
-  0x05, 0x06, 0x07, 0x08,
-  // Timer (0x09-0x0A)
-  0x09, 0x0a,
-  // Job Control (0x0B-0x16)
-  0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
-  // Time (0x1B-0x1D)
-  0x1b, 0x1c, 0x1d,
-  // Conversions (0x1E-0x2A)
-  0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a,
-  // Binary (0x78)
-  0x78,
-  // File I/O (0x79-0x7C)
-  0x79, 0x7a, 0x7b, 0x7c,
-  // String Arrays (0x8C-0x91)
-  0x8c, 0x8d, 0x8e, 0x8f, 0x90, 0x91,
-  // Structures (0x9A-0x9F)
-  0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f,
+  // State Machine
+  SystemFunction.setstatemachine,
+  SystemFunction.setstate,
+  SystemFunction.callstatemachine,
+  SystemFunction.returnstatemachine,
+  // Timer
+  SystemFunction.settimer,
+  SystemFunction.testtimer,
+  // Job Control
+  SystemFunction.setjobstatus,
+  SystemFunction.exit,
+  SystemFunction.exitwindows,
+  SystemFunction.scriptselect,
+  SystemFunction.scriptchange,
+  SystemFunction.select,
+  SystemFunction.deselect,
+  SystemFunction.control,
+  SystemFunction.start,
+  SystemFunction.stop,
+  SystemFunction.getapistring,
+  SystemFunction.togglelist,
+  // Time
+  SystemFunction.delay,
+  SystemFunction.getdate,
+  SystemFunction.gettime,
+  // Conversions
+  SystemFunction.realtostring,
+  SystemFunction.stringtoreal,
+  SystemFunction.inttostring,
+  SystemFunction.stringtoint,
+  SystemFunction.hexconvert,
+  SystemFunction.strcat,
+  SystemFunction.strlen,
+  SystemFunction.midstr,
+  SystemFunction.realtoint,
+  SystemFunction.inttoreal,
+  SystemFunction.bytetoint,
+  SystemFunction.inttolong,
+  SystemFunction.longtoreal,
+  // Binary
+  SystemFunction.GetBinaryDataString,
+  // File I/O
+  SystemFunction.fileopen,
+  SystemFunction.fileclose,
+  SystemFunction.filewrite,
+  SystemFunction.fileread,
+  // String Arrays
+  SystemFunction.StrArrayCreate,
+  SystemFunction.StrArrayDestroy,
+  SystemFunction.StrArrayWrite,
+  SystemFunction.StrArrayRead,
+  SystemFunction.StrArrayGetElementCount,
+  SystemFunction.StrArrayDelete,
+  // Structures
+  SystemFunction.CreateStructure,
+  SystemFunction.SetStructureMode,
+  SystemFunction.StructureByte,
+  SystemFunction.StructureInt,
+  SystemFunction.StructureLong,
+  SystemFunction.StructureString,
 ]);
 
 export interface ISystemFunctionDispatcher {
@@ -227,113 +134,113 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
 
     switch (funcId) {
       // === UI: Menu ===
-      case SysFuncId.SETMENUTITLE:
+      case SystemFunction.setmenutitle:
         return ui.setMenuTitle(args[0] as string);
-      case SysFuncId.SETMENU:
+      case SystemFunction.setmenu:
         return ui.setMenu(args[0] as number);
-      case SysFuncId.SETITEM:
+      case SystemFunction.setitem:
         return ui.setItem(args[0] as number, args[1] as string, args[2] as boolean);
-      case SysFuncId.SETITEMREPEAT:
+      case SystemFunction.setitemrepeat:
         return ui.setItemRepeat(args[0] as number, args[1] as boolean);
 
       // === UI: Screen ===
-      case SysFuncId.SETTITLE:
+      case SystemFunction.settitle:
         return ui.setTitle(args[0] as string);
-      case SysFuncId.SETSCREEN:
+      case SystemFunction.setscreen:
         return ui.setScreen(args[0] as number, args[1] as boolean);
-      case SysFuncId.SETCOLOR:
+      case SystemFunction.setcolor:
         return ui.setColor(args[0] as number, args[1] as number);
-      case SysFuncId.CLEARRECT:
+      case SystemFunction.clearrect:
         return ui.clearRect(
           args[0] as number, args[1] as number,
           args[2] as number, args[3] as number
         );
-      case SysFuncId.BLANKSCREEN:
+      case SystemFunction.blankscreen:
         return ui.blankScreen();
 
       // === UI: Text Output ===
-      case SysFuncId.TEXT:
+      case SystemFunction.text:
         return ui.text(args[0] as number, args[1] as number, args[2] as string);
-      case SysFuncId.TEXTOUT:
+      case SystemFunction.textout:
         return ui.textOut(args[0] as string, args[1] as number, args[2] as number);
-      case SysFuncId.FTEXTOUT:
+      case SystemFunction.ftextout:
         return ui.fTextOut(
           args[0] as string, args[1] as number, args[2] as number,
           args[3] as number, args[4] as number,
           args[5] as number, args[6] as number
         );
-      case SysFuncId.FTEXTCLEAR:
+      case SystemFunction.ftextclear:
         return ui.fTextClear(
           args[0] as string, args[1] as number, args[2] as number,
           args[3] as number, args[4] as number
         );
-      case SysFuncId.HEXDUMP:
+      case SystemFunction.hexdump:
         return ui.hexDump(
           args[0] as number, args[1] as number,
           args[2] as Uint8Array, args[3] as number
         );
 
       // === UI: Data Output ===
-      case SysFuncId.DIGITALOUT:
+      case SystemFunction.digitalout:
         return ui.digitalOut(
           args[0] as boolean, args[1] as number, args[2] as number,
           args[3] as string, args[4] as string
         );
-      case SysFuncId.ANALOGOUT:
+      case SystemFunction.analogout:
         return ui.analogOut(
           args[0] as number, args[1] as number, args[2] as number,
           args[3] as number, args[4] as number,
           args[5] as number, args[6] as number,
           args[7] as string
         );
-      case SysFuncId.MULTIANALOGOUT:
+      case SystemFunction.multianalogout:
         return ui.multiAnalogOut(args[0] as number, args[1] as number, ...args.slice(2));
 
       // === UI: Input ===
-      case SysFuncId.GETINPUTSTATE:
+      case SystemFunction.getinputstate:
         return ui.getInputState();
-      case SysFuncId.INPUTTEXT:
+      case SystemFunction.inputtext:
         return ui.inputText(args[0] as string, args[1] as string);
-      case SysFuncId.INPUTNUM:
+      case SystemFunction.inputnum:
         return ui.inputNum(
           args[0] as string, args[1] as string,
           args[2] as number, args[3] as number
         );
-      case SysFuncId.INPUTHEX:
+      case SystemFunction.inputhex:
         return ui.inputHex(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as string
         );
-      case SysFuncId.INPUTDIGITAL:
+      case SystemFunction.inputdigital:
         return ui.inputDigital(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as string
         );
-      case SysFuncId.INPUT2TEXT:
+      case SystemFunction.input2text:
         return ui.input2Text(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as string
         );
-      case SysFuncId.INPUT2HEXNUM:
+      case SystemFunction.input2hexnum:
         return ui.input2HexNum(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as string,
           args[4] as string, args[5] as string,
           args[6] as number, args[7] as number
         );
-      case SysFuncId.INPUT2HEX:
+      case SystemFunction.input2hex:
         return ui.input2Hex(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as string,
           args[4] as string, args[5] as string,
           args[6] as string, args[7] as string
         );
-      case SysFuncId.INPUTINT:
+      case SystemFunction.inputint:
         return ui.inputInt(
           args[0] as string, args[1] as string,
           args[2] as number, args[3] as number
         );
-      case SysFuncId.INPUT2INT:
+      case SystemFunction.input2int:
         return ui.input2Int(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as string,
@@ -342,222 +249,222 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
         );
 
       // === UI: Message Boxes ===
-      case SysFuncId.MESSAGEBOX:
+      case SystemFunction.messagebox:
         return ui.messageBox(args[0] as string, args[1] as string);
-      case SysFuncId.INFOBOX:
+      case SystemFunction.infobox:
         return ui.infoBox(args[0] as string, args[1] as string);
-      case SysFuncId.USERBOXOPEN:
+      case SystemFunction.userboxopen:
         return ui.userBoxOpen(
           args[0] as number, args[1] as number, args[2] as number,
           args[3] as number, args[4] as number,
           args[5] as string, args[6] as string
         );
-      case SysFuncId.USERBOXCLOSE:
+      case SystemFunction.userboxclose:
         return ui.userBoxClose(args[0] as number);
-      case SysFuncId.USERBOXFTEXTOUT:
+      case SystemFunction.userboxftextout:
         return ui.userBoxFTextOut(
           args[0] as number, args[1] as string,
           args[2] as number, args[3] as number,
           args[4] as number, args[5] as number
         );
-      case SysFuncId.USERBOXCLEAR:
+      case SystemFunction.userboxclear:
         return ui.userBoxClear(args[0] as number);
-      case SysFuncId.USERBOXSETCOLOR:
+      case SystemFunction.userboxsetcolor:
         return ui.userBoxSetColor(
           args[0] as number, args[1] as number, args[2] as number
         );
 
       // === Simulation ===
-      case SysFuncId.SIMNUM:
+      case SystemFunction.simnum:
         return simulation.simNum(
           args[0] as string, args[1] as string,
           args[2] as number, args[3] as number
         );
-      case SysFuncId.SIMDIGITAL:
+      case SystemFunction.simdigital:
         return simulation.simDigital(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as string
         );
 
       // === EDIABAS ===
-      case SysFuncId.INPAAPI_INIT:
+      case SystemFunction.INPAapiInit:
         return ediabas.init();
-      case SysFuncId.INPAAPI_END:
+      case SystemFunction.INPAapiEnd:
         return ediabas.end();
-      case SysFuncId.INPAAPI_JOB:
+      case SystemFunction.INPAapiJob:
         return ediabas.job(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as string
         );
-      case SysFuncId.INPAAPI_RESULTTEXT:
+      case SystemFunction.INPAapiResultText:
         return ediabas.resultText(
           args[0] as string, args[1] as number, args[2] as string
         );
-      case SysFuncId.INPAAPI_RESULTINT:
+      case SystemFunction.INPAapiResultInt:
         return ediabas.resultInt(args[0] as string, args[1] as number);
-      case SysFuncId.INPAAPI_RESULTSETS:
+      case SystemFunction.INPAapiResultSets:
         return ediabas.resultSets();
-      case SysFuncId.INPAAPI_RESULTDIGITAL:
+      case SystemFunction.INPAapiResultDigital:
         return ediabas.resultDigital(args[0] as string, args[1] as number);
-      case SysFuncId.INPAAPI_RESULTANALOG:
+      case SystemFunction.INPAapiResultAnalog:
         return ediabas.resultAnalog(args[0] as string, args[1] as number);
-      case SysFuncId.INPAAPI_RESULTBINARY:
+      case SystemFunction.INPAapiResultBinary:
         return ediabas.resultBinary(args[0] as string, args[1] as number);
-      case SysFuncId.INPAAPI_CHECKJOBSTATUS:
+      case SystemFunction.INPAapiCheckJobStatus:
         return ediabas.checkJobStatus(args[0] as string);
-      case SysFuncId.INPAAPI_FSLESEN:
+      case SystemFunction.INPAapiFsLesen:
         return ediabas.fsLesen(args[0] as string, args[1] as string);
-      case SysFuncId.INPAAPI_FSLESEN2:
+      case SystemFunction.INPAapiFsLesen2:
         return ediabas.fsLesen2(args[0] as string, args[1] as string);
-      case SysFuncId.INPAAPI_FSMODE:
+      case SystemFunction.INPAapiFsMode:
         return ediabas.fsMode(
           args[0] as number, args[1] as string,
           args[2] as string, args[3] as string, args[4] as string
         );
 
       // === INP1 ===
-      case SysFuncId.INP1API_INIT:
+      case SystemFunction.INP1apiInit:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.init();
-      case SysFuncId.INP1API_END:
+      case SystemFunction.INP1apiEnd:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.end();
-      case SysFuncId.INP1API_JOB:
+      case SystemFunction.INP1apiJob:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.job(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as string
         );
-      case SysFuncId.INP1API_STATE:
+      case SystemFunction.INP1apiState:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.state();
-      case SysFuncId.INP1API_RESULTTEXT:
+      case SystemFunction.INP1apiResultText:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.resultText(args[0] as string, args[1] as number, args[2] as string);
-      case SysFuncId.INP1API_RESULTINT:
+      case SystemFunction.INP1apiResultInt:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.resultInt(args[0] as string, args[1] as number);
-      case SysFuncId.INP1API_RESULTSETS:
+      case SystemFunction.INP1apiResultSets:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.resultSets();
-      case SysFuncId.INP1API_RESULTREAL:
+      case SystemFunction.INP1apiResultReal:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.resultReal(args[0] as string, args[1] as number);
-      case SysFuncId.INP1API_RESULTBINARY:
+      case SystemFunction.INP1apiResultBinary:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.resultBinary(args[0] as string, args[1] as number);
-      case SysFuncId.INP1API_ERRORCODE:
+      case SystemFunction.INP1apiErrorCode:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.errorCode();
-      case SysFuncId.INP1API_ERRORTEXT:
+      case SystemFunction.INP1apiErrorText:
         if (!inp1) throw new Error('INP1 provider not available');
         return inp1.errorText();
 
       // === Print ===
-      case SysFuncId.PRINTSCREEN:
+      case SystemFunction.printscreen:
         return print.printScreen();
-      case SysFuncId.PRINTFILE:
+      case SystemFunction.printfile:
         return print.printFile(
           args[0] as string, args[1] as string,
           args[2] as string, args[3] as boolean
         );
 
       // === PEM ===
-      case SysFuncId.PEM_INITIALISIERE:
+      case SystemFunction.PEMInitialisiere:
         return pem.initialisiere();
-      case SysFuncId.PEM_PROTOKOLLKOPF:
+      case SystemFunction.PEMProtokollKopf:
         return pem.protokollKopf();
-      case SysFuncId.PEM_PROTOKOLLZEILE:
+      case SystemFunction.PEMProtokollZeile:
         return pem.protokollZeile();
-      case SysFuncId.PEM_SGZKOPFZEILE:
+      case SystemFunction.PEMSGZ_Kopfzeile:
         return pem.sgzKopfzeile();
-      case SysFuncId.PEM_TRENNLINIE:
+      case SystemFunction.PEMTrennLinie:
         return pem.trennLinie();
-      case SysFuncId.PEM_ENDLINIE:
+      case SystemFunction.PEMEndLinie:
         return pem.endLinie();
-      case SysFuncId.PEM_LOESCHETABZEILENPUFFER:
+      case SystemFunction.PEMLoescheTabZeilenPuffer:
         return pem.loescheTabZeilenPuffer();
-      case SysFuncId.PEM_UEBERTRAGETABZEILENPUFFER:
+      case SystemFunction.PEMUebertrageTabZeilenPuffer:
         return pem.uebertrageTabZeilenPuffer();
-      case SysFuncId.PEM_PROTOKOLLAUSGABE:
+      case SystemFunction.PEMProtokollAusgabe:
         return pem.protokollAusgabe();
-      case SysFuncId.PEM_DRUCKEETIKETT:
+      case SystemFunction.PEMDruckeEtikett:
         return pem.druckeEtikett();
-      case SysFuncId.PEM_PRINTFORMULAR:
+      case SystemFunction.PEMPrintFormular:
         return pem.printFormular();
-      case SysFuncId.PEM_PRINTERFF:
+      case SystemFunction.PEMPrinter_ff:
         return pem.printerFf();
-      case SysFuncId.PEM_FREEMEM:
+      case SystemFunction.PEMFree_mem:
         return pem.freeMem();
-      case SysFuncId.PEM_LOADFORMULAR:
+      case SystemFunction.PEMLoad_formular:
         return pem.loadFormular();
-      case SysFuncId.PEM_DEFAULTDRUCKFELD:
+      case SystemFunction.PEMDefault_druckfeld:
         return pem.defaultDruckfeld();
-      case SysFuncId.PEM_DEFAULTBESETZEN:
+      case SystemFunction.PEMDefault_besetzen:
         return pem.defaultBesetzen();
-      case SysFuncId.PEM_FORGETFORMULAR:
+      case SystemFunction.PEMForget_formular:
         return pem.forgetFormular();
-      case SysFuncId.PEM_WRITEDRUCKFELD:
+      case SystemFunction.PEMWrite_druckfeld:
         return pem.writeDruckfeld();
 
       // === DTM ===
-      case SysFuncId.DTM_FINDLOGUNIT:
+      case SystemFunction.DTMFindLogUnit:
         return dtm.findLogUnit(args[0] as string);
-      case SysFuncId.DTM_GETSGVAR:
+      case SystemFunction.DTMGetSGVar:
         return dtm.getSGVar(args[0] as string);
-      case SysFuncId.DTM_GETSGART:
+      case SystemFunction.DTMGetSGArt:
         return dtm.getSGArt(args[0] as string);
-      case SysFuncId.DTM_GETVARWERT:
+      case SystemFunction.DTMGetVarWert:
         return dtm.getVarWert(args[0] as string);
-      case SysFuncId.DTM_SETUPGETVARWERT:
+      case SystemFunction.DTMSetupGetVarWert:
         return dtm.setupGetVarWert(args[0] as string);
-      case SysFuncId.DTM_SETUPGETSTARTPOSITION:
+      case SystemFunction.DTMSetupGetStartPosition:
         return dtm.setupGetStartPosition();
-      case SysFuncId.DTM_SETUPGETNEXTASSOC:
+      case SystemFunction.DTMSetupGetNextAssoc:
         return dtm.setupGetNextAssoc();
-      case SysFuncId.DTM_LOGUNITEINTRAGEN:
+      case SystemFunction.DTMLogUnitEintragen:
         return dtm.logUnitEintragen(args[0] as string);
-      case SysFuncId.DTM_SGEINTRAGEN:
+      case SystemFunction.DTMSGEintragen:
         return dtm.sgEintragen(args[0] as string, args[1] as string);
-      case SysFuncId.DTM_LOESCHEAUFTRAG:
+      case SystemFunction.DTMLoescheAuftrag:
         return dtm.loescheAuftrag();
-      case SysFuncId.DTM_VARIABLEEINTRAGEN:
+      case SystemFunction.DTMVariableEintragen:
         return dtm.variableEintragen(args[0] as string, args[1] as string);
-      case SysFuncId.DTM_VARIABLELOESCHEN:
+      case SystemFunction.DTMVariableLoeschen:
         return dtm.variableLoeschen(args[0] as string);
-      case SysFuncId.DTM_LOESCHEALLEVARIABLEN:
+      case SystemFunction.DTMLoescheAlleVariablen:
         return dtm.loescheAlleVariablen();
-      case SysFuncId.DTM_SETUPVARIABLEEINTRAGEN:
+      case SystemFunction.DTMSetupVariableEintragen:
         return dtm.setupVariableEintragen(args[0] as string, args[1] as string);
-      case SysFuncId.DTM_SETUPVARIABLELOESCHEN:
+      case SystemFunction.DTMSetupVariableLoeschen:
         return dtm.setupVariableLoeschen(args[0] as string);
 
       // === External ===
-      case SysFuncId.WINHELP:
+      case SystemFunction.winhelp:
         return external.winHelp(args[0] as string);
-      case SysFuncId.WINHELPKEY:
+      case SystemFunction.winhelpkey:
         return external.winHelpKey(args[0] as string, args[1] as string);
-      case SysFuncId.CALLWIN:
+      case SystemFunction.callwin:
         return external.callWin(args[0] as string);
-      case SysFuncId.VIEWOPEN:
+      case SystemFunction.viewopen:
         return external.viewOpen(args[0] as string, args[1] as string);
-      case SysFuncId.VIEWCLOSE:
+      case SystemFunction.viewclose:
         return external.viewClose();
 
       // === SPS ===
-      case SysFuncId.SPS_INIT:
+      case SystemFunction.SPSInit:
         if (!sps) throw new Error('SPS provider not available');
         return sps.init();
-      case SysFuncId.SPS_END:
+      case SystemFunction.SPSEnd:
         if (!sps) throw new Error('SPS provider not available');
         return sps.end();
-      case SysFuncId.SPS_LESEVONSPS:
+      case SystemFunction.SPSLeseVonSPS:
         if (!sps) throw new Error('SPS provider not available');
         return sps.leseVonSPS(...args);
-      case SysFuncId.SPS_SENDEANSPS:
+      case SystemFunction.SPSSendeAnSPS:
         if (!sps) throw new Error('SPS provider not available');
         return sps.sendeAnSPS(...args);
-      case SysFuncId.SPS_LESEVAKWERTE:
+      case SystemFunction.SPSLeseVakWerte:
         if (!sps) throw new Error('SPS provider not available');
         return sps.leseVakWerte(...args);
 

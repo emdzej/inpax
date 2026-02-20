@@ -1,7 +1,7 @@
 {
-  "name": "@inpax/dispatcher",
+  "name": "@inpax/providers",
   "version": "0.1.0",
-  "description": "System function dispatcher for INPA runtime",
+  "description": "Provider implementations for INPA runtime",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./null": {
+      "types": "./dist/null/index.d.ts",
+      "import": "./dist/null/index.js"
     }
   },
   "files": ["dist"],
@@ -17,8 +21,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inpax/core": "workspace:*",
-    "@inpax/interfaces": "workspace:*"
+    "@inpax/interfaces": "workspace:*",
+    "eventemitter3": "^5.0.1"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

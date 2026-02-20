@@ -3,5 +3,8 @@
  * System function dispatcher for INPA runtime
  */
 
-export { SystemFunctionDispatcher, SysFuncId } from './dispatcher.js';
+export { SystemFunctionDispatcher } from './dispatcher.js';
 export type { ISystemFunctionDispatcher } from './dispatcher.js';
+
+// Re-export SystemFunction from core for convenience
+export { SystemFunction } from '@inpax/core';

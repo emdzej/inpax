@@ -100,6 +100,9 @@ importers:
 
   packages/dispatcher:
     dependencies:
+      '@inpax/core':
+        specifier: workspace:*
+        version: link:../core
       '@inpax/interfaces':
         specifier: workspace:*
         version: link:../interfaces
@@ -152,6 +155,19 @@ importers:
       vitest:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.10)
+
+  packages/providers:
+    dependencies:
+      '@inpax/interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
+      eventemitter3:
+        specifier: ^5.0.1
+        version: 5.0.4
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
 
 packages:
 
