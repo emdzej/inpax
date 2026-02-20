@@ -160,7 +160,7 @@ export class VM {
         break;
 
       case Opcode.ALLOC:
-        this.opAlloc(operand2);
+        this.opAlloc(operand1);  // operand1 = type marker (0x50-0x57)
         break;
 
       case Opcode.ALU:
@@ -249,15 +249,55 @@ export class VM {
     this.opPushRef(scope, index);
   }
 
-  private opAlloc(count: number): void {
-    // Allocate local variables on stack
-    for (let i = 0; i < count; i++) {
-      this.stack.push({
-        type: ValueType.Void,
-        flags: 1,
-        value: null,
-      });
+  private opAlloc(typeMarker: number): void {
+    // Allocate local variable of specified type with default value
+    // Type markers: 0x50=bool, 0x51=int, 0x52=byte, 0x53=long, 0x54=real, 0x55=string, 0x56/0x57=handle
+    let type: ValueType;
+    let value: Value;
+
+    switch (typeMarker) {
+      case 0x50: // bool
+        type = ValueType.Bool;
+        value = false;
+        break;
+      case 0x51: // int (s16)
+        type = ValueType.Int;
+        value = 0;
+        break;
+      case 0x52: // byte (u8)
+        type = ValueType.Byte;
+        value = 0;
+        break;
+      case 0x53: // long (s32)
+        type = ValueType.Long;
+        value = 0;
+        break;
+      case 0x54: // real (f64)
+        type = ValueType.Real;
+        value = 0.0;
+        break;
+      case 0x55: // string
+        type = ValueType.String;
+        value = '';
+        break;
+      case 0x56: // handle1
+        type = ValueType.Handle1;
+        value = null;
+        break;
+      case 0x57: // handle2/array
+        type = ValueType.Handle2;
+        value = null;
+        break;
+      default:
+        type = ValueType.Void;
+        value = null;
     }
+
+    this.stack.push({
+      type,
+      flags: 1,
+      value,
+    });
   }
 
   private opJmp(offset: number): void {
