@@ -74,7 +74,8 @@ export class Stack {
    * Get local variable (relative to frame)
    */
   getLocal(index: number): StackEntry {
-    return this.get(this.frameOffset + index);
+    //return this.get(this.frameOffset + index);
+    return this.get(index);
   }
 
   /**
@@ -99,6 +100,7 @@ export class Stack {
    * Pop call frame and restore previous
    */
   popFrame(): void {
+    console.log(this.callStack);
     const frame = this.callStack.pop();
     if (!frame) {
       throw new Error('Call stack underflow');

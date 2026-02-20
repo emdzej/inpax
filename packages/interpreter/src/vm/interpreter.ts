@@ -99,7 +99,6 @@ export class VM {
    * Call a user function
    */
   callFunction(func: FunctionBlock): void {
-    console.log(`Calling function: ${func.header.name} (ID: ${func.header.blockId})`);
     this.state.currentBlock = func;
     this.state.ip = 0;
   }
@@ -129,7 +128,6 @@ export class VM {
    */
   private executeInstruction(instr: Instruction): void {
     const { opcode, operand1, operand2 } = instr;
-    console.log(`IP: ${this.state.ip} Opcode: 0x${opcode.toString(16)} Operands: ${operand1}, ${operand2}`);
     switch (opcode) {
       case Opcode.LOAD:
         this.opLoad(operand1, operand2);
@@ -217,7 +215,8 @@ export class VM {
   private opPushRef(scope: Scope, index: number): void {
     let actualIndex = index;
     if (scope === Scope.Local) {
-      actualIndex = this.stack.getFrameOffset() + index;
+      //actualIndex = this.stack.getFrameOffset() + index;
+      actualIndex =  index;
     }
     this.stack.push(Stack.createRef(scope, actualIndex));
   }
@@ -232,14 +231,14 @@ export class VM {
     // If top-of-stack is bool, update condition register
     // The actual assignment happens through the reference mechanism:
     // stack has [target_ref, value] - popping performs the store
-    
+
     const top = this.stack.peek();
-    
+
     // Update condition register if top is boolean
     if (top.type === ValueType.Bool) {
       this.state.condition = top.value ? 1 : 0;
     }
-    
+
     // Pop count items (this performs the assignment via ref mechanism)
     this.stack.popN(count);
   }

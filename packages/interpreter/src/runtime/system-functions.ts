@@ -282,7 +282,6 @@ export class SystemFunctions {
 
   // 0x20: inttostring(in: int value, out: string result)
   private inttostring(vm: VM): void {
-    console.log('inttostring called');
     const outRef = this.popRef();
     const value = this.popInt();
     this.setOutParam(outRef, Stack.createEntry(ValueType.String, value.toString()));
