@@ -1,8 +1,8 @@
 import {
-  Program, FunctionDecl, VariableDecl, ConstantDecl,
-  Statement, Expression, ValueType,
-  AssignmentStmt, CallStmt, IfStmt, WhileStmt, ForStmt, ReturnStmt,
-  LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr,
+  Program, FunctionDecl, GlobalDecl, LocalDecl,
+  Statement, Expression, ValueType, BlockStmt, ExpressionStmt,
+  IfStmt, WhileStmt, ForStmt, ReturnStmt,
+  LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, IndexExpr, AssignExpr,
 } from '../ast/index.js';
 
 const SEPARATOR = 0x0a;
@@ -72,8 +72,8 @@ enum Scope {
 export class CodeGenerator {
   private buffer: number[] = [];
   private globals: Map<string, { index: number; type: TypeId }> = new Map();
-  private constants: Map<string, number> = new Map();
-  private constantValues: { type: TypeId; value: any }[] = [];
+  private constants: { type: TypeId; value: any }[] = [];
+  private constantMap: Map<string, number> = new Map();
   private locals: Map<string, { index: number; type: TypeId }> = new Map();
   private functionIds: Map<string, number> = new Map();
   private nextFuncId: number = 4; // 0-3 reserved
@@ -127,17 +127,14 @@ export class CodeGenerator {
       }
     }
     
-    // Write screens, menus, state machines
+    // Write screens
     for (const screen of program.screens) {
       this.writeScreen(screen);
     }
     
+    // Write menus
     for (const menu of program.menus) {
       this.writeMenu(menu);
-    }
-    
-    for (const sm of program.stateMachines) {
-      this.writeStateMachine(sm);
     }
 
     return Buffer.from(this.buffer);
@@ -151,16 +148,6 @@ export class CodeGenerator {
     let globalIndex = 0;
     for (const v of program.globals) {
       this.globals.set(v.name, { index: globalIndex++, type: this.typeToId(v.type) });
-    }
-    
-    // Constants
-    let constIndex = 0;
-    for (const c of program.constants) {
-      const type = this.typeToId(c.type);
-      const value = this.evaluateConstant(c.value);
-      this.constants.set(c.name, constIndex);
-      this.constantValues.push({ type, value });
-      constIndex++;
     }
     
     // Functions
@@ -182,7 +169,7 @@ export class CodeGenerator {
   private writeHeader(): void {
     this.buffer.push(0x05); // version_hi
     this.buffer.push(0x00); // version_lo
-    this.writeString('TEST-Infotext');
+    this.writeString('Compiled by inpax-compile');
     this.buffer.push(SEPARATOR);
   }
 
@@ -266,9 +253,9 @@ export class CodeGenerator {
    * Write constant data block
    */
   private writeConstantData(): void {
-    this.writeBlockHeader(BlockType.ConstantData, 'Constant Data', 0, 0, '', '', 0, this.constantValues.length);
+    this.writeBlockHeader(BlockType.ConstantData, 'Constant Data', 0, 0, '', '', 0, this.constants.length);
     
-    for (const c of this.constantValues) {
+    for (const c of this.constants) {
       this.buffer.push(c.type);
       switch (c.type) {
         case TypeId.Bool:
@@ -299,23 +286,13 @@ export class CodeGenerator {
    */
   private writeScreen(screen: any): void {
     this.writeBlockHeader(BlockType.Screen, screen.name, 0, 0, '', '', 0, 0);
-    // TODO: write screen init func and lines
   }
 
   /**
    * Write menu
    */
   private writeMenu(menu: any): void {
-    this.writeBlockHeader(BlockType.Menu, menu.name, 0, 0, menu.title, '', 0, 0);
-    // TODO: write menu items
-  }
-
-  /**
-   * Write state machine
-   */
-  private writeStateMachine(sm: any): void {
-    this.writeBlockHeader(BlockType.StateMachine, sm.name, 0, 0, '', '', 0, 0);
-    // TODO: write states
+    this.writeBlockHeader(BlockType.Menu, menu.name, 0, 0, '', '', 0, 0);
   }
 
   // ============ Compilation ============
@@ -330,10 +307,10 @@ export class CodeGenerator {
 
   private compileStatement(stmt: Statement): number[] {
     switch (stmt.kind) {
-      case 'AssignmentStmt':
-        return this.compileAssignment(stmt as AssignmentStmt);
-      case 'CallStmt':
-        return this.compileCallStmt(stmt as CallStmt);
+      case 'ExpressionStmt':
+        return this.compileExprStmt(stmt as ExpressionStmt);
+      case 'BlockStmt':
+        return this.compileStatements((stmt as BlockStmt).statements);
       case 'IfStmt':
         return this.compileIf(stmt as IfStmt);
       case 'WhileStmt':
@@ -342,56 +319,19 @@ export class CodeGenerator {
         return this.compileFor(stmt as ForStmt);
       case 'ReturnStmt':
         return this.compileReturn(stmt as ReturnStmt);
+      case 'LocalDecl':
+        return []; // Locals are allocated at function start
       default:
         return [];
     }
   }
 
-  private compileAssignment(stmt: AssignmentStmt): number[] {
-    const instrs: number[] = [];
-    
-    // Push target reference
-    if (stmt.target.kind === 'IdentifierExpr') {
-      const name = (stmt.target as IdentifierExpr).name;
-      const { scope, index } = this.resolveVariable(name);
-      instrs.push(this.makeInstr(Opcode.PUSHREF, scope, index));
+  private compileExprStmt(stmt: ExpressionStmt): number[] {
+    const instrs = this.compileExpr(stmt.expression);
+    // Pop result if not assignment
+    if (stmt.expression.kind !== 'AssignExpr') {
+      // instrs.push(this.makeInstr(Opcode.POP, 0, 1));
     }
-    
-    // Push value
-    instrs.push(...this.compileExpr(stmt.value));
-    
-    // Move
-    instrs.push(this.makeInstr(Opcode.MOVE, 0, 0));
-    
-    return instrs;
-  }
-
-  private compileCallStmt(stmt: CallStmt): number[] {
-    const instrs: number[] = [];
-    
-    // Push frame
-    instrs.push(this.makeInstr(Opcode.FRAME, 0, 0));
-    
-    // Push arguments
-    for (const arg of stmt.args) {
-      instrs.push(...this.compileExpr(arg));
-    }
-    
-    // Call
-    const funcId = this.functionIds.get(stmt.name);
-    if (funcId !== undefined) {
-      instrs.push(this.makeInstr(Opcode.CALL, 0x80, funcId)); // User function
-    } else {
-      // System function - lookup by name
-      const sysId = this.getSystemFunctionId(stmt.name);
-      instrs.push(this.makeInstr(Opcode.CALL, 0x81, sysId));
-    }
-    
-    // Pop arguments
-    if (stmt.args.length > 0) {
-      instrs.push(this.makeInstr(Opcode.POP, 0, stmt.args.length));
-    }
-    
     return instrs;
   }
 
@@ -401,29 +341,22 @@ export class CodeGenerator {
     // Condition
     instrs.push(...this.compileExpr(stmt.condition));
     
-    // Jump if false
-    const jumpFalseIdx = instrs.length;
-    instrs.push(0); // Placeholder
-    
-    // Then branch
-    instrs.push(...this.compileStatements(stmt.thenBranch));
+    // Compile then branch
+    const thenInstrs = this.compileStatement(stmt.thenBranch);
     
     if (stmt.elseBranch) {
+      const elseInstrs = this.compileStatement(stmt.elseBranch);
+      
+      // Jump if false over then + jump
+      instrs.push(this.makeInstr(Opcode.JMPZ, 0, instrs.length + thenInstrs.length + 2));
+      instrs.push(...thenInstrs);
       // Jump over else
-      const jumpEndIdx = instrs.length;
-      instrs.push(0); // Placeholder
-      
-      // Patch jump-false to here
-      instrs[jumpFalseIdx] = this.makeInstr(Opcode.JMPZ, 0, instrs.length);
-      
-      // Else branch
-      instrs.push(...this.compileStatements(stmt.elseBranch));
-      
-      // Patch jump-end
-      instrs[jumpEndIdx] = this.makeInstr(Opcode.JMP, 0, instrs.length);
+      instrs.push(this.makeInstr(Opcode.JMP, 0, instrs.length + elseInstrs.length + 1));
+      instrs.push(...elseInstrs);
     } else {
-      // Patch jump-false to here
-      instrs[jumpFalseIdx] = this.makeInstr(Opcode.JMPZ, 0, instrs.length);
+      // Jump if false over then
+      instrs.push(this.makeInstr(Opcode.JMPZ, 0, instrs.length + thenInstrs.length + 1));
+      instrs.push(...thenInstrs);
     }
     
     return instrs;
@@ -432,30 +365,57 @@ export class CodeGenerator {
   private compileWhile(stmt: WhileStmt): number[] {
     const instrs: number[] = [];
     
-    const loopStart = instrs.length;
+    const condStart = instrs.length;
     
     // Condition
     instrs.push(...this.compileExpr(stmt.condition));
     
-    // Jump if false
-    const jumpFalseIdx = instrs.length;
-    instrs.push(0); // Placeholder
+    // Compile body
+    const bodyInstrs = this.compileStatement(stmt.body);
     
-    // Body
-    instrs.push(...this.compileStatements(stmt.body));
-    
-    // Jump back to start
-    instrs.push(this.makeInstr(Opcode.JMP, 0, loopStart));
-    
-    // Patch jump-false
-    instrs[jumpFalseIdx] = this.makeInstr(Opcode.JMPZ, 0, instrs.length);
+    // Jump if false past body + back jump
+    instrs.push(this.makeInstr(Opcode.JMPZ, 0, instrs.length + bodyInstrs.length + 2));
+    instrs.push(...bodyInstrs);
+    // Jump back to condition
+    instrs.push(this.makeInstr(Opcode.JMP, 0, condStart));
     
     return instrs;
   }
 
   private compileFor(stmt: ForStmt): number[] {
-    // TODO: Implement for loop
-    return [];
+    const instrs: number[] = [];
+    
+    // Init
+    if (stmt.init) {
+      if ('kind' in stmt.init && stmt.init.kind === 'LocalDecl') {
+        // Skip, handled by local allocation
+      } else {
+        instrs.push(...this.compileExpr(stmt.init as Expression));
+      }
+    }
+    
+    const condStart = instrs.length;
+    
+    // Condition
+    if (stmt.condition) {
+      instrs.push(...this.compileExpr(stmt.condition));
+    } else {
+      // Always true
+      instrs.push(...this.compileLiteral({ kind: 'LiteralExpr', line: 0, column: 0, type: 'bool', value: true }));
+    }
+    
+    // Compile body and update
+    const bodyInstrs = this.compileStatement(stmt.body);
+    const updateInstrs = stmt.update ? this.compileExpr(stmt.update) : [];
+    
+    // Jump if false past body + update + back jump
+    instrs.push(this.makeInstr(Opcode.JMPZ, 0, instrs.length + bodyInstrs.length + updateInstrs.length + 2));
+    instrs.push(...bodyInstrs);
+    instrs.push(...updateInstrs);
+    // Jump back to condition
+    instrs.push(this.makeInstr(Opcode.JMP, 0, condStart));
+    
+    return instrs;
   }
 
   private compileReturn(stmt: ReturnStmt): number[] {
@@ -479,6 +439,10 @@ export class CodeGenerator {
         return this.compileUnary(expr as UnaryExpr);
       case 'CallExpr':
         return this.compileCall(expr as CallExpr);
+      case 'AssignExpr':
+        return this.compileAssign(expr as AssignExpr);
+      case 'IndexExpr':
+        return this.compileIndex(expr as IndexExpr);
       default:
         return [];
     }
@@ -486,11 +450,11 @@ export class CodeGenerator {
 
   private compileLiteral(expr: LiteralExpr): number[] {
     // Add to constants and push
-    const index = this.constantValues.length;
+    const index = this.constants.length;
     const type = expr.type === 'bool' ? TypeId.Bool :
                  expr.type === 'int' ? TypeId.Int :
                  expr.type === 'real' ? TypeId.Real : TypeId.String;
-    this.constantValues.push({ type, value: expr.value });
+    this.constants.push({ type, value: expr.value });
     return [this.makeInstr(Opcode.PUSHCONST, 0, index)];
   }
 
@@ -516,7 +480,7 @@ export class CodeGenerator {
     
     if (expr.operator === '-') {
       instrs.push(this.makeInstr(Opcode.ALU, AluOp.NEG, 0));
-    } else if (expr.operator === 'not') {
+    } else if (expr.operator === '!' || expr.operator === 'not') {
       instrs.push(this.makeInstr(Opcode.ALU, AluOp.NOT, 0));
     }
     
@@ -524,13 +488,56 @@ export class CodeGenerator {
   }
 
   private compileCall(expr: CallExpr): number[] {
-    return this.compileCallStmt({
-      kind: 'CallStmt',
-      line: expr.line,
-      column: expr.column,
-      name: expr.name,
-      args: expr.args,
-    });
+    const instrs: number[] = [];
+    
+    // Push frame
+    instrs.push(this.makeInstr(Opcode.FRAME, 0, 0));
+    
+    // Push arguments
+    for (const arg of expr.args) {
+      instrs.push(...this.compileExpr(arg));
+    }
+    
+    // Call
+    const funcId = this.functionIds.get(expr.name);
+    if (funcId !== undefined) {
+      instrs.push(this.makeInstr(Opcode.CALL, 0x80, funcId)); // User function
+    } else {
+      // System function - lookup by name
+      const sysId = this.getSystemFunctionId(expr.name);
+      instrs.push(this.makeInstr(Opcode.CALL, 0x81, sysId));
+    }
+    
+    // Pop arguments
+    if (expr.args.length > 0) {
+      instrs.push(this.makeInstr(Opcode.POP, 0, expr.args.length));
+    }
+    
+    return instrs;
+  }
+
+  private compileAssign(expr: AssignExpr): number[] {
+    const instrs: number[] = [];
+    
+    // Push target reference
+    if (expr.target.kind === 'IdentifierExpr') {
+      const name = (expr.target as IdentifierExpr).name;
+      const { scope, index } = this.resolveVariable(name);
+      instrs.push(this.makeInstr(Opcode.PUSHREF, scope, index));
+    }
+    
+    // Push value
+    instrs.push(...this.compileExpr(expr.value));
+    
+    // Move
+    instrs.push(this.makeInstr(Opcode.MOVE, 0, 0));
+    
+    return instrs;
+  }
+
+  private compileIndex(expr: IndexExpr): number[] {
+    // TODO: Array indexing
+    return [];
   }
 
   // ============ Helpers ============
@@ -542,7 +549,7 @@ export class CodeGenerator {
     const global = this.globals.get(name);
     if (global) return { scope: Scope.Global, index: global.index };
     
-    const constIdx = this.constants.get(name);
+    const constIdx = this.constantMap.get(name);
     if (constIdx !== undefined) return { scope: Scope.Const, index: constIdx };
     
     throw new Error(`Unknown variable: ${name}`);
@@ -571,9 +578,9 @@ export class CodeGenerator {
       case '>': return AluOp.GT;
       case '>=': return AluOp.GE;
       case '==': return AluOp.EQ;
-      case '!=': case '<>': return AluOp.NE;
-      case 'and': return AluOp.AND;
-      case 'or': return AluOp.OR;
+      case '!=': return AluOp.NE;
+      case '&&': case 'and': return AluOp.AND;
+      case '||': case 'or': return AluOp.OR;
       default: return AluOp.ADD;
     }
   }
@@ -586,16 +593,11 @@ export class CodeGenerator {
       'settimer': 0x09,
       'delay': 0x1b,
       'exit': 0x0c,
-      // Add more as needed
+      'text': 0x14,
+      'textout': 0x15,
+      'messagebox': 0x10,
     };
     return map[name.toLowerCase()] ?? 0;
-  }
-
-  private evaluateConstant(expr: Expression): any {
-    if (expr.kind === 'LiteralExpr') {
-      return (expr as LiteralExpr).value;
-    }
-    return 0;
   }
 
   private makeInstr(opcode: number, op1: number, op2: number): number {

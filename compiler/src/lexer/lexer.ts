@@ -1,7 +1,7 @@
 import { Token, TokenType, KEYWORDS } from './tokens.js';
 
 /**
- * Lexer for INPA IPS source files
+ * Lexer for INPA IPS source files (C-like syntax)
  */
 export class Lexer {
   private source: string;
@@ -20,10 +20,9 @@ export class Lexer {
     const tokens: Token[] = [];
     
     while (!this.isAtEnd()) {
-      const token = this.nextToken();
-      if (token.type !== TokenType.COMMENT) {
-        tokens.push(token);
-      }
+      this.skipWhitespaceAndComments();
+      if (this.isAtEnd()) break;
+      tokens.push(this.nextToken());
     }
     
     tokens.push(this.makeToken(TokenType.EOF, ''));
@@ -34,32 +33,7 @@ export class Lexer {
    * Get next token
    */
   private nextToken(): Token {
-    this.skipWhitespace();
-    
-    if (this.isAtEnd()) {
-      return this.makeToken(TokenType.EOF, '');
-    }
-
     const ch = this.peek();
-
-    // Newline
-    if (ch === '\n') {
-      this.advance();
-      const token = this.makeToken(TokenType.NEWLINE, '\\n');
-      this.line++;
-      this.column = 1;
-      return token;
-    }
-
-    // Pragma/Include (#)
-    if (ch === '#') {
-      return this.readDirective();
-    }
-
-    // Comment
-    if (ch === ';' || (ch === '/' && this.peekNext() === '/')) {
-      return this.readComment();
-    }
 
     // String
     if (ch === '"') {
@@ -67,7 +41,7 @@ export class Lexer {
     }
 
     // Number
-    if (this.isDigit(ch) || (ch === '-' && this.isDigit(this.peekNext()))) {
+    if (this.isDigit(ch)) {
       return this.readNumber();
     }
 
@@ -81,10 +55,48 @@ export class Lexer {
   }
 
   /**
+   * Skip whitespace and comments
+   */
+  private skipWhitespaceAndComments(): void {
+    while (!this.isAtEnd()) {
+      const ch = this.peek();
+      
+      if (ch === ' ' || ch === '\t' || ch === '\r') {
+        this.advance();
+      } else if (ch === '\n') {
+        this.advance();
+        this.line++;
+        this.column = 1;
+      } else if (ch === '/' && this.peekNext() === '/') {
+        // Line comment
+        while (!this.isAtEnd() && this.peek() !== '\n') {
+          this.advance();
+        }
+      } else if (ch === '/' && this.peekNext() === '*') {
+        // Block comment
+        this.advance(); // /
+        this.advance(); // *
+        while (!this.isAtEnd() && !(this.peek() === '*' && this.peekNext() === '/')) {
+          if (this.peek() === '\n') {
+            this.line++;
+            this.column = 1;
+          }
+          this.advance();
+        }
+        if (!this.isAtEnd()) {
+          this.advance(); // *
+          this.advance(); // /
+        }
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
    * Read string literal
    */
   private readString(): Token {
-    const start = this.pos;
     this.advance(); // Skip opening quote
     
     let value = '';
@@ -100,6 +112,8 @@ export class Lexer {
           case '\\': value += '\\'; break;
           default: value += escaped;
         }
+      } else if (this.peek() === '\n') {
+        throw new Error(`Unterminated string at line ${this.line}`);
       } else {
         value += this.advance();
       }
@@ -119,8 +133,14 @@ export class Lexer {
   private readNumber(): Token {
     let value = '';
     
-    if (this.peek() === '-') {
-      value += this.advance();
+    // Check for hex
+    if (this.peek() === '0' && (this.peekNext() === 'x' || this.peekNext() === 'X')) {
+      value += this.advance(); // 0
+      value += this.advance(); // x
+      while (this.isHexDigit(this.peek())) {
+        value += this.advance();
+      }
+      return this.makeToken(TokenType.INTEGER, value);
     }
     
     while (this.isDigit(this.peek())) {
@@ -160,102 +180,54 @@ export class Lexer {
   }
 
   /**
-   * Read comment (to end of line)
-   */
-  private readComment(): Token {
-    let value = '';
-    
-    // Skip ; or //
-    if (this.peek() === ';') {
-      this.advance();
-    } else {
-      this.advance(); // /
-      this.advance(); // /
-    }
-    
-    while (!this.isAtEnd() && this.peek() !== '\n') {
-      value += this.advance();
-    }
-    
-    return this.makeToken(TokenType.COMMENT, value.trim());
-  }
-
-  /**
-   * Read directive (#PRAGMA, #INCLUDE)
-   */
-  private readDirective(): Token {
-    this.advance(); // Skip #
-    
-    // Read directive name
-    let name = '';
-    while (this.isAlpha(this.peek())) {
-      name += this.advance();
-    }
-    
-    const lower = name.toLowerCase();
-    if (lower === 'pragma') {
-      return this.makeToken(TokenType.PRAGMA, '#pragma');
-    } else if (lower === 'include') {
-      return this.makeToken(TokenType.INCLUDE, '#include');
-    }
-    
-    throw new Error(`Unknown directive #${name} at line ${this.line}`);
-  }
-
-  /**
    * Read operator or delimiter
    */
   private readOperator(): Token {
     const ch = this.advance();
     
     switch (ch) {
-      case '+': return this.makeToken(TokenType.PLUS, ch);
-      case '-': return this.makeToken(TokenType.MINUS, ch);
+      case '+':
+        if (this.peek() === '+') { this.advance(); return this.makeToken(TokenType.PLUSPLUS, '++'); }
+        return this.makeToken(TokenType.PLUS, ch);
+      case '-':
+        if (this.peek() === '-') { this.advance(); return this.makeToken(TokenType.MINUSMINUS, '--'); }
+        return this.makeToken(TokenType.MINUS, ch);
       case '*': return this.makeToken(TokenType.STAR, ch);
       case '/': return this.makeToken(TokenType.SLASH, ch);
       case '%': return this.makeToken(TokenType.PERCENT, ch);
-      case '&': return this.makeToken(TokenType.BAND, ch);
-      case '|': return this.makeToken(TokenType.BOR, ch);
+      case '&':
+        if (this.peek() === '&') { this.advance(); return this.makeToken(TokenType.LAND, '&&'); }
+        return this.makeToken(TokenType.BAND, ch);
+      case '|':
+        if (this.peek() === '|') { this.advance(); return this.makeToken(TokenType.LOR, '||'); }
+        return this.makeToken(TokenType.BOR, ch);
       case '^': return this.makeToken(TokenType.BXOR, ch);
       case '(': return this.makeToken(TokenType.LPAREN, ch);
       case ')': return this.makeToken(TokenType.RPAREN, ch);
+      case '{': return this.makeToken(TokenType.LBRACE, ch);
+      case '}': return this.makeToken(TokenType.RBRACE, ch);
       case '[': return this.makeToken(TokenType.LBRACKET, ch);
       case ']': return this.makeToken(TokenType.RBRACKET, ch);
       case ',': return this.makeToken(TokenType.COMMA, ch);
       case ':': return this.makeToken(TokenType.COLON, ch);
       case ';': return this.makeToken(TokenType.SEMICOLON, ch);
       case '.': return this.makeToken(TokenType.DOT, ch);
+      case '#': return this.makeToken(TokenType.HASH, ch);
       
       case '=':
-        if (this.peek() === '=') {
-          this.advance();
-          return this.makeToken(TokenType.EQ, '==');
-        }
+        if (this.peek() === '=') { this.advance(); return this.makeToken(TokenType.EQ, '=='); }
         return this.makeToken(TokenType.ASSIGN, ch);
       
       case '!':
-        if (this.peek() === '=') {
-          this.advance();
-          return this.makeToken(TokenType.NE, '!=');
-        }
-        throw new Error(`Unexpected character '!' at line ${this.line}`);
+        if (this.peek() === '=') { this.advance(); return this.makeToken(TokenType.NE, '!='); }
+        return this.makeToken(TokenType.LNOT, ch);
       
       case '<':
-        if (this.peek() === '=') {
-          this.advance();
-          return this.makeToken(TokenType.LE, '<=');
-        }
-        if (this.peek() === '>') {
-          this.advance();
-          return this.makeToken(TokenType.NE, '<>');
-        }
+        if (this.peek() === '=') { this.advance(); return this.makeToken(TokenType.LE, '<='); }
         return this.makeToken(TokenType.LT, ch);
       
       case '>':
-        if (this.peek() === '=') {
-          this.advance();
-          return this.makeToken(TokenType.GE, '>=');
-        }
+        if (this.peek() === '=') { this.advance(); return this.makeToken(TokenType.GE, '>='); }
         return this.makeToken(TokenType.GT, ch);
       
       default:
@@ -264,17 +236,6 @@ export class Lexer {
   }
 
   // ============ Helper methods ============
-
-  private skipWhitespace(): void {
-    while (!this.isAtEnd()) {
-      const ch = this.peek();
-      if (ch === ' ' || ch === '\t' || ch === '\r') {
-        this.advance();
-      } else {
-        break;
-      }
-    }
-  }
 
   private peek(): string {
     if (this.isAtEnd()) return '\0';
@@ -298,6 +259,10 @@ export class Lexer {
 
   private isDigit(ch: string): boolean {
     return ch >= '0' && ch <= '9';
+  }
+
+  private isHexDigit(ch: string): boolean {
+    return this.isDigit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
   }
 
   private isAlpha(ch: string): boolean {

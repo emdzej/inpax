@@ -1,5 +1,5 @@
 /**
- * Token types for INPA IPS language
+ * Token types for INPA IPS language (C-like syntax)
  */
 export enum TokenType {
   // Literals
@@ -16,61 +16,21 @@ export enum TokenType {
   REAL_TYPE = 'REAL_TYPE',
   STRING_TYPE = 'STRING_TYPE',
 
-  // Keywords - Blocks
-  SCREEN = 'SCREEN',
-  MENU = 'MENU',
-  STATEMACHINE = 'STATEMACHINE',
-  LOGICTABLE = 'LOGICTABLE',
-  LINE = 'LINE',
-  ITEM = 'ITEM',
-  STATE = 'STATE',
-
   // Keywords - Control Flow
   IF = 'IF',
-  THEN = 'THEN',
   ELSE = 'ELSE',
-  ELSEIF = 'ELSEIF',
-  ENDIF = 'ENDIF',
   WHILE = 'WHILE',
-  WEND = 'WEND',
   FOR = 'FOR',
-  TO = 'TO',
-  STEP = 'STEP',
-  NEXT = 'NEXT',
-  REPEAT = 'REPEAT',
-  UNTIL = 'UNTIL',
-  SELECT = 'SELECT',
-  CASE = 'CASE',
-  DEFAULT = 'DEFAULT',
-  ENDSELECT = 'ENDSELECT',
-
-  // Keywords - Declarations
-  VAR = 'VAR',
-  CONST = 'CONST',
-  GLOBAL = 'GLOBAL',
-  LOCAL = 'LOCAL',
-  FUNCTION = 'FUNCTION',
-  ENDFUNC = 'ENDFUNC',
   RETURN = 'RETURN',
-  EXIT = 'EXIT',
-  
-  // Keywords - Import/External
-  IMPORT = 'IMPORT',
-  EXTERNAL = 'EXTERNAL',
-  OUT = 'OUT',
-  INOUT = 'INOUT',
-  IN = 'IN',
-  
+  BREAK = 'BREAK',
+  CONTINUE = 'CONTINUE',
+
   // Keywords - UI Blocks
-  ENDSCREEN = 'ENDSCREEN',
-  ENDMENU = 'ENDMENU',
-  ENDSTATEMACHINE = 'ENDSTATEMACHINE',
-  ENDLOGICTABLE = 'ENDLOGICTABLE',
-  CONTROL = 'CONTROL',
-  
-  // Pragmas
-  PRAGMA = 'PRAGMA',
-  INCLUDE = 'INCLUDE',
+  SCREEN = 'SCREEN',
+  MENU = 'MENU',
+  LINE = 'LINE',
+  ITEM = 'ITEM',
+  INIT = 'INIT',
 
   // Keywords - Logical
   AND = 'AND',
@@ -87,7 +47,7 @@ export enum TokenType {
   PERCENT = 'PERCENT',     // %
   ASSIGN = 'ASSIGN',       // =
   EQ = 'EQ',               // ==
-  NE = 'NE',               // != or <>
+  NE = 'NE',               // !=
   LT = 'LT',               // <
   LE = 'LE',               // <=
   GT = 'GT',               // >
@@ -95,10 +55,17 @@ export enum TokenType {
   BAND = 'BAND',           // &
   BOR = 'BOR',             // |
   BXOR = 'BXOR',           // ^
+  LAND = 'LAND',           // &&
+  LOR = 'LOR',             // ||
+  LNOT = 'LNOT',           // !
+  PLUSPLUS = 'PLUSPLUS',   // ++
+  MINUSMINUS = 'MINUSMINUS', // --
 
   // Delimiters
   LPAREN = 'LPAREN',       // (
   RPAREN = 'RPAREN',       // )
+  LBRACE = 'LBRACE',       // {
+  RBRACE = 'RBRACE',       // }
   LBRACKET = 'LBRACKET',   // [
   RBRACKET = 'RBRACKET',   // ]
   COMMA = 'COMMA',         // ,
@@ -106,10 +73,13 @@ export enum TokenType {
   SEMICOLON = 'SEMICOLON', // ;
   DOT = 'DOT',             // .
 
+  // Preprocessor
+  HASH = 'HASH',           // #
+  PRAGMA = 'PRAGMA',
+  INCLUDE = 'INCLUDE',
+
   // Special
-  NEWLINE = 'NEWLINE',
   EOF = 'EOF',
-  COMMENT = 'COMMENT',
 }
 
 /**
@@ -123,16 +93,7 @@ export interface Token {
 }
 
 /**
- * Source location
- */
-export interface SourceLocation {
-  line: number;
-  column: number;
-  offset: number;
-}
-
-/**
- * Keywords map
+ * Keywords map (case-insensitive)
  */
 export const KEYWORDS: Record<string, TokenType> = {
   // Types
@@ -143,57 +104,21 @@ export const KEYWORDS: Record<string, TokenType> = {
   'real': TokenType.REAL_TYPE,
   'string': TokenType.STRING_TYPE,
 
-  // Blocks
-  'screen': TokenType.SCREEN,
-  'menu': TokenType.MENU,
-  'statemachine': TokenType.STATEMACHINE,
-  'logictable': TokenType.LOGICTABLE,
-  'line': TokenType.LINE,
-  'item': TokenType.ITEM,
-  'state': TokenType.STATE,
-
   // Control flow
   'if': TokenType.IF,
-  'then': TokenType.THEN,
   'else': TokenType.ELSE,
-  'elseif': TokenType.ELSEIF,
-  'endif': TokenType.ENDIF,
   'while': TokenType.WHILE,
-  'wend': TokenType.WEND,
   'for': TokenType.FOR,
-  'to': TokenType.TO,
-  'step': TokenType.STEP,
-  'next': TokenType.NEXT,
-  'repeat': TokenType.REPEAT,
-  'until': TokenType.UNTIL,
-  'select': TokenType.SELECT,
-  'case': TokenType.CASE,
-  'default': TokenType.DEFAULT,
-  'endselect': TokenType.ENDSELECT,
-
-  // Declarations
-  'var': TokenType.VAR,
-  'const': TokenType.CONST,
-  'global': TokenType.GLOBAL,
-  'local': TokenType.LOCAL,
-  'function': TokenType.FUNCTION,
-  'endfunc': TokenType.ENDFUNC,
   'return': TokenType.RETURN,
-  'exit': TokenType.EXIT,
-  
-  // Import/External
-  'import': TokenType.IMPORT,
-  'external': TokenType.EXTERNAL,
-  'out': TokenType.OUT,
-  'inout': TokenType.INOUT,
-  'in': TokenType.IN,
-  
-  // UI block ends
-  'endscreen': TokenType.ENDSCREEN,
-  'endmenu': TokenType.ENDMENU,
-  'endstatemachine': TokenType.ENDSTATEMACHINE,
-  'endlogictable': TokenType.ENDLOGICTABLE,
-  'control': TokenType.CONTROL,
+  'break': TokenType.BREAK,
+  'continue': TokenType.CONTINUE,
+
+  // UI blocks
+  'screen': TokenType.SCREEN,
+  'menu': TokenType.MENU,
+  'line': TokenType.LINE,
+  'item': TokenType.ITEM,
+  'init': TokenType.INIT,
 
   // Logical
   'and': TokenType.AND,
@@ -201,4 +126,8 @@ export const KEYWORDS: Record<string, TokenType> = {
   'not': TokenType.NOT,
   'true': TokenType.TRUE,
   'false': TokenType.FALSE,
+
+  // Preprocessor (after #)
+  'pragma': TokenType.PRAGMA,
+  'include': TokenType.INCLUDE,
 };

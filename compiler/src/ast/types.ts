@@ -1,5 +1,5 @@
 /**
- * AST Node types for INPA IPS
+ * AST Node types for INPA IPS (C-like syntax)
  */
 
 export type ValueType = 'bool' | 'byte' | 'int' | 'long' | 'real' | 'string';
@@ -16,36 +16,35 @@ export interface ASTNode {
 
 export interface Program extends ASTNode {
   kind: 'Program';
-  globals: VariableDecl[];
-  constants: ConstantDecl[];
+  includes: string[];
+  pragmas: PragmaDecl[];
+  globals: GlobalDecl[];
   functions: FunctionDecl[];
   screens: ScreenDecl[];
   menus: MenuDecl[];
-  stateMachines: StateMachineDecl[];
+}
+
+export interface PragmaDecl extends ASTNode {
+  kind: 'PragmaDecl';
+  name: string;
+  value?: string;
 }
 
 // ============ Declarations ============
 
-export interface VariableDecl extends ASTNode {
-  kind: 'VariableDecl';
+export interface GlobalDecl extends ASTNode {
+  kind: 'GlobalDecl';
   name: string;
   type: ValueType;
-  isGlobal: boolean;
-}
-
-export interface ConstantDecl extends ASTNode {
-  kind: 'ConstantDecl';
-  name: string;
-  type: ValueType;
-  value: Expression;
+  arraySize?: number;  // string[80] -> 80
+  initializer?: Expression;
 }
 
 export interface FunctionDecl extends ASTNode {
   kind: 'FunctionDecl';
   name: string;
   params: ParameterDecl[];
-  returnType?: ValueType;
-  locals: VariableDecl[];
+  locals: LocalDecl[];
   body: Statement[];
 }
 
@@ -53,7 +52,15 @@ export interface ParameterDecl extends ASTNode {
   kind: 'ParameterDecl';
   name: string;
   type: ValueType;
-  direction: 'in' | 'out' | 'inout';
+  arraySize?: number;
+}
+
+export interface LocalDecl extends ASTNode {
+  kind: 'LocalDecl';
+  name: string;
+  type: ValueType;
+  arraySize?: number;
+  initializer?: Expression;
 }
 
 // ============ UI Declarations ============
@@ -61,109 +68,73 @@ export interface ParameterDecl extends ASTNode {
 export interface ScreenDecl extends ASTNode {
   kind: 'ScreenDecl';
   name: string;
-  initFunc?: FunctionDecl;
+  body: Statement[];
   lines: LineDecl[];
 }
 
 export interface LineDecl extends ASTNode {
   kind: 'LineDecl';
-  name: string;
-  func?: FunctionDecl;
-  controls: ControlDecl[];
-}
-
-export interface ControlDecl extends ASTNode {
-  kind: 'ControlDecl';
-  name: string;
-  func?: FunctionDecl;
+  label: string;
+  tag: string;
+  body: Statement[];
 }
 
 export interface MenuDecl extends ASTNode {
   kind: 'MenuDecl';
   name: string;
-  title: string;
+  init?: Statement[];
   items: MenuItemDecl[];
 }
 
 export interface MenuItemDecl extends ASTNode {
   kind: 'MenuItemDecl';
-  name: string;
+  key: number;
   label: string;
-  key?: string;
-  func?: FunctionDecl;
-}
-
-export interface StateMachineDecl extends ASTNode {
-  kind: 'StateMachineDecl';
-  name: string;
-  states: StateDecl[];
-}
-
-export interface StateDecl extends ASTNode {
-  kind: 'StateDecl';
-  name: string;
-  func?: FunctionDecl;
+  body: Statement[];
 }
 
 // ============ Statements ============
 
 export type Statement =
-  | AssignmentStmt
-  | CallStmt
+  | BlockStmt
+  | ExpressionStmt
   | IfStmt
   | WhileStmt
   | ForStmt
-  | RepeatStmt
-  | SelectStmt
   | ReturnStmt
-  | ExitStmt;
+  | BreakStmt
+  | ContinueStmt
+  | LocalDecl;
 
-export interface AssignmentStmt extends ASTNode {
-  kind: 'AssignmentStmt';
-  target: Expression;
-  value: Expression;
+export interface BlockStmt extends ASTNode {
+  kind: 'BlockStmt';
+  statements: Statement[];
 }
 
-export interface CallStmt extends ASTNode {
-  kind: 'CallStmt';
-  name: string;
-  args: Expression[];
+export interface ExpressionStmt extends ASTNode {
+  kind: 'ExpressionStmt';
+  expression: Expression;
 }
 
 export interface IfStmt extends ASTNode {
   kind: 'IfStmt';
   condition: Expression;
-  thenBranch: Statement[];
-  elseIfBranches: { condition: Expression; body: Statement[] }[];
-  elseBranch?: Statement[];
+  thenBranch: Statement;
+  elseBranch?: Statement;
 }
 
 export interface WhileStmt extends ASTNode {
   kind: 'WhileStmt';
   condition: Expression;
-  body: Statement[];
+  body: Statement;
 }
 
 export interface ForStmt extends ASTNode {
   kind: 'ForStmt';
-  variable: string;
-  start: Expression;
-  end: Expression;
-  step?: Expression;
-  body: Statement[];
-}
-
-export interface RepeatStmt extends ASTNode {
-  kind: 'RepeatStmt';
-  body: Statement[];
-  condition: Expression;
-}
-
-export interface SelectStmt extends ASTNode {
-  kind: 'SelectStmt';
-  value: Expression;
-  cases: { values: Expression[]; body: Statement[] }[];
-  defaultCase?: Statement[];
+  init?: Expression | LocalDecl;
+  condition?: Expression;
+  update?: Expression;
+  body: Statement;
 }
 
 export interface ReturnStmt extends ASTNode {
@@ -171,8 +142,12 @@ export interface ReturnStmt extends ASTNode {
   value?: Expression;
 }
 
-export interface ExitStmt extends ASTNode {
-  kind: 'ExitStmt';
+export interface BreakStmt extends ASTNode {
+  kind: 'BreakStmt';
+}
+
+export interface ContinueStmt extends ASTNode {
+  kind: 'ContinueStmt';
 }
 
 // ============ Expressions ============
@@ -183,7 +158,8 @@ export type Expression =
   | BinaryExpr
   | UnaryExpr
   | CallExpr
-  | IndexExpr;
+  | IndexExpr
+  | AssignExpr;
 
 export interface LiteralExpr extends ASTNode {
   kind: 'LiteralExpr';
@@ -207,6 +183,7 @@ export interface UnaryExpr extends ASTNode {
   kind: 'UnaryExpr';
   operator: string;
   operand: Expression;
+  prefix: boolean;
 }
 
 export interface CallExpr extends ASTNode {
@@ -219,4 +196,10 @@ export interface IndexExpr extends ASTNode {
   kind: 'IndexExpr';
   array: Expression;
   index: Expression;
+}
+
+export interface AssignExpr extends ASTNode {
+  kind: 'AssignExpr';
+  target: Expression;
+  value: Expression;
 }
