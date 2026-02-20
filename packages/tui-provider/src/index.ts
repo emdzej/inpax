@@ -1,6 +1,9 @@
 /**
  * @inpax/tui-provider
- * Terminal UI implementation for INPA runtime using ink
+ * Headless state management for INPA TUI
+ * 
+ * Use @inpax/tui for ink-based rendering
  */
 
-export { TuiProvider } from './tui-provider.js';
+export { TuiProvider, type InternalEvents } from './tui-provider.js';
+export * from './state.js';
