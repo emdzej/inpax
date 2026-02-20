@@ -1,5 +1,5 @@
 import type { VM } from '../vm/interpreter.js';
-import { StackEntry, ValueType } from '../types/index.js';
+import { StackEntry, SystemFunction, ValueType } from '@inpax/core';
 import { Stack } from '../vm/stack.js';
 
 /**
@@ -12,7 +12,7 @@ export type SystemFunctionHandler = (vm: VM) => void;
  */
 export class SystemFunctions {
   private vm: VM;
-  private handlers: Map<number, SystemFunctionHandler> = new Map();
+  private handlers: Map<SystemFunction, SystemFunctionHandler> = new Map();
 
   constructor(vm: VM) {
     this.vm = vm;
@@ -24,35 +24,35 @@ export class SystemFunctions {
    */
   private registerBuiltins(): void {
     // UI Functions
-    this.register(0x00, this.setmenutitle);
-    this.register(0x01, this.setmenu);
-    this.register(0x02, this.setitem);
-    this.register(0x03, this.settitle);
-    this.register(0x04, this.setscreen);
-    
+    this.register(SystemFunction.setmenutitle, this.setmenutitle);
+    this.register(SystemFunction.setmenu, this.setmenu);
+    this.register(SystemFunction.setitem, this.setitem);
+    this.register(SystemFunction.settitle, this.settitle);
+    this.register(SystemFunction.setscreen, this.setscreen);
+
     // Timer Functions
-    this.register(0x09, this.settimer);
-    this.register(0x0a, this.testtimer);
+    this.register(SystemFunction.settimer, this.settimer);
+    this.register(SystemFunction.testtimer, this.testtimer);
 
     // Control Functions
-    this.register(0x0c, this.exit);
-    this.register(0x0d, this.exitwindows);
+    this.register(SystemFunction.exit, this.exit);
+    this.register(SystemFunction.exitwindows, this.exitwindows);
 
     // Utility Functions
-    this.register(0x1b, this.delay);
-    this.register(0x1c, this.getdate);
-    this.register(0x1d, this.gettime);
+    this.register(SystemFunction.delay, this.delay);
+    this.register(SystemFunction.getdate, this.getdate);
+    this.register(SystemFunction.gettime, this.gettime);
 
     // String Functions
-    this.register(0x23, this.strcat);
-    this.register(0x24, this.strlen);
-    this.register(0x25, this.midstr);
+    this.register(SystemFunction.strcat, this.strcat);
+    this.register(SystemFunction.strlen, this.strlen);
+    this.register(SystemFunction.midstr, this.midstr);
 
     // Conversion Functions
-    this.register(0x1e, this.realtostring);
-    this.register(0x1f, this.stringtoreal);
-    this.register(0x20, this.inttostring);
-    this.register(0x21, this.stringtoint);
+    this.register(SystemFunction.realtostring, this.realtostring);
+    this.register(SystemFunction.stringtoreal, this.stringtoreal);
+    this.register(SystemFunction.inttostring, this.inttostring);
+    this.register(SystemFunction.stringtoint, this.stringtoint);
   }
 
   /**
@@ -116,7 +116,7 @@ export class SystemFunctions {
     if (!ref.refInfo) {
       throw new Error('Expected reference for out parameter');
     }
-    
+
     const { scope, index } = ref.refInfo;
     if (scope === 0x00) {
       this.vm.getGlobals()[index] = value;
@@ -172,12 +172,12 @@ export class SystemFunctions {
   private settimer(vm: VM): void {
     const timeval = this.popInt();
     const timernum = this.popInt();
-    
+
     this.timers.set(timernum, {
       start: Date.now(),
       duration: timeval,
     });
-    
+
     console.log(`[settimer] timer=${timernum} ms=${timeval}`);
   }
 
@@ -185,15 +185,15 @@ export class SystemFunctions {
   private testtimer(vm: VM): void {
     const outRef = this.popRef();
     const timernum = this.popInt();
-    
+
     const timer = this.timers.get(timernum);
     let expired = false;
-    
+
     if (timer) {
       const elapsed = Date.now() - timer.start;
       expired = elapsed >= timer.duration;
     }
-    
+
     this.setOutParam(outRef, Stack.createEntry(ValueType.Bool, expired));
   }
 
@@ -265,7 +265,7 @@ export class SystemFunctions {
     const outRef = this.popRef();
     const format = this.popString();
     const value = this.popReal();
-    
+
     // Simple formatting (format string ignored for now)
     const result = value.toString();
     this.setOutParam(outRef, Stack.createEntry(ValueType.String, result));

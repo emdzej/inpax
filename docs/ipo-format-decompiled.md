@@ -440,6 +440,7 @@ Empty functions contain single RET instruction:
 
 ```
 [block_header]
+[function_block] ; allocate variables
 [line_block_1]
 [line_block_2]
 ...
@@ -465,6 +466,7 @@ Empty functions contain single RET instruction:
 
 ```
 [block_header]
+[function_block] ; menu init function
 [menuitem_block_1]
 [menuitem_block_2]
 ...
@@ -490,6 +492,7 @@ Empty functions contain single RET instruction:
 
 ```
 [block_header]
+[funciton_block] ; init
 [state_block_1]
 [state_block_2]
 ...

@@ -16,7 +16,7 @@ import {
   StackEntry,
   BlockType,
   ValueType,
-} from '../types/index.js';
+} from '@inpax/core';
 
 const MAGIC = 'TEST-Infotext';
 const SEPARATOR = 0x0a;
@@ -37,7 +37,7 @@ export class IpoParser {
    */
   parse(): IpoFile {
     const header = this.parseHeader();
-    
+
     const file: IpoFile = {
       header,
       globals: null!,
@@ -98,6 +98,7 @@ export class IpoParser {
    * Parse block based on type
    */
   private parseBlock(file: IpoFile, header: BlockHeader): void {
+    console.log(`Parsing block: type=0x${header.type.toString(16)} name="${header.name}" id=${header.blockId} size=${header.size}`);
     switch (header.type) {
       case BlockType.GlobalData:
         file.globals = this.parseGlobals(header);
@@ -149,7 +150,7 @@ export class IpoParser {
    */
   private parseGlobals(header: BlockHeader): GlobalsBlock {
     const types: ValueType[] = [];
-    
+
     for (let i = 0; i < header.size; i++) {
       types.push(this.readU8() as ValueType);
     }
@@ -162,7 +163,7 @@ export class IpoParser {
    */
   private parseConstants(header: BlockHeader): ConstantsBlock {
     const values: StackEntry[] = [];
-    
+
     for (let i = 0; i < header.size; i++) {
       const entry = this.parseConstant();
       values.push(entry);
@@ -212,7 +213,7 @@ export class IpoParser {
    */
   private parseFunction(header: BlockHeader): FunctionBlock {
     const instructions: Instruction[] = [];
-    
+
     for (let i = 0; i < header.size; i++) {
       const raw = this.readU32LE();
       instructions.push({
@@ -232,7 +233,8 @@ export class IpoParser {
    */
   private parseScreen(header: BlockHeader): ScreenBlock {
     const screen: ScreenBlock = { header, lines: [] };
-
+    const allocFunc = this.parseFunction(header);
+    screen.allocFunc = allocFunc;
     // Expect ScreenFunc (0x21) immediately after screen header
     if (this.peekU8() === BlockType.ScreenFunc) {
       const funcHeader = this.parseBlockHeader()!;
@@ -243,7 +245,7 @@ export class IpoParser {
     while (this.peekU8() === BlockType.LineFunc) {
       const lineHeader = this.parseBlockHeader()!;
       const lineFunc = this.parseFunction(lineHeader);
-      
+
       const line: LineBlock = {
         header: lineHeader,
         func: lineFunc,
@@ -272,12 +274,13 @@ export class IpoParser {
    */
   private parseMenu(header: BlockHeader): MenuBlock {
     const menu: MenuBlock = { header, items: [] };
-
+    const initFunc = this.parseFunction(header);
+    menu.func = initFunc;
     // Parse MenuItemFunc (0x24) blocks
     while (this.peekU8() === BlockType.MenuItemFunc) {
       const itemHeader = this.parseBlockHeader()!;
       const itemFunc = this.parseFunction(itemHeader);
-      
+
       menu.items.push({
         header: itemHeader,
         func: itemFunc,
@@ -293,12 +296,13 @@ export class IpoParser {
    */
   private parseStateMachine(header: BlockHeader): StateMachineBlock {
     const sm: StateMachineBlock = { header, states: [] };
-
+    const initFunc = this.parseFunction(header);
+    sm.func = initFunc;
     // Parse StateFunc (0x25) blocks
     while (this.peekU8() === BlockType.StateFunc) {
       const stateHeader = this.parseBlockHeader()!;
       const stateFunc = this.parseFunction(stateHeader);
-      
+
       sm.states.push({
         header: stateHeader,
         func: stateFunc,

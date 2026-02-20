@@ -4,7 +4,6 @@
  * Unified command-line interface for IPO toolchain
  */
 import { Command } from 'commander';
-import { VERSION } from '@inpax/core';
 import { disCommand } from './commands/dis.js';
 import { runCommand } from './commands/run.js';
 import { infoCommand } from './commands/info.js';
@@ -15,7 +14,7 @@ const program = new Command();
 program
   .name('inpax')
   .description('INPAX - IPO bytecode toolchain')
-  .version(VERSION.INPAX);
+  .version('0.1.0');
 
 // Register commands
 program.addCommand(disCommand);

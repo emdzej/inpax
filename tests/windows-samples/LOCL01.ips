@@ -1,7 +1,0 @@
-// LOCL01.ips - Local variable test  
-inpainit() { }  
-inpaexit() { }  
-test_func() {  
-    int local_x;  
-    local_x = 42;  
-} 

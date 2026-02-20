@@ -10,7 +10,7 @@ import {
   CallTarget,
   TypeMarker,
   Value,
-} from '../types/index.js';
+} from '@inpax/core';
 import { Stack } from './stack.js';
 import { SystemFunctions, SystemFunctionHandler } from '../runtime/system-functions.js';
 
@@ -111,7 +111,7 @@ export class VM {
 
     while (this.state.running && this.state.currentBlock) {
       const block = this.state.currentBlock;
-      
+
       if (this.state.ip >= block.instructions.length) {
         // End of function - implicit return
         this.doReturn();
@@ -207,13 +207,13 @@ export class VM {
 
   // ============ Opcode implementations ============
 
-  private opLoad(scope: number, index: number): void {
+  private opLoad(scope: Scope, index: number): void {
     const entry = this.resolveVariable(scope, index);
     // Push copy
     this.stack.push({ ...entry, flags: 1 });
   }
 
-  private opPushRef(scope: number, index: number): void {
+  private opPushRef(scope: Scope, index: number): void {
     let actualIndex = index;
     if (scope === Scope.Local) {
       actualIndex = this.stack.getFrameOffset() + index;
@@ -221,7 +221,7 @@ export class VM {
     this.stack.push(Stack.createRef(scope, actualIndex));
   }
 
-  private opLoadInOutRef(scope: number, index: number): void {
+  private opLoadInOutRef(scope: Scope, index: number): void {
     // Load bidirectional reference
     this.opPushRef(scope, index);
   }
@@ -245,12 +245,12 @@ export class VM {
     }
   }
 
-  private opPushR(scope: number, index: number): void {
+  private opPushR(scope: Scope, index: number): void {
     // Push store target reference
     this.opPushRef(scope, index);
   }
 
-  private opPushRefStore(scope: number, index: number): void {
+  private opPushRefStore(scope: Scope, index: number): void {
     // Push reference for out parameter
     this.opPushRef(scope, index);
   }
@@ -395,7 +395,7 @@ export class VM {
 
   private doReturn(): void {
     const ret = this.stack.popReturnAddress();
-    
+
     if (ret.blockId === -1) {
       // Return from top-level - stop execution
       this.state.running = false;
@@ -431,7 +431,7 @@ export class VM {
 
   // ============ Helper methods ============
 
-  private resolveVariable(scope: number, index: number): StackEntry {
+  private resolveVariable(scope: Scope, index: number): StackEntry {
     switch (scope) {
       case Scope.Global:
         return this.globals[index];

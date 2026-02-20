@@ -14,6 +14,9 @@
   },
   "keywords": ["inpa", "ipo", "interpreter", "bmw", "diagnostics"],
   "license": "MIT",
+  "dependencies": {
+    "@inpax/core": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0",

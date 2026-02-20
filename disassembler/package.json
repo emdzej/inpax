@@ -14,10 +14,16 @@
     "test": "vitest",
     "clean": "rm -rf dist/"
   },
-  "keywords": ["inpa", "ipo", "disassembler", "bmw"],
+  "keywords": [
+    "inpa",
+    "ipo",
+    "disassembler",
+    "bmw"
+  ],
   "license": "MIT",
   "dependencies": {
-    "@inpax/interpreter": "workspace:*"
+    "@inpax/interpreter": "workspace:*",
+    "@inpax/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -8,7 +8,7 @@ import {
   ValueType,
   IpoFile,
   FunctionBlock,
-} from '@inpax/interpreter';
+} from '@inpax/core';
 
 /** Opcode names */
 export const OPCODE_NAMES: Record<number, string> = {

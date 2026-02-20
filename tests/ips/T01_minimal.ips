@@ -1,9 +1,0 @@
-#include "inpa.h"
-
-inpainit()
-{
-}
-
-inpaexit()
-{
-}

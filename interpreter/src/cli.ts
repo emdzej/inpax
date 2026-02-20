@@ -9,7 +9,7 @@ import { parseIpo, VM } from './index.js';
 
 function main(): void {
   const args = process.argv.slice(2);
-  
+    console.log('INPAX Interpreter CLI');
   if (args.length === 0) {
     console.log('Usage: inpax-run <file.ipo>');
     console.log('');
@@ -31,23 +31,23 @@ function main(): void {
   try {
     console.log(`Loading: ${filename}`);
     const buffer = readFileSync(filename);
-    
+
     console.log('Parsing IPO file...');
     const ipo = parseIpo(buffer);
-    
+
     console.log(`Version: ${ipo.header.versionHi}.${ipo.header.versionLo}`);
     console.log(`Globals: ${ipo.globals.types.length}`);
     console.log(`Constants: ${ipo.constants.values.length}`);
     console.log(`Functions: ${ipo.functions.size}`);
     console.log(`Screens: ${ipo.screens.size}`);
     console.log(`Menus: ${ipo.menus.size}`);
-    
+
     if (debug) {
       console.log('\n--- Functions ---');
       for (const [id, func] of ipo.functions) {
         console.log(`  ${id}: ${func.header.name} (${func.instructions.length} instructions)`);
       }
-      
+
       console.log('\n--- Constants ---');
       for (let i = 0; i < ipo.constants.values.length; i++) {
         const c = ipo.constants.values[i];
@@ -63,9 +63,9 @@ function main(): void {
     console.log('\n--- Running ---\n');
     const vm = new VM(ipo);
     vm.run();
-    
+
     console.log('\n--- Execution complete ---');
-    
+
   } catch (error) {
     console.error('Error:', error instanceof Error ? error.message : error);
     process.exit(1);

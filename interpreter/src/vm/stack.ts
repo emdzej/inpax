@@ -1,4 +1,4 @@
-import { StackEntry, CallFrame, ReturnAddress, ValueType, Value } from '../types/index.js';
+import { StackEntry, CallFrame, ReturnAddress, ValueType, Value } from '@inpax/core';
 
 /**
  * VM Stack - manages value stack and call frames
@@ -103,7 +103,7 @@ export class Stack {
     if (!frame) {
       throw new Error('Call stack underflow');
     }
-    
+
     // Truncate value stack to frame boundary
     this.values.length = this.frameOffset;
     this.frameOffset = frame.frameOffset;
