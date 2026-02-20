@@ -22,6 +22,41 @@ export interface ScreenResizeEvent {
   height: number;
 }
 
+// === State Machine Events ===
+
+export interface StateChangedEvent {
+  previousState: number;
+  newState: number;
+  stateMachine: number;
+}
+
+export interface StateMachineEnteredEvent {
+  stateMachine: number;
+  fromStateMachine?: number;
+}
+
+export interface StateMachineReturnedEvent {
+  stateMachine: number;
+  toStateMachine: number;
+}
+
+// === Timer Events ===
+
+export interface TimerExpiredEvent {
+  timerNum: number;
+}
+
+// === Job Control Events ===
+
+export interface JobStatusEvent {
+  status: number;
+}
+
+export interface ScriptChangedEvent {
+  previousScript: string;
+  newScript: string;
+}
+
 // === EDIABAS Events ===
 
 export interface JobCompleteEvent {
@@ -33,6 +68,12 @@ export interface JobCompleteEvent {
 export interface JobErrorEvent {
   code: number;
   message: string;
+}
+
+export interface FsLesenCompleteEvent {
+  ecu: string;
+  fileName: string;
+  faultCount: number;
 }
 
 // === Event Maps ===
@@ -47,9 +88,28 @@ export interface UIEvents {
   'messagebox:closed': (event: MessageBoxClosedEvent) => void;
 }
 
+export interface StateMachineEvents {
+  'state:changed': (event: StateChangedEvent) => void;
+  'statemachine:entered': (event: StateMachineEnteredEvent) => void;
+  'statemachine:returned': (event: StateMachineReturnedEvent) => void;
+}
+
+export interface TimerEvents {
+  'timer:expired': (event: TimerExpiredEvent) => void;
+}
+
+export interface JobControlEvents {
+  'job:started': () => void;
+  'job:stopped': () => void;
+  'job:status': (event: JobStatusEvent) => void;
+  'script:changed': (event: ScriptChangedEvent) => void;
+  'script:selected': (event: { script: string }) => void;
+}
+
 export interface EdiabasEvents {
   'job:complete': (event: JobCompleteEvent) => void;
   'job:error': (event: JobErrorEvent) => void;
+  'fs:complete': (event: FsLesenCompleteEvent) => void;
   'connection:lost': () => void;
   'connection:restored': () => void;
 }
@@ -57,4 +117,14 @@ export interface EdiabasEvents {
 export interface Inp1Events {
   'job:complete': (event: JobCompleteEvent) => void;
   'job:error': (event: JobErrorEvent) => void;
+  'state:changed': (event: { state: number }) => void;
 }
+
+// === Aggregate Runtime Events ===
+
+/** All events that can be emitted by the runtime */
+export type RuntimeEvents = 
+  & UIEvents 
+  & StateMachineEvents 
+  & TimerEvents 
+  & JobControlEvents;
