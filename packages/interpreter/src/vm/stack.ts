@@ -100,10 +100,10 @@ export class Stack {
    * Pop call frame and restore previous
    */
   popFrame(): void {
-    console.log(this.callStack);
     const frame = this.callStack.pop();
     if (!frame) {
-      throw new Error('Call stack underflow');
+        return;
+      //throw new Error('Call stack underflow');
     }
 
     // Truncate value stack to frame boundary
@@ -126,7 +126,8 @@ export class Stack {
    */
   popReturnAddress(): ReturnAddress {
     if (this.callStack.length === 0) {
-      throw new Error('Call stack underflow');
+         return { blockId: -1, ip: -1 };
+      //throw new Error('Call stack underflow');
     }
     return this.callStack[this.callStack.length - 1].returnAddress;
   }

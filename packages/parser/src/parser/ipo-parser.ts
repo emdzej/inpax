@@ -98,7 +98,6 @@ export class IpoParser {
    * Parse block based on type
    */
   private parseBlock(file: IpoFile, header: BlockHeader): void {
-    console.log(`Parsing block: type=0x${header.type.toString(16)} name="${header.name}" id=${header.blockId} size=${header.size}`);
     switch (header.type) {
       case BlockType.GlobalData:
         file.globals = this.parseGlobals(header);
