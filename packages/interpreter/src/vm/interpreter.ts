@@ -196,7 +196,7 @@ export class VM {
         break;
 
       case Opcode.PUSHIMM:
-        this.opPushImm(operand2);
+        this.opPushImm(operand1, operand2);  // operand1=type, operand2=value
         break;
 
       default:
@@ -310,8 +310,9 @@ export class VM {
   }
 
   private opJmpNZ(offset: number): boolean {
-    const entry = this.stack.pop();
-    if (entry.value) {
+    // JMPNZ: Jump if condition register is FALSE (0)
+    // Stack is unchanged - uses vm.condition set by ALU comparison
+    if (this.state.condition === 0) {
       this.state.ip = offset;
       return true;
     }
@@ -451,6 +452,7 @@ export class VM {
 
     this.state.currentBlock = callerFunc;
     this.state.ip = ret.ip;
+    this.state.condition = 0;  // Reset condition register on return
     this.stack.popFrame();
   }
 
@@ -468,12 +470,41 @@ export class VM {
     });
   }
 
-  private opPushImm(index: number): void {
-    const constant = this.ipo.constants.values[index];
-    if (!constant) {
-      throw new Error(`Constant not found: ${index}`);
+  private opPushImm(typeMarker: number, rawValue: number): void {
+    // PUSHIMM: Push immediate value directly (no constant pool lookup)
+    // operand1 = type marker (0x50-0x53)
+    // operand2 = immediate value
+    let type: ValueType;
+    let value: Value;
+
+    switch (typeMarker) {
+      case 0x50: // bool
+        type = ValueType.Bool;
+        value = rawValue !== 0;
+        break;
+      case 0x51: // int (s16)
+        type = ValueType.Int;
+        // Sign extend 16-bit value
+        value = rawValue > 0x7FFF ? rawValue - 0x10000 : rawValue;
+        break;
+      case 0x52: // byte (u8)
+        type = ValueType.Byte;
+        value = rawValue & 0xFF;
+        break;
+      case 0x53: // long (s32, but only 16-bit immediate)
+        type = ValueType.Long;
+        value = rawValue > 0x7FFF ? rawValue - 0x10000 : rawValue;
+        break;
+      default:
+        type = ValueType.Int;
+        value = rawValue;
     }
-    this.stack.push({ ...constant, flags: 1 });
+
+    this.stack.push({
+      type,
+      flags: 1,
+      value,
+    });
   }
 
   // ============ Helper methods ============
