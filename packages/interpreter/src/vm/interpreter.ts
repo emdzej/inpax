@@ -148,7 +148,7 @@ export class VM {
         break;
 
       case Opcode.MOVE:
-        this.opMove();
+        this.opMove(operand2);  // operand2 = count of items to pop
         break;
 
       case Opcode.PUSHR:
@@ -227,16 +227,21 @@ export class VM {
     this.opPushRef(scope, index);
   }
 
-  private opMove(): void {
-    const value = this.stack.pop();
-    const target = this.stack.pop();
-
-    if (target.refInfo) {
-      // Store to reference target
-      const dest = this.resolveVariable(target.refInfo.scope, target.refInfo.index);
-      dest.value = value.value;
-      dest.type = value.type;
+  private opMove(count: number): void {
+    // MOVE pops 'count' items from stack
+    // If top-of-stack is bool, update condition register
+    // The actual assignment happens through the reference mechanism:
+    // stack has [target_ref, value] - popping performs the store
+    
+    const top = this.stack.peek();
+    
+    // Update condition register if top is boolean
+    if (top.type === ValueType.Bool) {
+      this.state.condition = top.value ? 1 : 0;
     }
+    
+    // Pop count items (this performs the assignment via ref mechanism)
+    this.stack.popN(count);
   }
 
   private opPushR(scope: Scope, index: number): void {
