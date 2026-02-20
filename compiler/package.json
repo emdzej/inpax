@@ -1,0 +1,24 @@
+{
+  "name": "@inpax/compiler",
+  "version": "0.1.0",
+  "description": "INPA IPS to IPO compiler",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "inpax-compile": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "clean": "rm -rf dist/"
+  },
+  "keywords": ["inpa", "ips", "ipo", "compiler", "bmw"],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
