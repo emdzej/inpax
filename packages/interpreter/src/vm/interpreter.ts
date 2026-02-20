@@ -16,6 +16,11 @@ import { SystemFunctionDispatcher } from '@inpax/dispatcher';
 import { createNullRuntime } from '@inpax/providers';
 import { Stack } from './stack.js';
 import { InternalFunctions } from '../runtime/internal-functions.js';
+import {
+  collectArguments,
+  writeOutParams,
+  type CollectedArgs,
+} from '../runtime/signature-handler.js';
 
 /**
  * VM State
@@ -426,40 +431,50 @@ export class VM {
       return;
     }
 
-    // Collect arguments from stack
-    const args = this.collectArguments(funcId);
+    // Collect arguments from stack based on signature
+    const collected = collectArguments(funcId, this.stack);
 
-    // Dispatch to provider
-    const result = this.dispatcher.dispatch(funcId, args);
+    // Dispatch to provider with input args only
+    const result = this.dispatcher.dispatch(funcId, collected.inputs);
 
     // Handle async result
+    let returnValue: unknown;
     if (result instanceof Promise) {
-      const value = await result;
-      this.handleReturnValue(funcId, value);
+      returnValue = await result;
     } else {
-      this.handleReturnValue(funcId, result);
+      returnValue = result;
     }
+
+    // Write out params back to stack/globals
+    this.writeOutParams(collected, returnValue);
   }
 
   /**
-   * Collect arguments from stack for system function
+   * Write provider return values to out parameters
    */
-  private collectArguments(funcId: number): unknown[] {
-    // TODO: Use function signature to determine arg count
-    // For now, use frame contents
-    const args: unknown[] = [];
-    // This is simplified - real impl needs signature info
-    return args;
-  }
+  private writeOutParams(collected: CollectedArgs, returnValue: unknown): void {
+    if (collected.outRefs.length === 0) return;
 
-  /**
-   * Handle return value from provider
-   */
-  private handleReturnValue(funcId: number, value: unknown): void {
-    // TODO: Push result to stack based on function signature
-    if (value !== undefined && value !== null) {
-      // Push result
+    // Convert return value to array of out values
+    let outValues: unknown[];
+    
+    if (returnValue === undefined || returnValue === null) {
+      outValues = [];
+    } else if (Array.isArray(returnValue)) {
+      // Provider returned tuple/array - use directly
+      outValues = returnValue;
+    } else {
+      // Single return value - wrap in array
+      outValues = [returnValue];
     }
+
+    writeOutParams(
+      collected.outRefs,
+      collected.outParams,
+      outValues,
+      this.globals,
+      this.stack
+    );
   }
 
   private opCallE(index: number): void {
