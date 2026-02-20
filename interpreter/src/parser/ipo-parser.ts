@@ -8,6 +8,10 @@ import {
   ScreenBlock,
   MenuBlock,
   StateMachineBlock,
+  LineBlock,
+  ControlBlock,
+  MenuItemBlock,
+  StateBlock,
   Instruction,
   StackEntry,
   BlockType,
@@ -128,7 +132,8 @@ export class IpoParser {
       case BlockType.ControlFunc:
       case BlockType.MenuItemFunc:
       case BlockType.StateFunc:
-        // Sub-functions - attached to parent blocks
+        // Sub-functions - should be parsed as part of parent blocks
+        // If we get here, it's an orphan sub-function (shouldn't happen in valid files)
         const subFunc = this.parseFunction(header);
         file.functions.set(header.blockId, subFunc);
         break;
@@ -222,30 +227,93 @@ export class IpoParser {
   }
 
   /**
-   * Parse screen block (placeholder - needs child parsing)
+   * Parse screen block with children
+   * Structure: Screen header -> ScreenFunc (0x21) -> LineFunc (0x22)* -> ControlFunc (0x23)?
    */
   private parseScreen(header: BlockHeader): ScreenBlock {
-    // TODO: Parse child LINE blocks
-    return { header, lines: [] };
+    const screen: ScreenBlock = { header, lines: [] };
+
+    // Expect ScreenFunc (0x21) immediately after screen header
+    if (this.peekU8() === BlockType.ScreenFunc) {
+      const funcHeader = this.parseBlockHeader()!;
+      screen.initFunc = this.parseFunction(funcHeader);
+    }
+
+    // Parse LineFunc (0x22) blocks
+    while (this.peekU8() === BlockType.LineFunc) {
+      const lineHeader = this.parseBlockHeader()!;
+      const lineFunc = this.parseFunction(lineHeader);
+      
+      const line: LineBlock = {
+        header: lineHeader,
+        func: lineFunc,
+        controls: [],
+      };
+
+      // Check for ControlFunc (0x23) after line
+      while (this.peekU8() === BlockType.ControlFunc) {
+        const controlHeader = this.parseBlockHeader()!;
+        const controlFunc = this.parseFunction(controlHeader);
+        line.controls.push({
+          header: controlHeader,
+          func: controlFunc,
+        });
+      }
+
+      screen.lines.push(line);
+    }
+
+    return screen;
   }
 
   /**
-   * Parse menu block (placeholder)
+   * Parse menu block with children
+   * Structure: Menu header -> MenuItemFunc (0x24)*
    */
   private parseMenu(header: BlockHeader): MenuBlock {
-    // TODO: Parse child MENUITEM blocks
-    return { header, items: [] };
+    const menu: MenuBlock = { header, items: [] };
+
+    // Parse MenuItemFunc (0x24) blocks
+    while (this.peekU8() === BlockType.MenuItemFunc) {
+      const itemHeader = this.parseBlockHeader()!;
+      const itemFunc = this.parseFunction(itemHeader);
+      
+      menu.items.push({
+        header: itemHeader,
+        func: itemFunc,
+      });
+    }
+
+    return menu;
   }
 
   /**
-   * Parse state machine block (placeholder)
+   * Parse state machine block with children
+   * Structure: StateMachine header -> StateFunc (0x25)*
    */
   private parseStateMachine(header: BlockHeader): StateMachineBlock {
-    // TODO: Parse child STATE blocks
-    return { header, states: [] };
+    const sm: StateMachineBlock = { header, states: [] };
+
+    // Parse StateFunc (0x25) blocks
+    while (this.peekU8() === BlockType.StateFunc) {
+      const stateHeader = this.parseBlockHeader()!;
+      const stateFunc = this.parseFunction(stateHeader);
+      
+      sm.states.push({
+        header: stateHeader,
+        func: stateFunc,
+      });
+    }
+
+    return sm;
   }
 
   // ============ Buffer reading utilities ============
+
+  private peekU8(): number {
+    if (this.offset >= this.buffer.length) return -1;
+    return this.buffer.readUInt8(this.offset);
+  }
 
   private readU8(): number {
     return this.buffer.readUInt8(this.offset++);
