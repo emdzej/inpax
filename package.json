@@ -10,8 +10,7 @@
     "typecheck": "tsc -b",
     "ci": "pnpm build && pnpm lint && pnpm typecheck && pnpm test",
     "cli": "node packages/cli/dist/index.js",
-    "inpax": "node cli/dist/index.js",
-    "inpax:run": "node interpreter/dist/cli.js"
+    "interpreter": "node packages/interpreter/dist/cli.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

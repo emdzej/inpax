@@ -1,8 +1,2 @@
 packages:
-  - "core"
-  - "cli"
-  - "interpreter"
-  - "disassembler"
-  - "compiler"
-  # Legacy packages (ignored)
-  # - "packages/*"
+  - "packages/*"

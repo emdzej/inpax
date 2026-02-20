@@ -33,7 +33,7 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.10)
 
-  cli:
+  packages/cli:
     dependencies:
       '@inpax/core':
         specifier: workspace:*
@@ -61,7 +61,7 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
-  compiler:
+  packages/compiler:
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -73,13 +73,13 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.10)
 
-  core:
+  packages/core:
     devDependencies:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
 
-  disassembler:
+  packages/disassembler:
     dependencies:
       '@inpax/core':
         specifier: workspace:*
@@ -98,7 +98,7 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.10)
 
-  interpreter:
+  packages/interpreter:
     dependencies:
       '@inpax/core':
         specifier: workspace:*
