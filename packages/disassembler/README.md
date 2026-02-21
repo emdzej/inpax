@@ -1,35 +1,57 @@
-# @inpax/dis
+# @inpax/disassembler
 
-IPO bytecode disassembler.
+IPO bytecode disassembler for INPAX.
 
 ## Usage
 
+```typescript
+import { disassemble, formatDisassembly } from '@inpax/disassembler';
+import { parseIPO } from '@inpax/parser';
+import { readFileSync } from 'fs';
+
+const buffer = new Uint8Array(readFileSync('script.ipo'));
+const ipo = parseIPO(buffer);
+
+// Disassemble all functions
+const result = disassemble(ipo);
+
+// Format as text
+const text = formatDisassembly(result);
+console.log(text);
+```
+
+## Output Format
+
+```asm
+; === Function: inpainit ===
+; Args: 0, Locals: 2
+
+0000: PUSH    0x0001          ; 1
+0003: SYSCALL setscreen       ; System call
+0006: PUSH    "Hello"         ; String
+000A: PUSH    0x0000          ; Row
+000D: PUSH    0x0000          ; Col
+0010: SYSCALL text            ; Display text
+0013: RET                     ; Return
+```
+
+## CLI
+
 ```bash
-# Disassemble
-inpax-dis script.ipo
+# Disassemble to stdout
+inpax dis script.ipo
 
-# Output to file
-inpax-dis script.ipo -o script.dis
-
-# Single function
-inpax-dis script.ipo -f inpainit
-
-# List functions
-inpax-dis script.ipo -l
-
-# File info
-inpax-dis script.ipo -i
+# Save to file
+inpax dis script.ipo -o output.asm
 ```
 
-## Output
+## Options
 
-```
-; Function: inpainit
-; Block ID: 2
-; Instructions: 15
-
-0000: [0F000000] FRAME        ; push call frame
-0001: [11000000] PUSHCONST    const[0] ; string "Test"
-0002: [0C810300] CALL         sys settitle
-0003: [10000100] POP          1
+```typescript
+interface DisassembleOptions {
+  showOffsets?: boolean;    // Show byte offsets
+  showComments?: boolean;   // Add comments
+  resolveStrings?: boolean; // Inline string values
+  resolveLabels?: boolean;  // Use label names for jumps
+}
 ```
