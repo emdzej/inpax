@@ -4,9 +4,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import { TitledBox } from '@mishieck/ink-titled-box';
-import useStdoutDimensions from 'ink-use-stdout-dimensions';
 import type { TuiProvider } from '@inpax/tui-provider';
 import { ScreenArea, FKeyBar, InputDialog, type RunState } from '../components/index.js';
 
@@ -18,10 +17,26 @@ export interface RunScreenProps {
 
 export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
   const { exit } = useApp();
-  const [columns, rows] = useStdoutDimensions();
+  const { stdout } = useStdout();
   const [state, setState] = useState(provider.state);
   const [runState, setRunState] = useState<RunState>('running');
   const [shiftMode, setShiftMode] = useState(false);
+  const [dimensions, setDimensions] = useState({ 
+    columns: stdout?.columns || 80, 
+    rows: stdout?.rows || 24 
+  });
+
+  // Track terminal resize
+  useEffect(() => {
+    if (!stdout) return;
+    
+    const handleResize = () => {
+      setDimensions({ columns: stdout.columns, rows: stdout.rows });
+    };
+    
+    stdout.on('resize', handleResize);
+    return () => { stdout.off('resize', handleResize); };
+  }, [stdout]);
 
   // Subscribe to provider state changes
   useEffect(() => {
@@ -98,8 +113,8 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
   return (
     <Box 
       flexDirection="column" 
-      width={columns} 
-      height={rows}
+      width={dimensions.columns} 
+      height={dimensions.rows}
     >
       {/* Title box with status */}
       <TitledBox
