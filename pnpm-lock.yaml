@@ -221,9 +221,15 @@ importers:
       '@inpax/tui-provider':
         specifier: workspace:*
         version: link:../tui-provider
+      '@mishieck/ink-titled-box':
+        specifier: ^0.4.2
+        version: 0.4.2(ink@5.2.1(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
       ink:
         specifier: ^5.1.0
         version: 5.2.1(@types/react@18.3.28)(react@18.3.1)
+      ink-use-stdout-dimensions:
+        specifier: ^1.0.5
+        version: 1.0.5(ink@5.2.1(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -614,6 +620,13 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@mishieck/ink-titled-box@0.4.2':
+    resolution: {integrity: sha512-4tRyg2n9dPGY66EEchpjHSs+QL5Wdv8kAjRLg/BnXVimwwIl38sLhgphw8dGCGIK2pFz+owLi4vuQBdOdJivBA==}
+    peerDependencies:
+      ink: ^6.0.0
+      react: ^19.1.0
+      typescript: ^5
 
   '@rollup/rollup-android-arm-eabi@4.57.1':
     resolution: {integrity: sha512-A6ehUVSiSaaliTxai040ZpZ2zTevHYbvu/lDoeAteHI8QnaosIzm4qwtezfRg1jOYaUmnzLX1AOD6Z+UJjtifg==}
@@ -1197,6 +1210,12 @@ packages:
   indent-string@5.0.0:
     resolution: {integrity: sha512-m6FAo/spmsW2Ab2fU35JTYwtOKa2yAwXSwgjSv1TJzh4Mh7mC3lzAOVLBprb72XsTrgkEIsl7YrFNAiDiRhIGg==}
     engines: {node: '>=12'}
+
+  ink-use-stdout-dimensions@1.0.5:
+    resolution: {integrity: sha512-rVsqnw4tQEAJUoknU09+zHdDf30GJdkumkHr0iz/TOYMYEZJkYqziQSGJAM+Z+M603EDfO89+Nxyn/Ko2Zknfw==}
+    peerDependencies:
+      ink: '>=2.0.0'
+      react: '>=16.0.0'
 
   ink@5.2.1:
     resolution: {integrity: sha512-BqcUyWrG9zq5HIwW6JcfFHsIYebJkWWb4fczNah1goUO0vv5vneIlfwuS85twyJ5hYR/y18FlAYUxrO9ChIWVg==}
@@ -1985,6 +2004,12 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  '@mishieck/ink-titled-box@0.4.2(ink@5.2.1(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)(typescript@5.9.3)':
+    dependencies:
+      ink: 5.2.1(@types/react@18.3.28)(react@18.3.1)
+      react: 18.3.1
+      typescript: 5.9.3
+
   '@rollup/rollup-android-arm-eabi@4.57.1':
     optional: true
 
@@ -2584,6 +2609,11 @@ snapshots:
   imurmurhash@0.1.4: {}
 
   indent-string@5.0.0: {}
+
+  ink-use-stdout-dimensions@1.0.5(ink@5.2.1(@types/react@18.3.28)(react@18.3.1))(react@18.3.1):
+    dependencies:
+      ink: 5.2.1(@types/react@18.3.28)(react@18.3.1)
+      react: 18.3.1
 
   ink@5.2.1(@types/react@18.3.28)(react@18.3.1):
     dependencies:

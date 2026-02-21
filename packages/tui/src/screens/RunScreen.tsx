@@ -1,9 +1,12 @@
 /**
  * RunScreen - Main INPA execution screen with full layout
+ * Full-screen with titled boxes for title and menu
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
+import { TitledBox } from '@mishieck/ink-titled-box';
+import useStdoutDimensions from 'ink-use-stdout-dimensions';
 import type { TuiProvider } from '@inpax/tui-provider';
 import { ScreenArea, FKeyBar, StatusBar, InputDialog, type RunState } from '../components/index.js';
 
@@ -15,6 +18,7 @@ export interface RunScreenProps {
 
 export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
   const { exit } = useApp();
+  const [columns, rows] = useStdoutDimensions();
   const [state, setState] = useState(provider.state);
   const [runState, setRunState] = useState<RunState>('running');
   const [shiftMode, setShiftMode] = useState(false);
@@ -82,22 +86,34 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
   }, [provider]);
 
   const dialog = provider.getInputDialog();
+  const displayTitle = title || state.title || 'INPA';
+  
+  // Calculate menu title from current selection or default
+  const menuTitle = state.menuTitle || 'Menu';
 
   return (
-    <Box flexDirection="column" height="100%">
-      {/* Title bar */}
-      <Box borderStyle="single" paddingX={1}>
-        <Text bold color="cyan">
-          INPA - {title || state.title}
-        </Text>
-        <Box flexGrow={1} />
-        <Text dimColor>
-          {shiftMode ? '[SHIFT] ' : ''}
-          [1-0]=F1-F10 | [Q]uit | [P]ause
-        </Text>
-      </Box>
+    <Box 
+      flexDirection="column" 
+      width={columns} 
+      height={rows}
+    >
+      {/* Title box */}
+      <TitledBox
+        borderStyle="single"
+        borderColor="cyan"
+        titles={[' INPA ']}
+        paddingX={1}
+      >
+        <Box justifyContent="space-between" width="100%">
+          <Text bold color="cyan">{displayTitle}</Text>
+          <Text dimColor>
+            {shiftMode ? '[SHIFT] ' : ''}
+            [1-0]=F1-F10 | [Q]uit | [P]ause
+          </Text>
+        </Box>
+      </TitledBox>
 
-      {/* Main screen area */}
+      {/* Main content area */}
       <Box flexGrow={1} flexDirection="column">
         <ScreenArea state={state} />
       </Box>
@@ -116,16 +132,22 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
       {/* Status bar */}
       <StatusBar
         state={runState}
-        prompt={state.inputDialog ? 'Input required' : 'Select menu'}
+        prompt={state.inputDialog ? 'Input required' : undefined}
       />
 
-      {/* F-key bar */}
-      <FKeyBar items={provider.getMenuItems()} shift={shiftMode} />
+      {/* F-key bar in titled box */}
+      <TitledBox
+        borderStyle="single"
+        borderColor="yellow"
+        titles={[` ${menuTitle} `]}
+      >
+        <FKeyBar items={provider.getMenuItems()} shift={shiftMode} />
+      </TitledBox>
       
       {/* Help hint */}
       <Box paddingX={1}>
         <Text dimColor>
-          Hold Shift for F11-F20 | Press number keys 1-0 for F1-F10
+          Shift for F11-F20 | Number keys 1-0 for F1-F10
         </Text>
       </Box>
     </Box>
