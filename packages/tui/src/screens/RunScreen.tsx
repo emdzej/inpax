@@ -8,7 +8,7 @@ import { Box, Text, useInput, useApp } from 'ink';
 import { TitledBox } from '@mishieck/ink-titled-box';
 import useStdoutDimensions from 'ink-use-stdout-dimensions';
 import type { TuiProvider } from '@inpax/tui-provider';
-import { ScreenArea, FKeyBar, StatusBar, InputDialog, type RunState } from '../components/index.js';
+import { ScreenArea, FKeyBar, InputDialog, type RunState } from '../components/index.js';
 
 export interface RunScreenProps {
   provider: TuiProvider;
@@ -88,8 +88,12 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
   const dialog = provider.getInputDialog();
   const displayTitle = title || state.title || 'INPA';
   
-  // Calculate menu title from current selection or default
+  // Menu title
   const menuTitle = state.menuTitle || 'Menu';
+  
+  // Status indicator
+  const statusText = runState === 'paused' ? 'PAUSED' : 'RUNNING';
+  const statusColor = runState === 'paused' ? 'yellow' : 'green';
 
   return (
     <Box 
@@ -97,7 +101,7 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
       width={columns} 
       height={rows}
     >
-      {/* Title box */}
+      {/* Title box with status */}
       <TitledBox
         borderStyle="single"
         borderColor="cyan"
@@ -105,9 +109,13 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
         paddingX={1}
       >
         <Box justifyContent="space-between" width="100%">
-          <Text bold color="cyan">{displayTitle}</Text>
+          <Box>
+            <Text bold color="cyan">{displayTitle}</Text>
+            <Text> </Text>
+            <Text color={statusColor} bold>[{statusText}]</Text>
+            {shiftMode && <Text color="magenta"> [SHIFT]</Text>}
+          </Box>
           <Text dimColor>
-            {shiftMode ? '[SHIFT] ' : ''}
             [1-0]=F1-F10 | [Q]uit | [P]ause
           </Text>
         </Box>
@@ -128,12 +136,6 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
           />
         </Box>
       )}
-
-      {/* Status bar */}
-      <StatusBar
-        state={runState}
-        prompt={state.inputDialog ? 'Input required' : undefined}
-      />
 
       {/* F-key bar in titled box */}
       <TitledBox
