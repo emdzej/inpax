@@ -106,6 +106,9 @@ importers:
       '@inpax/parser':
         specifier: workspace:*
         version: link:../parser
+      chalk:
+        specifier: ^5.3.0
+        version: 5.6.2
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
