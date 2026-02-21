@@ -9,6 +9,7 @@ import {
   FunctionBlock,
   SystemFunctionMap,
 } from '@inpax/core';
+import chalk, { type ChalkInstance } from 'chalk';
 
 /** Opcode names */
 export const OPCODE_NAMES: Record<number, string> = {
@@ -33,17 +34,17 @@ export const OPCODE_NAMES: Record<number, string> = {
 
 /** ALU operation names */
 export const ALU_NAMES: Record<AluOp, string> = {
-    [AluOp.ADD]: 'ADD', [AluOp.SUB]: 'SUB', [AluOp.MUL]: 'MUL', [AluOp.DIV]: 'DIV',
-    [AluOp.LT]: 'LT', [AluOp.LE]: 'LE', [AluOp.GT]: 'GT', [AluOp.GE]: 'GE',
-    [AluOp.EQ]: 'EQ', [AluOp.NE]: 'NE', [AluOp.AND]: 'AND', [AluOp.OR]: 'OR',
-    [AluOp.XOR]: 'XOR', [AluOp.NEG]: 'NEG', [AluOp.NOT]: 'NOT',
-    [AluOp.BAND]: 'BAND', [AluOp.BOR]: 'BOR', [AluOp.BXOR]: 'BXOR',
+  [AluOp.ADD]: 'ADD', [AluOp.SUB]: 'SUB', [AluOp.MUL]: 'MUL', [AluOp.DIV]: 'DIV',
+  [AluOp.LT]: 'LT', [AluOp.LE]: 'LE', [AluOp.GT]: 'GT', [AluOp.GE]: 'GE',
+  [AluOp.EQ]: 'EQ', [AluOp.NE]: 'NE', [AluOp.AND]: 'AND', [AluOp.OR]: 'OR',
+  [AluOp.XOR]: 'XOR', [AluOp.NEG]: 'NEG', [AluOp.NOT]: 'NOT',
+  [AluOp.BAND]: 'BAND', [AluOp.BOR]: 'BOR', [AluOp.BXOR]: 'BXOR',
 };
 
 /** Scope names */
 export const SCOPE_NAMES: Record<Scope, string> = {
   [Scope.Global]: 'global', [Scope.Const]: 'const', [Scope.Local]: 'local',
-    [Scope.Screen]: 'screen', [Scope.Menu]: 'menu', [Scope.StateMachine]: 'state',
+  [Scope.Screen]: 'screen', [Scope.Menu]: 'menu', [Scope.StateMachine]: 'state',
 };
 
 /** Value type names */
@@ -54,90 +55,191 @@ export const VALUE_TYPE_NAMES: Record<ValueType, string> = {
   [ValueType.Handle2]: 'handle2', [ValueType.Handle3]: 'handle3',
 };
 
+/** Color scheme for syntax highlighting */
+export interface ColorScheme {
+  address: ChalkInstance;
+  raw: ChalkInstance;
+  mnemonic: ChalkInstance;
+  mnemonicJump: ChalkInstance;
+  mnemonicCall: ChalkInstance;
+  mnemonicRet: ChalkInstance;
+  operand: ChalkInstance;
+  number: ChalkInstance;
+  string: ChalkInstance;
+  label: ChalkInstance;
+  comment: ChalkInstance;
+  funcHeader: ChalkInstance;
+  separator: ChalkInstance;
+}
+
+/** Default color scheme */
+export const DEFAULT_COLORS: ColorScheme = {
+  address: chalk.gray,
+  raw: chalk.dim.cyan,
+  mnemonic: chalk.green,
+  mnemonicJump: chalk.yellow,
+  mnemonicCall: chalk.magenta,
+  mnemonicRet: chalk.red,
+  operand: chalk.white,
+  number: chalk.cyan,
+  string: chalk.yellow,
+  label: chalk.blue.bold,
+  comment: chalk.gray,
+  funcHeader: chalk.cyan.bold,
+  separator: chalk.gray,
+};
+
+/** No-op color scheme (no colors) */
+const NO_COLORS: ColorScheme = {
+  address: chalk.reset,
+  raw: chalk.reset,
+  mnemonic: chalk.reset,
+  mnemonicJump: chalk.reset,
+  mnemonicCall: chalk.reset,
+  mnemonicRet: chalk.reset,
+  operand: chalk.reset,
+  number: chalk.reset,
+  string: chalk.reset,
+  label: chalk.reset,
+  comment: chalk.reset,
+  funcHeader: chalk.reset,
+  separator: chalk.reset,
+};
+
 export interface DisassemblyOptions {
   showRaw?: boolean;
   showAddress?: boolean;
   resolveLabels?: boolean;
   showComments?: boolean;
   indent?: string;
+  colorize?: boolean;
+  colors?: Partial<ColorScheme>;
 }
 
 const DEFAULT_OPTIONS: DisassemblyOptions = {
-  showRaw: true, showAddress: true, resolveLabels: true, showComments: true, indent: '  ',
+  showRaw: true,
+  showAddress: true,
+  resolveLabels: true,
+  showComments: true,
+  indent: '  ',
+  colorize: false,
 };
+
+function getColors(options: DisassemblyOptions): ColorScheme {
+  if (!options.colorize) return NO_COLORS;
+  return { ...DEFAULT_COLORS, ...options.colors };
+}
+
+function getMnemonicColor(opcode: number, colors: ColorScheme): ChalkInstance {
+  switch (opcode) {
+    case Opcode.JMP:
+    case Opcode.JMPNZ:
+      return colors.mnemonicJump;
+    case Opcode.CALL:
+    case Opcode.CALLE:
+      return colors.mnemonicCall;
+    case Opcode.RET:
+      return colors.mnemonicRet;
+    default:
+      return colors.mnemonic;
+  }
+}
 
 /** Format single instruction */
 export function formatInstruction(
-  instr: Instruction, index: number, ipo?: IpoFile, options: DisassemblyOptions = {}
+  instr: Instruction,
+  index: number,
+  ipo?: IpoFile,
+  options: DisassemblyOptions = {}
 ): string {
   const opts = { ...DEFAULT_OPTIONS, ...options };
+  const c = getColors(opts);
   const parts: string[] = [];
 
-  if (opts.showAddress) parts.push(`${index.toString(16).padStart(4, '0')}:`);
+  if (opts.showAddress) {
+    parts.push(c.address(`${index.toString(16).padStart(4, '0')}:`));
+  }
+
   if (opts.showRaw) {
     const raw = instr.raw.toString(16).padStart(8, '0').toUpperCase();
-    parts.push(`[${raw}]`);
+    parts.push(c.raw(`[${raw}]`));
   }
 
   const mnemonic = OPCODE_NAMES[instr.opcode] || `UNK_${instr.opcode.toString(16)}`;
-  const operands = formatOperands(instr.opcode, instr.operand1, instr.operand2, ipo);
-  parts.push(operands ? `${mnemonic.padEnd(12)} ${operands}` : mnemonic);
+  const mnemonicColor = getMnemonicColor(instr.opcode, c);
+  const operands = formatOperands(instr.opcode, instr.operand1, instr.operand2, ipo, c);
+
+  parts.push(operands
+    ? `${mnemonicColor(mnemonic.padEnd(12))} ${operands}`
+    : mnemonicColor(mnemonic));
 
   if (opts.showComments) {
     const comment = getComment(instr.opcode);
-    if (comment) parts.push(`; ${comment}`);
+    if (comment) parts.push(c.comment(`; ${comment}`));
   }
 
   return parts.join(' ');
 }
 
-function formatOperands(opcode: number, op1: number, op2: number, ipo?: IpoFile): string {
+function formatOperands(
+  opcode: number,
+  op1: number,
+  op2: number,
+  ipo: IpoFile | undefined,
+  c: ColorScheme
+): string {
   switch (opcode) {
-    case Opcode.LOAD: case Opcode.PUSHREF: case Opcode.LOADINOUTREF:
-    case Opcode.PUSHR: case Opcode.PUSHREFSTORE:
-      return formatScopeIndex(op1, op2);
+    case Opcode.LOAD:
+    case Opcode.PUSHREF:
+    case Opcode.LOADINOUTREF:
+    case Opcode.PUSHR:
+    case Opcode.PUSHREFSTORE:
+      return formatScopeIndex(op1, op2, c);
     case Opcode.NOP:
       return '';
     case Opcode.ALLOC:
-      return op2.toString();
-    case Opcode.JMP: case Opcode.JMPNZ:
-      return `@${op2}`;
+      return c.number(op2.toString());
+    case Opcode.JMP:
+    case Opcode.JMPNZ:
+      return c.label(`@${op2}`);
     case Opcode.ALU:
-      return ALU_NAMES[op1 as AluOp] || `op_${op1.toString(16)}`;
+      return c.operand(ALU_NAMES[op1 as AluOp] || `op_${op1.toString(16)}`);
     case Opcode.CALL:
       if (op1 === CallTarget.UserFunction) {
         const name = ipo?.functions.get(op2)?.header.name || `func_${op2}`;
-        return `user ${name}`;
+        return `${c.operand('user')} ${c.label(name)}`;
       }
-      return `sys ${SystemFunctionMap.get(op2)?.name || `sys_${op2.toString(16)}`}`;
+      return `${c.operand('sys')} ${c.label(SystemFunctionMap.get(op2)?.name || `sys_${op2.toString(16)}`)}`;
     case Opcode.CALLE:
-      return `dll[${ipo?.constants.values[op2]?.value || op2}]`;
+      return `${c.operand('dll')}${c.separator('[')}${c.string(String(ipo?.constants.values[op2]?.value || op2))}${c.separator(']')}`;
     case Opcode.LOGTABLE:
-      return `table[${op2}]`;
+      return `${c.operand('table')}${c.separator('[')}${c.number(op2.toString())}${c.separator(']')}`;
     case Opcode.PUSHIMM:
-      return formatConstant(op2, ipo);
+      return formatConstant(op2, ipo, c);
     default:
-      return (op1 || op2) ? `${op1.toString(16)}, ${op2.toString(16)}` : '';
+      return (op1 || op2)
+        ? `${c.number(op1.toString(16))}${c.separator(', ')}${c.number(op2.toString(16))}`
+        : '';
   }
 }
 
-function formatScopeIndex(scope: Scope, index: number): string {
+function formatScopeIndex(scope: Scope, index: number, c: ColorScheme): string {
   const name = SCOPE_NAMES[scope];
-  if (name) return `${name}[${index}]`;
-  if (scope >= 0x40) return `ui_${(scope - 0x40).toString(16)}[${index}]`;
-  return `scope_${scope.toString(16)}[${index}]`;
+  if (name) return `${c.operand(name)}${c.separator('[')}${c.number(index.toString())}${c.separator(']')}`;
+  if (scope >= 0x40) return `${c.operand(`ui_${(scope - 0x40).toString(16)}`)}${c.separator('[')}${c.number(index.toString())}${c.separator(']')}`;
+  return `${c.operand(`scope_${scope.toString(16)}`)}${c.separator('[')}${c.number(index.toString())}${c.separator(']')}`;
 }
 
-function formatConstant(index: number, ipo?: IpoFile): string {
-  if (!ipo) return `const[${index}]`;
-  const c = ipo.constants.values[index];
-  if (!c) return `const[${index}]`;
-  const type = VALUE_TYPE_NAMES[c.type] || 'unknown';
-  if (c.type === ValueType.String) {
-    const str = String(c.value).replace(/\n/g, '\\n').slice(0, 30);
-    return `const[${index}] ; ${type} "${str}"`;
+function formatConstant(index: number, ipo: IpoFile | undefined, c: ColorScheme): string {
+  if (!ipo) return `${c.operand('const')}${c.separator('[')}${c.number(index.toString())}${c.separator(']')}`;
+  const cv = ipo.constants.values[index];
+  if (!cv) return `${c.operand('const')}${c.separator('[')}${c.number(index.toString())}${c.separator(']')}`;
+  const type = VALUE_TYPE_NAMES[cv.type] || 'unknown';
+  if (cv.type === ValueType.String) {
+    const str = String(cv.value).replace(/\n/g, '\\n').slice(0, 30);
+    return `${c.operand('const')}${c.separator('[')}${c.number(index.toString())}${c.separator(']')} ${c.comment(`; ${type}`)} ${c.string(`"${str}"`)}`;
   }
-  return `const[${index}] ; ${type} ${c.value}`;
+  return `${c.operand('const')}${c.separator('[')}${c.number(index.toString())}${c.separator(']')} ${c.comment(`; ${type} ${cv.value}`)}`;
 }
 
 function getComment(opcode: number): string {
@@ -154,15 +256,19 @@ function getComment(opcode: number): string {
 
 /** Disassemble function block */
 export function disassembleFunction(
-  func: FunctionBlock, ipo?: IpoFile, options: DisassemblyOptions = {}
+  func: FunctionBlock,
+  ipo?: IpoFile,
+  options: DisassemblyOptions = {}
 ): string[] {
   const opts = { ...DEFAULT_OPTIONS, ...options };
+  const c = getColors(opts);
+
   const lines: string[] = [
-    `; ========================================`,
-    `; Function: ${func.header.name}`,
-    `; Block ID: ${func.header.blockId}`,
-    `; Instructions: ${func.instructions.length}`,
-    `; ========================================`,
+    c.separator(`; ========================================`),
+    c.funcHeader(`; Function: ${func.header.name}`),
+    c.comment(`; Block ID: ${func.header.blockId}`),
+    c.comment(`; Instructions: ${func.instructions.length}`),
+    c.separator(`; ========================================`),
     '',
   ];
 
@@ -176,7 +282,9 @@ export function disassembleFunction(
   }
 
   for (let i = 0; i < func.instructions.length; i++) {
-    if (opts.resolveLabels && jumpTargets.has(i)) lines.push(`L${i}:`);
+    if (opts.resolveLabels && jumpTargets.has(i)) {
+      lines.push(c.label(`L${i}:`));
+    }
     lines.push(opts.indent + formatInstruction(func.instructions[i], i, ipo, opts));
   }
 
@@ -185,12 +293,15 @@ export function disassembleFunction(
 
 /** Disassemble entire IPO file */
 export function disassembleIpo(ipo: IpoFile, options: DisassemblyOptions = {}): string[] {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const c = getColors(opts);
+
   const lines: string[] = [
-    `; IPO Disassembly`,
-    `; Version: ${ipo.header.versionHi}.${ipo.header.versionLo}`,
+    c.funcHeader(`; IPO Disassembly`),
+    c.comment(`; Version: ${ipo.header.versionHi}.${ipo.header.versionLo}`),
     '',
-    `; Globals: ${ipo.globals.types.length}`,
-    `; Constants: ${ipo.constants.values.length}`,
+    c.comment(`; Globals: ${ipo.globals.types.length}`),
+    c.comment(`; Constants: ${ipo.constants.values.length}`),
     '',
   ];
 

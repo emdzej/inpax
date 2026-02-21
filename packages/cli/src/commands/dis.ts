@@ -12,6 +12,7 @@ export const disCommand = new Command('dis')
   .argument('<file>', 'IPO file to disassemble')
   .option('-o, --output <file>', 'Output file (default: stdout)')
   .option('-f, --function <name>', 'Disassemble specific function only')
+  .option('-c, --color', 'Enable colored output')
   .option('--no-raw', 'Hide raw hex bytes')
   .option('--no-comments', 'Hide comments')
   .option('--no-labels', 'Do not resolve jump labels')
@@ -31,6 +32,7 @@ export const disCommand = new Command('dis')
         showAddress: true,
         resolveLabels: options.labels !== false,
         showComments: options.comments !== false,
+        colorize: options.color === true && !options.output, // No colors when outputting to file
       };
 
       let lines: string[];
