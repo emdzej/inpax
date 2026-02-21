@@ -29,21 +29,24 @@ export function FKeyBar({ items, shift = false }: FKeyBarProps) {
   }
 
   return (
-    <Box borderStyle="single" paddingX={1}>
+    <Box>
       {slots.map((slot, i) => (
-        <Box key={i} width={12} justifyContent="center" borderStyle="single" borderLeft={i > 0} borderTop={false} borderBottom={false} borderRight={false}>
-          {slot ? (
-            <Box flexDirection="column" alignItems="center">
-              <Text dimColor>{slot.key}</Text>
-              <Text bold>{slot.label.slice(0, 10)}</Text>
-            </Box>
-          ) : (
-            <Box flexDirection="column" alignItems="center">
-              <Text dimColor>F{i + 1}</Text>
-              <Text> </Text>
-            </Box>
-          )}
-        </Box>
+        <React.Fragment key={i}>
+          {i > 0 && <Text dimColor>│</Text>}
+          <Box width={10} justifyContent="center">
+            {slot ? (
+              <Box flexDirection="column" alignItems="center">
+                <Text dimColor>{slot.key}</Text>
+                <Text bold>{slot.label.slice(0, 8)}</Text>
+              </Box>
+            ) : (
+              <Box flexDirection="column" alignItems="center">
+                <Text dimColor>F{i + 1}</Text>
+                <Text dimColor>-</Text>
+              </Box>
+            )}
+          </Box>
+        </React.Fragment>
       ))}
     </Box>
   );
