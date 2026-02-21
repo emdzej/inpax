@@ -1,0 +1,41 @@
+{
+  "name": "@inpax/ediabasx-provider",
+  "version": "0.1.0",
+  "description": "EdiabasX provider for INPA interpreter - uses @ediabasx/ediabas for real ECU communication",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@inpax/interfaces": "workspace:*",
+    "eventemitter3": "^5.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emdzej/inpax.git",
+    "directory": "packages/ediabasx-provider"
+  },
+  "keywords": [
+    "ediabas",
+    "bmw",
+    "diagnostics",
+    "inpa",
+    "obd"
+  ]
+}
