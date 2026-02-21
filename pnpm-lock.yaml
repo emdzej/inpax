@@ -133,6 +133,19 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
+  packages/ediabasx-provider:
+    dependencies:
+      '@inpax/interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
+      eventemitter3:
+        specifier: ^5.0.1
+        version: 5.0.4
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/ini-parser:
     devDependencies:
       tsx:
