@@ -41,6 +41,12 @@ importers:
       '@inpax/core':
         specifier: workspace:*
         version: link:../core
+      '@inpax/dis':
+        specifier: workspace:*
+        version: link:../disassembler
+      '@inpax/parser':
+        specifier: workspace:*
+        version: link:../parser
       '@inpax/tui':
         specifier: workspace:*
         version: link:../tui

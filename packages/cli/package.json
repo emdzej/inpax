@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@inpax/core": "workspace:*",
+    "@inpax/parser": "workspace:*",
+    "@inpax/dis": "workspace:*",
     "@inpax/tui": "workspace:*",
     "@inpax/tui-provider": "workspace:*",
     "@inpax/cli-provider": "workspace:*",
