@@ -1,96 +1,68 @@
 # @inpax/compiler
 
-INPA IPS to IPO compiler written in TypeScript.
+IPS source code compiler for INPAX (Work in Progress).
 
-## Usage
+## Status
 
-```bash
-# Compile IPS to IPO
-inpax-compile script.ips -o script.ipo
+🚧 **In Development** — Not yet functional.
 
-# Show tokens
-inpax-compile script.ips --tokens
+## Planned Usage
 
-# Show AST
-inpax-compile script.ips --ast
+```typescript
+import { compile } from '@inpax/compiler';
+import { readFileSync, writeFileSync } from 'fs';
+
+const source = readFileSync('script.ips', 'utf-8');
+const ipo = compile(source);
+writeFileSync('script.ipo', ipo);
 ```
 
-## Example IPS
+## IPS Language
 
-```basic
-; Test script
-global
-  int counter
-  string message
+INPA scripts use a C-like language:
 
-const
-  int MAX_COUNT = 100
-  string TITLE = "Test"
+```c
+// Screen definition
+SCREEN my_screen()
+{
+    textout("Hello World", 0, 0);
+}
 
-function inpainit()
-  settitle(TITLE)
-  counter = 0
-endfunc
+// Menu definition  
+MENU main_menu()
+{
+    setitem(1, "Start", TRUE);
+    setitem(10, "Exit", TRUE);
+}
 
-function inpaexit()
-endfunc
+// Entry point
+PROC inpainit()
+{
+    settitle("My Script");
+    setscreen(my_screen, TRUE);
+    setmenu(main_menu);
+}
 
-function main()
-  var
-    int i
-  
-  while counter < MAX_COUNT
-    counter = counter + 1
-  wend
-  
-  if counter == MAX_COUNT then
-    message = "Done"
-  endif
-endfunc
+// Menu handler
+PROC main_menu_select(item)
+{
+    if (item == 10) {
+        exit();
+    }
+}
 ```
 
-## Architecture
+## Compiler Pipeline
 
 ```
-IPS Source
-    ↓
-  Lexer    (tokens.ts, lexer.ts)
-    ↓
-  Parser   (parser.ts) → AST (types.ts)
-    ↓
- CodeGen   (codegen.ts)
-    ↓
-IPO Binary
+┌─────────┐    ┌────────┐    ┌─────────┐    ┌────────┐
+│  Lexer  │ -> │ Parser │ -> │ Codegen │ -> │  IPO   │
+└─────────┘    └────────┘    └─────────┘    └────────┘
 ```
 
-## Supported Syntax
+## Components
 
-### Types
-- `bool`, `byte`, `int`, `long`, `real`, `string`
-
-### Declarations
-- `global` - Global variables
-- `const` - Constants
-- `var`/`local` - Local variables
-- `function`/`endfunc` - Functions
-
-### Control Flow
-- `if`/`then`/`elseif`/`else`/`endif`
-- `while`/`wend`
-- `for`/`to`/`step`/`next`
-- `repeat`/`until`
-- `select`/`case`/`default`/`endselect`
-
-### Operators
-- Arithmetic: `+`, `-`, `*`, `/`, `%`
-- Comparison: `==`, `!=`, `<>`, `<`, `<=`, `>`, `>=`
-- Logical: `and`, `or`, `not`
-- Bitwise: `&`, `|`, `^`
-
-## TODO
-
-- [ ] Screen/Menu/StateMachine compilation
-- [ ] Parameter directions (in/out/inout)
-- [ ] For loops
-- [ ] Arrays
-- [ ] Full system function mapping
+- **Lexer** — Tokenize IPS source
+- **Parser** — Build AST
+- **Codegen** — Generate bytecode
+- **Linker** — Resolve references, build string table
