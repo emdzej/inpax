@@ -210,7 +210,7 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
             {copyMessage && <Text color="green"> {copyMessage}</Text>}
           </Box>
           <Text dimColor>
-            [C]opy | [Q]uit | [P]ause
+            [1-0]=F1-F10 | Shift=F11-F20 | [C]opy | [P]ause | [Q]uit
           </Text>
         </Box>
       </TitledBox>
@@ -239,13 +239,6 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
       >
         <FKeyBar items={provider.getMenuItems()} shift={shiftMode} />
       </TitledBox>
-      
-      {/* Help hint */}
-      <Box paddingX={1}>
-        <Text dimColor>
-          Shift for F11-F20 | Number keys 1-0 for F1-F10
-        </Text>
-      </Box>
     </Box>
   );
 }
