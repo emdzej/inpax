@@ -61,6 +61,9 @@ export class InternalFunctions {
     // Binary
     this.handlers.set(SystemFunction.GetBinaryDataString, () => this.getBinaryDataString());
 
+    // Screen
+    this.handlers.set(SystemFunction.setscreen, () => this.setscreen());
+
     // State Machine (stubs)
     this.handlers.set(SystemFunction.setstatemachine, () => this.setstatemachine());
     this.handlers.set(SystemFunction.setstate, () => this.setstate());
@@ -168,6 +171,40 @@ export class InternalFunctions {
     }
     
     this.setOutParam(outRef, Stack.createEntry(ValueType.Bool, expired));
+  }
+
+  // ============ Screen ============
+
+  private setscreen(): void {
+    const cyclic = this.popInt() !== 0; // bool as int
+    const handle = this.popInt();
+    
+    // Find screen name by handle
+    const screenName = this.findScreenByHandle(handle);
+    if (!screenName) {
+      console.warn(`[setscreen] Screen not found for handle: ${handle}`);
+      return;
+    }
+    
+    // Activate screen via VM
+    // Note: This is async but system functions are sync - we start it and let it run
+    this.vm.setScreen(handle, cyclic).catch(err => {
+      console.error(`[setscreen] Error activating screen: ${err}`);
+    });
+    
+    // Also notify UI provider for display purposes
+    this.vm.getRuntime().ui.setScreen(handle, cyclic);
+  }
+
+  /**
+   * Find screen name by handle (block ID)
+   */
+  private findScreenByHandle(handle: number): string | null {
+    const ipo = (this.vm as any).ipo;
+    if (!ipo?.screens) return null;
+    
+    const screen = ipo.screens.get(handle);
+    return screen?.header?.name ?? null;
   }
 
   // ============ State Machine ============

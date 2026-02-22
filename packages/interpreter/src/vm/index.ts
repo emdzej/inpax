@@ -11,3 +11,9 @@ export {
   StateMachineExecutorConfig,
   StateMachineExecutorEvents
 } from './statemachine-executor.js';
+export {
+  MainScheduler,
+  MainSchedulerConfig,
+  MainSchedulerEvents,
+  PendingMenuAction
+} from './main-scheduler.js';
