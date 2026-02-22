@@ -6,3 +6,8 @@ export {
   ScreenExecutorConfig,
   ScreenExecutorEvents 
 } from './screen-executor.js';
+export {
+  StateMachineExecutor,
+  StateMachineExecutorConfig,
+  StateMachineExecutorEvents
+} from './statemachine-executor.js';
