@@ -12,14 +12,21 @@
     "lint": "eslint src/",
     "clean": "rm -rf dist/"
   },
-  "keywords": ["inpa", "ipo", "interpreter", "bmw", "diagnostics"],
+  "keywords": [
+    "inpa",
+    "ipo",
+    "interpreter",
+    "bmw",
+    "diagnostics"
+  ],
   "license": "MIT",
   "dependencies": {
     "@inpax/core": "workspace:*",
     "@inpax/dispatcher": "workspace:*",
     "@inpax/interfaces": "workspace:*",
     "@inpax/parser": "workspace:*",
-    "@inpax/providers": "workspace:*"
+    "@inpax/providers": "workspace:*",
+    "eventemitter3": "^5.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
