@@ -142,14 +142,31 @@ export class InternalFunctions {
   private settimer(): void {
     const timeval = this.popInt();
     const timernum = this.popInt();
-    this.timers.set(timernum, { start: Date.now(), duration: timeval });
+    
+    // Delegate to ScreenExecutor if available, otherwise use local timers
+    const executor = this.vm.getScreenExecutor();
+    if (executor) {
+      executor.setTimer(timernum, timeval);
+    } else {
+      this.timers.set(timernum, { start: Date.now(), duration: timeval });
+    }
   }
 
   private testtimer(): void {
     const outRef = this.popRef();
     const timernum = this.popInt();
-    const timer = this.timers.get(timernum);
-    const expired = timer ? (Date.now() - timer.start >= timer.duration) : false;
+    
+    // Delegate to ScreenExecutor if available
+    const executor = this.vm.getScreenExecutor();
+    let expired: boolean;
+    
+    if (executor) {
+      expired = executor.testTimer(timernum);
+    } else {
+      const timer = this.timers.get(timernum);
+      expired = timer ? (Date.now() - timer.start >= timer.duration) : true;
+    }
+    
     this.setOutParam(outRef, Stack.createEntry(ValueType.Bool, expired));
   }
 

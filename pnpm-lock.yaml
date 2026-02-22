@@ -182,6 +182,9 @@ importers:
       '@inpax/providers':
         specifier: workspace:*
         version: link:../providers
+      eventemitter3:
+        specifier: ^5.0.1
+        version: 5.0.4
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

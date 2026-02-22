@@ -1,6 +1,7 @@
 import {
   IpoFile,
   FunctionBlock,
+  ScreenBlock,
   Instruction,
   StackEntry,
   ValueType,
@@ -21,6 +22,7 @@ import {
   writeOutParams,
   type CollectedArgs,
 } from '../runtime/signature-handler.js';
+import { ScreenExecutor, type ScreenExecutorConfig } from './screen-executor.js';
 
 /**
  * VM State
@@ -38,6 +40,8 @@ export interface VMState {
 export interface VMConfig {
   runtime?: IInpaRuntime;
   debug?: boolean;
+  /** Screen executor configuration */
+  screenExecutor?: ScreenExecutorConfig;
 }
 
 /**
@@ -52,6 +56,10 @@ export class VM {
   private dispatcher: SystemFunctionDispatcher;
   private internal: InternalFunctions;
   private debug: boolean;
+  
+  // Screen execution
+  private screenExecutor: ScreenExecutor | null = null;
+  private screenExecutorConfig: ScreenExecutorConfig;
 
   constructor(ipo: IpoFile, config: VMConfig = {}) {
     this.ipo = ipo;
@@ -67,6 +75,7 @@ export class VM {
     this.runtime = config.runtime ?? createNullRuntime();
     this.dispatcher = new SystemFunctionDispatcher(this.runtime);
     this.internal = new InternalFunctions(this);
+    this.screenExecutorConfig = config.screenExecutor ?? {};
   }
 
   /**
@@ -485,6 +494,13 @@ export class VM {
     const ret = this.stack.popReturnAddress();
 
     if (ret.blockId === -1) {
+      // Normal end of execution (from run())
+      this.state.running = false;
+      return;
+    }
+    
+    if (ret.blockId === -2) {
+      // Sentinel from executeBlock() - stop execution
       this.state.running = false;
       return;
     }
@@ -577,5 +593,90 @@ export class VM {
 
   stop(): void {
     this.state.running = false;
+    if (this.screenExecutor) {
+      this.screenExecutor.stop();
+    }
+  }
+
+  // ============ Screen Execution API ============
+
+  /**
+   * Execute a function block (used by ScreenExecutor)
+   * Runs the block to completion and returns
+   */
+  async executeBlock(block: FunctionBlock): Promise<void> {
+    // Save current state
+    const savedBlock = this.state.currentBlock;
+    const savedIp = this.state.ip;
+    const savedRunning = this.state.running;
+    
+    // Push a sentinel return address
+    this.stack.pushReturnAddress(-2, 0);
+    
+    // Execute the block
+    this.callFunction(block);
+    await this.execute();
+    
+    // Restore state
+    this.state.currentBlock = savedBlock;
+    this.state.ip = savedIp;
+    this.state.running = savedRunning;
+  }
+
+  /**
+   * Set and start a screen with the given frequent flag
+   * @param screenId Screen block ID or handle
+   * @param frequentFlag Whether to refresh continuously
+   */
+  async setScreen(screenId: number, frequentFlag: boolean): Promise<void> {
+    // Stop existing screen executor
+    if (this.screenExecutor) {
+      this.screenExecutor.stop();
+      this.screenExecutor = null;
+    }
+
+    // Find screen block
+    const screen = this.ipo.screens.get(screenId);
+    if (!screen) {
+      throw new Error(`Screen not found: ${screenId}`);
+    }
+
+    // Create and start new executor
+    this.screenExecutor = new ScreenExecutor(
+      screen,
+      frequentFlag,
+      this,
+      this.runtime,
+      { ...this.screenExecutorConfig, debug: this.debug }
+    );
+
+    await this.screenExecutor.start();
+  }
+
+  /**
+   * Get the current screen executor
+   */
+  getScreenExecutor(): ScreenExecutor | null {
+    return this.screenExecutor;
+  }
+
+  /**
+   * Set a timer (delegates to screen executor)
+   */
+  setTimer(timerNum: number, ms: number): void {
+    if (!this.screenExecutor) {
+      throw new Error('No active screen executor for timer');
+    }
+    this.screenExecutor.setTimer(timerNum, ms);
+  }
+
+  /**
+   * Test if timer has expired (delegates to screen executor)
+   */
+  testTimer(timerNum: number): boolean {
+    if (!this.screenExecutor) {
+      return true; // No executor = timer expired
+    }
+    return this.screenExecutor.testTimer(timerNum);
   }
 }
