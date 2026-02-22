@@ -23,19 +23,19 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
   const [runState, setRunState] = useState<RunState>('running');
   const [shiftMode, setShiftMode] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
-  const [dimensions, setDimensions] = useState({ 
-    columns: stdout?.columns || 80, 
-    rows: stdout?.rows || 24 
+  const [dimensions, setDimensions] = useState({
+    columns: stdout?.columns || 80,
+    rows: stdout?.rows || 24
   });
 
   // Track terminal resize
   useEffect(() => {
     if (!stdout) return;
-    
+
     const handleResize = () => {
       setDimensions({ columns: stdout.columns, rows: stdout.rows });
     };
-    
+
     stdout.on('resize', handleResize);
     return () => { stdout.off('resize', handleResize); };
   }, [stdout]);
@@ -54,17 +54,17 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
     const textLines = provider.getTextLines();
     const analogValues = provider.getAnalogValues();
     const digitalValues = provider.getDigitalValues();
-    
+
     // Group text by rows
     const rowMap = new Map<number, Array<{ col: number; text: string }>>();
-    
+
     for (const line of textLines) {
       if (!rowMap.has(line.row)) {
         rowMap.set(line.row, []);
       }
       rowMap.get(line.row)!.push({ col: line.col, text: line.text });
     }
-    
+
     // Add analog values
     for (const av of analogValues) {
       const formatted = av.format.replace(/%[.\d]*[fdeg]/g, av.value.toString());
@@ -73,7 +73,7 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
       }
       rowMap.get(av.row)!.push({ col: av.col, text: `${formatted}` });
     }
-    
+
     // Add digital values
     for (const dv of digitalValues) {
       const text = dv.value ? dv.trueText : dv.falseText;
@@ -82,15 +82,15 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
       }
       rowMap.get(dv.row)!.push({ col: dv.col, text });
     }
-    
+
     // Sort rows and build output
     const sortedRows = Array.from(rowMap.keys()).sort((a, b) => a - b);
-    
+
     for (const row of sortedRows) {
       const items = rowMap.get(row)!.sort((a, b) => a.col - b.col);
       let line = '';
       let currentCol = 0;
-      
+
       for (const item of items) {
         if (item.col > currentCol) {
           line += ' '.repeat(item.col - currentCol);
@@ -98,10 +98,10 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
         line += item.text;
         currentCol = item.col + item.text.length;
       }
-      
+
       lines.push(line);
     }
-    
+
     return lines.join('\n');
   }, [provider]);
 
@@ -180,31 +180,29 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
 
   const dialog = provider.getInputDialog();
   const displayTitle = title || state.title || 'INPA';
-  
+
   // Menu title
   const menuTitle = state.menuTitle || 'Menu';
-  
+
   // Status indicator
   const statusText = runState === 'paused' ? 'PAUSED' : 'RUNNING';
   const statusColor = runState === 'paused' ? 'yellow' : 'green';
 
   return (
-    <Box 
-      flexDirection="column" 
-      width={dimensions.columns} 
+    <Box
+      flexDirection="column"
+      width={dimensions.columns}
       height={dimensions.rows}
     >
       {/* Title box with status */}
       <TitledBox
         borderStyle="single"
         borderColor="cyan"
-        titles={[' INPA ']}
+        titles={["INPAX", displayTitle]}
         paddingX={1}
       >
         <Box justifyContent="space-between" width="100%">
           <Box>
-            <Text bold color="cyan">{displayTitle}</Text>
-            <Text> </Text>
             <Text color={statusColor} bold>[{statusText}]</Text>
             {shiftMode && <Text color="magenta"> [SHIFT]</Text>}
             {copyMessage && <Text color="green"> {copyMessage}</Text>}
