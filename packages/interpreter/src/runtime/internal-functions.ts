@@ -62,10 +62,10 @@ export class InternalFunctions {
     this.handlers.set(SystemFunction.GetBinaryDataString, () => this.getBinaryDataString());
 
     // State Machine (stubs)
-    this.handlers.set(SystemFunction.setstatemachine, () => this.stub('setstatemachine'));
-    this.handlers.set(SystemFunction.setstate, () => this.stub('setstate'));
-    this.handlers.set(SystemFunction.callstatemachine, () => this.stub('callstatemachine'));
-    this.handlers.set(SystemFunction.returnstatemachine, () => this.stub('returnstatemachine'));
+    this.handlers.set(SystemFunction.setstatemachine, () => this.setstatemachine());
+    this.handlers.set(SystemFunction.setstate, () => this.setstate());
+    this.handlers.set(SystemFunction.callstatemachine, () => this.callstatemachine());
+    this.handlers.set(SystemFunction.returnstatemachine, () => this.returnstatemachine());
 
     // Job Control (stubs)
     this.handlers.set(SystemFunction.setjobstatus, () => this.stub('setjobstatus'));
@@ -168,6 +168,105 @@ export class InternalFunctions {
     }
     
     this.setOutParam(outRef, Stack.createEntry(ValueType.Bool, expired));
+  }
+
+  // ============ State Machine ============
+
+  private setstatemachine(): void {
+    const handle = this.popInt();
+    // Get state machine name from IPO by handle/blockId
+    const smExecutor = this.vm.getStateMachineExecutor();
+    if (!smExecutor) {
+      console.warn('[setstatemachine] No state machine executor');
+      return;
+    }
+    
+    // The handle is the block ID - we need to find the name
+    // For now, iterate to find the state machine with this ID
+    const sm = this.findStateMachineByHandle(handle);
+    if (sm) {
+      smExecutor.start(sm);
+    } else {
+      console.warn(`[setstatemachine] State machine not found for handle: ${handle}`);
+    }
+  }
+
+  private setstate(): void {
+    const handle = this.popInt();
+    // The handle is the state block ID - we need to find the state name
+    const smExecutor = this.vm.getStateMachineExecutor();
+    if (!smExecutor) {
+      console.warn('[setstate] No state machine executor');
+      return;
+    }
+    
+    const stateName = this.findStateNameByHandle(handle);
+    if (stateName) {
+      smExecutor.setState(stateName);
+    } else {
+      console.warn(`[setstate] State not found for handle: ${handle}`);
+    }
+  }
+
+  private callstatemachine(): void {
+    const handle = this.popInt();
+    const smExecutor = this.vm.getStateMachineExecutor();
+    if (!smExecutor) {
+      console.warn('[callstatemachine] No state machine executor');
+      return;
+    }
+    
+    const sm = this.findStateMachineByHandle(handle);
+    if (sm) {
+      smExecutor.callStateMachine(sm);
+    } else {
+      console.warn(`[callstatemachine] State machine not found for handle: ${handle}`);
+    }
+  }
+
+  private returnstatemachine(): void {
+    const smExecutor = this.vm.getStateMachineExecutor();
+    if (!smExecutor) {
+      console.warn('[returnstatemachine] No state machine executor');
+      return;
+    }
+    smExecutor.returnStateMachine();
+  }
+
+  /**
+   * Find state machine name by handle (block ID)
+   * The IPO stores state machines by ID, but StateMachineExecutor uses names
+   */
+  private findStateMachineByHandle(handle: number): string | null {
+    const ipo = (this.vm as any).ipo; // Access IPO through VM
+    if (!ipo?.stateMachines) return null;
+    
+    const sm = ipo.stateMachines.get(handle);
+    return sm?.header?.name ?? null;
+  }
+
+  /**
+   * Find state name by handle (block ID)
+   * States are stored within state machines
+   */
+  private findStateNameByHandle(handle: number): string | null {
+    const ipo = (this.vm as any).ipo;
+    if (!ipo?.stateMachines) return null;
+    
+    // Search all state machines for a state with this handle
+    for (const sm of ipo.stateMachines.values()) {
+      // Check INIT (main function of state machine)
+      if (sm.func?.header?.blockId === handle) {
+        return 'INIT';
+      }
+      // Check named states
+      for (const state of sm.states) {
+        if (state.header.blockId === handle) {
+          return state.header.name;
+        }
+      }
+    }
+    return null;
   }
 
   // ============ Control ============

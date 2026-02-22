@@ -23,6 +23,7 @@ import {
   type CollectedArgs,
 } from '../runtime/signature-handler.js';
 import { ScreenExecutor, type ScreenExecutorConfig } from './screen-executor.js';
+import { StateMachineExecutor, type StateMachineExecutorConfig } from './statemachine-executor.js';
 
 /**
  * VM State
@@ -42,6 +43,8 @@ export interface VMConfig {
   debug?: boolean;
   /** Screen executor configuration */
   screenExecutor?: ScreenExecutorConfig;
+  /** State machine executor configuration */
+  stateMachineExecutor?: StateMachineExecutorConfig;
 }
 
 /**
@@ -60,6 +63,10 @@ export class VM {
   // Screen execution
   private screenExecutor: ScreenExecutor | null = null;
   private screenExecutorConfig: ScreenExecutorConfig;
+  
+  // State machine execution
+  private stateMachineExecutor: StateMachineExecutor | null = null;
+  private stateMachineExecutorConfig: StateMachineExecutorConfig;
 
   constructor(ipo: IpoFile, config: VMConfig = {}) {
     this.ipo = ipo;
@@ -76,6 +83,10 @@ export class VM {
     this.dispatcher = new SystemFunctionDispatcher(this.runtime);
     this.internal = new InternalFunctions(this);
     this.screenExecutorConfig = config.screenExecutor ?? {};
+    this.stateMachineExecutorConfig = config.stateMachineExecutor ?? {};
+    
+    // Initialize state machine executor and register all state machines from IPO
+    this.initStateMachineExecutor();
   }
 
   /**
@@ -596,6 +607,9 @@ export class VM {
     if (this.screenExecutor) {
       this.screenExecutor.stop();
     }
+    if (this.stateMachineExecutor) {
+      this.stateMachineExecutor.stop();
+    }
   }
 
   // ============ Screen Execution API ============
@@ -678,5 +692,84 @@ export class VM {
       return true; // No executor = timer expired
     }
     return this.screenExecutor.testTimer(timerNum);
+  }
+
+  // ============ State Machine Execution API ============
+
+  /**
+   * Initialize state machine executor and register all state machines from IPO
+   */
+  private initStateMachineExecutor(): void {
+    this.stateMachineExecutor = new StateMachineExecutor(
+      this,
+      this.runtime,
+      { ...this.stateMachineExecutorConfig, debug: this.debug }
+    );
+    
+    // Register all state machines from IPO
+    for (const sm of this.ipo.stateMachines.values()) {
+      this.stateMachineExecutor.registerStateMachine(sm);
+    }
+  }
+
+  /**
+   * Start a state machine as the main background process
+   * Equivalent to setstatemachine() in INPA
+   */
+  async setStateMachine(smName: string): Promise<void> {
+    if (!this.stateMachineExecutor) {
+      throw new Error('State machine executor not initialized');
+    }
+    await this.stateMachineExecutor.start(smName);
+  }
+
+  /**
+   * Schedule transition to a new state
+   * Called by setstate() system function
+   */
+  setState(stateName: string): void {
+    if (!this.stateMachineExecutor) {
+      throw new Error('State machine executor not initialized');
+    }
+    this.stateMachineExecutor.setState(stateName);
+  }
+
+  /**
+   * Call a sub-state machine
+   * Called by callstatemachine() system function
+   */
+  callStateMachine(smName: string): void {
+    if (!this.stateMachineExecutor) {
+      throw new Error('State machine executor not initialized');
+    }
+    this.stateMachineExecutor.callStateMachine(smName);
+  }
+
+  /**
+   * Return from current state machine to caller
+   * Called by returnstatemachine() system function
+   */
+  returnStateMachine(): void {
+    if (!this.stateMachineExecutor) {
+      throw new Error('State machine executor not initialized');
+    }
+    this.stateMachineExecutor.returnStateMachine();
+  }
+
+  /**
+   * Get the state machine executor
+   */
+  getStateMachineExecutor(): StateMachineExecutor | null {
+    return this.stateMachineExecutor;
+  }
+
+  /**
+   * Execute one tick of the state machine
+   * Called by the main scheduler
+   */
+  async tickStateMachine(): Promise<void> {
+    if (this.stateMachineExecutor) {
+      await this.stateMachineExecutor.tick();
+    }
   }
 }
