@@ -61,6 +61,8 @@ export class InternalFunctions {
     // Binary
     this.handlers.set(SystemFunction.GetBinaryDataString, () => this.getBinaryDataString());
 
+    // Menu
+    this.handlers.set(SystemFunction.setmenu, () => this.setmenu());
     // Screen
     this.handlers.set(SystemFunction.setscreen, () => this.setscreen());
 
@@ -145,7 +147,7 @@ export class InternalFunctions {
   private settimer(): void {
     const timeval = this.popInt();
     const timernum = this.popInt();
-    
+
     // Delegate to ScreenExecutor if available, otherwise use local timers
     const executor = this.vm.getScreenExecutor();
     if (executor) {
@@ -158,19 +160,28 @@ export class InternalFunctions {
   private testtimer(): void {
     const outRef = this.popRef();
     const timernum = this.popInt();
-    
+
     // Delegate to ScreenExecutor if available
     const executor = this.vm.getScreenExecutor();
     let expired: boolean;
-    
+
     if (executor) {
       expired = executor.testTimer(timernum);
     } else {
       const timer = this.timers.get(timernum);
       expired = timer ? (Date.now() - timer.start >= timer.duration) : true;
     }
-    
+
     this.setOutParam(outRef, Stack.createEntry(ValueType.Bool, expired));
+  }
+
+  // ============ Menu ==============
+
+  private setmenu(): void {
+    const menuHandle = this.popInt();
+    this.vm.setMenu(menuHandle).catch(err => {
+      console.error(`[setmenu] Error activating menu: ${err}`);
+    });
   }
 
   // ============ Screen ============
@@ -178,20 +189,20 @@ export class InternalFunctions {
   private setscreen(): void {
     const cyclic = this.popInt() !== 0; // bool as int
     const handle = this.popInt();
-    
+
     // Find screen name by handle
     const screenName = this.findScreenByHandle(handle);
     if (!screenName) {
       console.warn(`[setscreen] Screen not found for handle: ${handle}`);
       return;
     }
-    
+
     // Activate screen via VM
     // Note: This is async but system functions are sync - we start it and let it run
     this.vm.setScreen(handle, cyclic).catch(err => {
       console.error(`[setscreen] Error activating screen: ${err}`);
     });
-    
+
     // Also notify UI provider for display purposes
     this.vm.getRuntime().ui.setScreen(handle, cyclic);
   }
@@ -202,7 +213,7 @@ export class InternalFunctions {
   private findScreenByHandle(handle: number): string | null {
     const ipo = (this.vm as any).ipo;
     if (!ipo?.screens) return null;
-    
+
     const screen = ipo.screens.get(handle);
     return screen?.header?.name ?? null;
   }
@@ -217,7 +228,7 @@ export class InternalFunctions {
       console.warn('[setstatemachine] No state machine executor');
       return;
     }
-    
+
     // The handle is the block ID - we need to find the name
     // For now, iterate to find the state machine with this ID
     const sm = this.findStateMachineByHandle(handle);
@@ -236,7 +247,7 @@ export class InternalFunctions {
       console.warn('[setstate] No state machine executor');
       return;
     }
-    
+
     const stateName = this.findStateNameByHandle(handle);
     if (stateName) {
       smExecutor.setState(stateName);
@@ -252,7 +263,7 @@ export class InternalFunctions {
       console.warn('[callstatemachine] No state machine executor');
       return;
     }
-    
+
     const sm = this.findStateMachineByHandle(handle);
     if (sm) {
       smExecutor.callStateMachine(sm);
@@ -277,7 +288,7 @@ export class InternalFunctions {
   private findStateMachineByHandle(handle: number): string | null {
     const ipo = (this.vm as any).ipo; // Access IPO through VM
     if (!ipo?.stateMachines) return null;
-    
+
     const sm = ipo.stateMachines.get(handle);
     return sm?.header?.name ?? null;
   }
@@ -289,7 +300,7 @@ export class InternalFunctions {
   private findStateNameByHandle(handle: number): string | null {
     const ipo = (this.vm as any).ipo;
     if (!ipo?.stateMachines) return null;
-    
+
     // Search all state machines for a state with this handle
     for (const sm of ipo.stateMachines.values()) {
       // Check INIT (main function of state machine)

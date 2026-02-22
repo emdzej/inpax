@@ -136,8 +136,10 @@ export class Stack {
    * Get two operands for binary operations
    */
   getTwoOperands(): [StackEntry, StackEntry] {
-    const rhs = this.get(this.topIndex());
-    const lhs = this.get(this.topIndex() - 1);
+    // const rhs = this.get(this.topIndex());
+    // const lhs = this.get(this.topIndex() - 1);
+    const rhs = this.pop();
+    const lhs = this.pop();
     return [lhs, rhs];
   }
 

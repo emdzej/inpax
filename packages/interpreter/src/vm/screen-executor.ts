@@ -38,12 +38,12 @@ interface TimerEntry {
 
 /**
  * Screen Executor
- * 
+ *
  * Implements the INPA screen execution model with 3-phase cycle:
  * - INIT: Runs once on screen activation
  * - LINE: Runs each LINE block, loops when frequentFlag=true
  * - IDLE: Waiting state between cycles (only when frequentFlag=false)
- * 
+ *
  * Based on reverse engineering of INPA.exe - uses polling model
  * similar to MFC's OnIdle handler.
  */
@@ -52,21 +52,21 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   private frequentFlag: boolean;
   private vm: VM;
   private runtime: IInpaRuntime;
-  
+
   // Execution state
   private phase: ScreenPhase = 'init';
   private lineIndex: number = 0;
   private running: boolean = false;
   private paused: boolean = false;
-  
+
   // Timer system (8 slots like original INPA)
   private timers: Map<number, TimerEntry> = new Map();
   private static readonly MAX_TIMERS = 8;
-  
+
   // Configuration
   private tickInterval: number;
   private debug: boolean;
-  
+
   // Internal scheduling
   private tickTimeout: ReturnType<typeof setTimeout> | null = null;
   private lastTickTime: number = 0;
@@ -95,18 +95,18 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
       this.log('Already running');
       return;
     }
-    
+
     this.running = true;
     this.paused = false;
     this.phase = 'init';
     this.lineIndex = 0;
     this.lastTickTime = Date.now();
-    
+
     this.log(`Starting screen execution (frequent=${this.frequentFlag})`);
-    
+
     // Notify UI
     this.runtime.ui.setScreen(this.screen.header.blockId, this.frequentFlag);
-    
+
     // Start the execution loop
     this.scheduleNextTick();
   }
@@ -117,12 +117,12 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   stop(): void {
     this.running = false;
     this.paused = false;
-    
+
     if (this.tickTimeout) {
       clearTimeout(this.tickTimeout);
       this.tickTimeout = null;
     }
-    
+
     this.log('Screen execution stopped');
     this.emit('stopped');
   }
@@ -185,11 +185,11 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
     if (timerNum < 0 || timerNum >= ScreenExecutor.MAX_TIMERS) {
       throw new Error(`Invalid timer number: ${timerNum} (must be 0-${ScreenExecutor.MAX_TIMERS - 1})`);
     }
-    
+
     this.timers.set(timerNum, {
       expiresAt: Date.now() + ms,
     });
-    
+
     this.log(`Timer ${timerNum} set for ${ms}ms`);
   }
 
@@ -203,7 +203,7 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
     if (!timer) {
       return true; // Non-existent timer is considered expired
     }
-    
+
     const expired = Date.now() >= timer.expiresAt;
     if (expired) {
       this.log(`Timer ${timerNum} expired`);
@@ -261,17 +261,18 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
         case 'init':
           await this.executeInitPhase();
           break;
-          
+
         case 'line':
           await this.executeLinePhase();
           break;
-          
+
         case 'idle':
           // In idle phase, just wait
           // This state is only reached when frequentFlag=false
           break;
       }
     } catch (error) {
+        throw error;
       this.log(`Error in tick: ${error}`);
       // Continue execution despite errors (like original INPA)
     }
@@ -282,17 +283,17 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
    */
   private async executeInitPhase(): Promise<void> {
     this.log('Executing INIT phase');
-    
+
     // Execute alloc function if present
     if (this.screen.allocFunc) {
       await this.vm.executeBlock(this.screen.allocFunc);
     }
-    
+
     // Execute init function if present
     if (this.screen.initFunc) {
       await this.vm.executeBlock(this.screen.initFunc);
     }
-    
+
     // Transition to LINE phase
     this.setPhase('line');
     this.lineIndex = 0;
@@ -303,36 +304,37 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
    */
   private async executeLinePhase(): Promise<void> {
     const lines = this.screen.lines;
-    
+
     if (lines.length === 0) {
       // No lines - go to idle or restart
       this.handleCycleComplete();
       return;
     }
-    
+
     if (this.lineIndex >= lines.length) {
       // All lines executed - cycle complete
       this.handleCycleComplete();
       return;
     }
-    
+
     // Execute current line
     const line = lines[this.lineIndex];
     this.log(`Executing LINE ${this.lineIndex} (${line.header.name})`);
     this.emit('line:start', this.lineIndex, line);
-    
+
     // Execute line's function block
     if (line.func) {
-      await this.vm.executeBlock(line.func);
+
+        await this.vm.executeBlock(line.func);
     }
-    
+
     // Execute control blocks within line
     for (const control of line.controls) {
       if (control.func) {
         await this.vm.executeBlock(control.func);
       }
     }
-    
+
     this.emit('line:complete', this.lineIndex);
     this.lineIndex++;
   }
@@ -343,7 +345,7 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   private handleCycleComplete(): void {
     this.log('Cycle complete');
     this.emit('cycle:complete');
-    
+
     if (this.frequentFlag) {
       // Continuous mode - restart LINE phase
       this.lineIndex = 0;
@@ -360,7 +362,7 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   private setPhase(phase: ScreenPhase): void {
     const prevPhase = this.phase;
     this.phase = phase;
-    
+
     if (prevPhase !== phase) {
       this.log(`Phase changed: ${prevPhase} → ${phase}`);
       this.emit('phase:changed', phase);
