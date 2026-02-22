@@ -44,6 +44,9 @@ importers:
       '@inpax/dis':
         specifier: workspace:*
         version: link:../disassembler
+      '@inpax/interpreter':
+        specifier: workspace:*
+        version: link:../interpreter
       '@inpax/parser':
         specifier: workspace:*
         version: link:../parser

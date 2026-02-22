@@ -14,6 +14,7 @@ export const runCommand = new Command('run')
   .option('--trace', 'Trace VM execution')
   .option('--headless', 'Use headless CLI provider instead of TUI')
   .option('--sgbd <path>', 'Path to SGBD files')
+  .option('--tick <ms>', 'Tick interval in milliseconds', '16')
   .action(async (file, options) => {
     try {
       const filePath = resolve(file);
@@ -60,70 +61,112 @@ export const runCommand = new Command('run')
  * Run with full TUI interface
  */
 async function runWithTui(filePath: string, scriptName: string, options: RunOptions) {
+  const { parseIpo } = await import('@inpax/parser');
+  const { VM, MainScheduler } = await import('@inpax/interpreter');
   const { TuiProvider } = await import('@inpax/tui-provider');
   const { renderTui } = await import('@inpax/tui');
 
+  // Parse IPO file
+  const buffer = readFileSync(filePath);
+  const ipo = parseIpo(buffer);
+
+  if (options.debug) {
+    console.log(chalk.gray(`Parsed IPO: ${ipo.functions.size} functions, ${ipo.screens.size} screens, ${ipo.stateMachines.size} state machines`));
+  }
+
+  // Create TUI provider as runtime
   const provider = new TuiProvider();
   
-  // Set initial state
-  provider.setTitle(`INPA - ${scriptName}`);
-  
-  // Demo: Add some menu items
-  provider.setItem(1, 'Start', true);
-  provider.setItem(2, 'Status', true);
-  provider.setItem(3, 'Config', true);
-  provider.setItem(10, 'Exit', true);
+  // Create VM with runtime
+  const vm = new VM(ipo, {
+    runtime: {
+      ui: provider,
+      ediabas: null as any, // TODO: Add EDIABAS provider
+      simulation: null as any,
+      print: null as any,
+      pem: null as any,
+      dtm: null as any,
+      external: null as any,
+      sps: null as any,
+      inp1: null as any,
+    },
+    debug: options.debug || options.trace,
+  });
 
-  // Handle menu selections
-  provider.on('menu:select', ({ itemNum, text }) => {
+  // Create main scheduler
+  const tickInterval = parseInt(options.tick || '16', 10);
+  const scheduler = new MainScheduler(vm, {
+    tickInterval,
+    debug: options.trace,
+  });
+
+  // Set initial title
+  provider.setTitle(`INPA - ${scriptName}`);
+
+  // Connect menu events to scheduler
+  provider.on('menu:select', ({ itemNum }) => {
+    // Find menu item handler in IPO
+    const menuItem = findMenuItemHandler(ipo, itemNum);
+    if (menuItem) {
+      scheduler.queueMenuAction(itemNum, async () => {
+        await vm.executeBlock(menuItem);
+      });
+    } else if (options.debug) {
+      console.log(chalk.gray(`No handler for F${itemNum}`));
+    }
+  });
+
+  // Handle exit
+  const cleanup = () => {
+    scheduler.stop();
+    process.exit(0);
+  };
+
+  // Scheduler events
+  scheduler.on('stopped', cleanup);
+  scheduler.on('error', (err: Error) => {
+    console.error(chalk.red(`Runtime error: ${err.message}`));
     if (options.debug) {
-      console.log(`Menu selected: F${itemNum} - ${text}`);
+      console.error(err.stack);
     }
-    
-    if (itemNum === 10) {
-      // Exit selected
-      process.exit(0);
-    }
-    
-    // Demo: Update screen on selection
-    provider.blankScreen();
-    provider.text(0, 0, `Selected: ${text}`);
-    provider.text(1, 0, `Function key: F${itemNum}`);
-    
-    // Demo analog gauge
-    provider.analogOut(Math.random() * 100, 3, 0, 0, 100, 20, 80, '%.1f');
-    
-    // Demo digital indicator  
-    provider.digitalOut(Math.random() > 0.5, 5, 0, 'on', 'off');
   });
 
   // Render TUI
   const { waitUntilExit } = renderTui(provider, {
     title: scriptName,
-    onQuit: () => {
-      console.log(chalk.gray('\nExiting...'));
-      process.exit(0);
-    },
+    onQuit: cleanup,
   });
 
-  // Initial screen
-  provider.text(0, 0, 'INPAX Runtime');
-  provider.text(1, 0, `Script: ${scriptName}`);
-  provider.text(2, 0, '');
-  provider.text(3, 0, 'Press 1-9,0 for F1-F10');
-  provider.text(4, 0, 'Press Q to quit');
+  try {
+    // Run inpainit() to initialize
+    if (options.debug) {
+      console.log(chalk.gray('Executing inpainit()...'));
+    }
+    await vm.run();
 
-  if (options.debug) {
-    provider.text(6, 0, '[DEBUG MODE]');
+    // Start main scheduler loop
+    if (options.debug) {
+      console.log(chalk.gray('Starting main scheduler...'));
+    }
+    scheduler.start();
+
+    // Wait for TUI to exit
+    await waitUntilExit();
+  } catch (error) {
+    console.error(chalk.red(`Execution error: ${(error as Error).message}`));
+    if (options.debug) {
+      console.error((error as Error).stack);
+    }
+    cleanup();
   }
-
-  await waitUntilExit();
 }
 
 /**
  * Run with headless CLI provider (no TUI)
  */
 async function runHeadless(filePath: string, scriptName: string, options: RunOptions) {
+  const { parseIpo } = await import('@inpax/parser');
+  const { VM, MainScheduler } = await import('@inpax/interpreter');
   const { CliProvider } = await import('@inpax/cli-provider');
 
   console.log(chalk.bold('=== INPAX Headless Mode ==='));
@@ -131,15 +174,94 @@ async function runHeadless(filePath: string, scriptName: string, options: RunOpt
   console.log(`File: ${filePath}`);
   console.log();
 
-  const provider = new CliProvider();
+  // Parse IPO file
+  const buffer = readFileSync(filePath);
+  const ipo = parseIpo(buffer);
 
-  // Demo output
-  provider.setTitle(`INPA - ${scriptName}`);
-  provider.text(0, 0, 'Running in headless mode...');
+  console.log(chalk.gray(`Parsed: ${ipo.functions.size} functions, ${ipo.screens.size} screens, ${ipo.stateMachines.size} state machines`));
+
+  // Create CLI provider as runtime
+  const provider = new CliProvider();
   
-  // TODO: Integrate with interpreter
-  console.log(chalk.yellow('Interpreter integration pending'));
-  console.log(chalk.gray('The VM will execute the bytecode here.'));
+  // Create VM with runtime
+  const vm = new VM(ipo, {
+    runtime: {
+      ui: provider,
+      ediabas: null as any,
+      simulation: null as any,
+      print: null as any,
+      pem: null as any,
+      dtm: null as any,
+      external: null as any,
+      sps: null as any,
+      inp1: null as any,
+    },
+    debug: options.debug || options.trace,
+  });
+
+  // Create main scheduler
+  const tickInterval = parseInt(options.tick || '16', 10);
+  const scheduler = new MainScheduler(vm, {
+    tickInterval,
+    debug: options.trace,
+  });
+
+  provider.setTitle(`INPA - ${scriptName}`);
+
+  // Scheduler events
+  scheduler.on('stopped', () => {
+    console.log(chalk.gray('\nExecution stopped.'));
+    process.exit(0);
+  });
+
+  scheduler.on('error', (err: Error) => {
+    console.error(chalk.red(`Runtime error: ${err.message}`));
+    if (options.debug) {
+      console.error(err.stack);
+    }
+  });
+
+  try {
+    // Run inpainit()
+    console.log(chalk.gray('Executing inpainit()...'));
+    await vm.run();
+    console.log(chalk.green('inpainit() completed.'));
+
+    // Start scheduler
+    console.log(chalk.gray('Starting main scheduler...'));
+    scheduler.start();
+
+    // In headless mode, run for a limited time or until exit() is called
+    console.log(chalk.yellow('Running... (Ctrl+C to stop)'));
+    
+    // Handle Ctrl+C
+    process.on('SIGINT', () => {
+      console.log(chalk.gray('\nInterrupted.'));
+      scheduler.stop();
+    });
+
+  } catch (error) {
+    console.error(chalk.red(`Execution error: ${(error as Error).message}`));
+    if (options.debug) {
+      console.error((error as Error).stack);
+    }
+    process.exit(1);
+  }
+}
+
+/**
+ * Find menu item handler function block by item number
+ */
+function findMenuItemHandler(ipo: any, itemNum: number): any {
+  // Menu items are stored in menus, each with items that have handlers
+  for (const menu of ipo.menus.values()) {
+    for (const item of menu.items) {
+      if (item.itemNum === itemNum && item.func) {
+        return item.func;
+      }
+    }
+  }
+  return null;
 }
 
 interface RunOptions {
@@ -148,4 +270,5 @@ interface RunOptions {
   trace?: boolean;
   headless?: boolean;
   sgbd?: string;
+  tick?: string;
 }
