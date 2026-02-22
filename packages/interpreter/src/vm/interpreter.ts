@@ -271,11 +271,49 @@ export class VM {
   }
 
   private opMove(count: number): void {
-    const top = this.stack.peek();
-    if (top.type === ValueType.Bool) {
-      this.state.condition = top.value ? 1 : 0;
+    // MOVE: Assign value to reference
+    // Stack: [..., target_ref, value] → [...]
+    
+    if (count >= 2) {
+      // Get value (top of stack)
+      const value = this.stack.get(this.stack.topIndex());
+      
+      // Get target reference (below value)
+      const ref = this.stack.get(this.stack.topIndex() - 1);
+      
+      // If it's a reference, perform the assignment
+      if (ref.refInfo) {
+        this.storeVariable(ref.refInfo.scope, ref.refInfo.index, value);
+      }
+      
+      // If value is bool, update condition register
+      if (value.type === ValueType.Bool) {
+        this.state.condition = value.value ? 1 : 0;
+      }
+    } else if (count === 1) {
+      // Single value - just update condition if bool
+      const top = this.stack.peek();
+      if (top.type === ValueType.Bool) {
+        this.state.condition = top.value ? 1 : 0;
+      }
     }
+    
     this.stack.popN(count);
+  }
+
+  private storeVariable(scope: Scope, index: number, entry: StackEntry): void {
+    switch (scope) {
+      case Scope.Global:
+        this.globals[index] = { ...entry };
+        break;
+      case Scope.Local:
+        this.stack.setLocal(index, { ...entry });
+        break;
+      case Scope.Const:
+        throw new Error('Cannot assign to constant');
+      default:
+        throw new Error(`Cannot store to scope: 0x${scope.toString(16)}`);
+    }
   }
 
   private opPushR(scope: Scope, index: number): void {
