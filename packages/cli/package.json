@@ -14,6 +14,7 @@
   "dependencies": {
     "@inpax/core": "workspace:*",
     "@inpax/parser": "workspace:*",
+    "@inpax/interpreter": "workspace:*",
     "@inpax/dis": "workspace:*",
     "@inpax/tui": "workspace:*",
     "@inpax/tui-provider": "workspace:*",
