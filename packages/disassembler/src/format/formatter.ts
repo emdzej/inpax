@@ -197,7 +197,7 @@ function formatOperands(
     case Opcode.LOADINOUTREF:
     case Opcode.PUSHR:
     case Opcode.PUSHREFSTORE:
-      return formatScopeIndex(op1, op2, c);
+      return formatScopeIndex(op1, op2, ipo, c);
     case Opcode.NOP:
       return '';
     case Opcode.ALLOC:
@@ -226,8 +226,22 @@ function formatOperands(
   }
 }
 
-function formatScopeIndex(scope: Scope, index: number, c: ColorScheme): string {
+function formatScopeIndex(scope: Scope, index: number, ipo: IpoFile | undefined, c: ColorScheme): string {
   const name = SCOPE_NAMES[scope];
+  
+  // For const scope, show the actual value
+  if (scope === Scope.Const && ipo) {
+    const cv = ipo.constants.values[index];
+    if (cv) {
+      const type = VALUE_TYPE_NAMES[cv.type] || 'unknown';
+      if (cv.type === ValueType.String) {
+        const str = String(cv.value).replace(/\n/g, '\\n').replace(/\r/g, '\\r').slice(0, 40);
+        return `${c.operand('const')}${c.separator('[')}${c.number(index.toString())}${c.separator(']')} ${c.comment(`; ${type}`)} ${c.string(`"${str}"`)}`;
+      }
+      return `${c.operand('const')}${c.separator('[')}${c.number(index.toString())}${c.separator(']')} ${c.comment(`; ${type} = ${cv.value}`)}`;
+    }
+  }
+  
   if (name) return `${c.operand(name)}${c.separator('[')}${c.number(index.toString())}${c.separator(']')}`;
   if (scope >= 0x40) return `${c.operand(`ui_${(scope - 0x40).toString(16)}`)}${c.separator('[')}${c.number(index.toString())}${c.separator(']')}`;
   return `${c.operand(`scope_${scope.toString(16)}`)}${c.separator('[')}${c.number(index.toString())}${c.separator(']')}`;
