@@ -48,4 +48,40 @@ describe('ExecutionContext', () => {
     expect(ctx.frameOffset).toBe(0);
     expect(ctx.stack.size).toBe(2);
   });
+
+  it('updates local references with a non-zero frame offset', () => {
+    const ctx = new ExecutionContext([], []);
+
+    ctx.stack.push(entry(ValueType.Int, 99));
+    ctx.pushFrame();
+
+    ctx.stack.push(entry(ValueType.Int, 0));
+    const ref = ctx.createRef(Scope.Local, 0);
+
+    ctx.setVariable(ref.refInfo!.scope as Scope, ref.refInfo!.index, entry(ValueType.Int, 7));
+
+    expect(ctx.getVariable(Scope.Local, 0).value).toBe(7);
+    expect(ctx.stack.get(0).value).toBe(99);
+  });
+
+  it('isolates locals between nested frames', () => {
+    const ctx = new ExecutionContext([], []);
+
+    ctx.pushFrame();
+    ctx.stack.push(entry(ValueType.Int, 1));
+    ctx.setVariable(Scope.Local, 0, entry(ValueType.Int, 11));
+
+    ctx.pushFrame();
+    ctx.stack.push(entry(ValueType.Int, 2));
+    ctx.setVariable(Scope.Local, 0, entry(ValueType.Int, 22));
+
+    expect(ctx.getVariable(Scope.Local, 0).value).toBe(22);
+
+    ctx.popFrame();
+    expect(ctx.getVariable(Scope.Local, 0).value).toBe(11);
+    expect(ctx.stack.size).toBe(1);
+
+    ctx.popFrame();
+    expect(ctx.stack.size).toBe(0);
+  });
 });
