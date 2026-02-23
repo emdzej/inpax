@@ -1,7 +1,9 @@
 import { EventEmitter } from 'eventemitter3';
-import type { ScreenBlock, LineBlock } from '@emdzej/inpax-core';
+import type { ScreenBlock, LineBlock, FunctionBlock, StackEntry, Value } from '@emdzej/inpax-core';
+import { ValueType } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
+import { ExecutionContext } from './execution-context.js';
 
 /**
  * Screen execution phase
@@ -52,6 +54,7 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   private frequentFlag: boolean;
   private vm: VM;
   private runtime: IInpaRuntime;
+  private executionContext: ExecutionContext | null = null;
 
   // Execution state
   private phase: ScreenPhase = 'init';
@@ -101,6 +104,7 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
     this.phase = 'init';
     this.lineIndex = 0;
     this.lastTickTime = Date.now();
+    this.executionContext = this.createExecutionContext();
 
     this.log(`Starting screen execution (frequent=${this.frequentFlag})`);
 
@@ -228,6 +232,45 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
 
   // === Internal Methods ===
 
+  private createExecutionContext(): ExecutionContext {
+    const ipo = this.vm.getIpo();
+    const globals = ipo.globals.types.map((type) => ({
+      type,
+      flags: 1,
+      value: this.getDefaultValue(type),
+    } as StackEntry));
+
+    return new ExecutionContext(globals, ipo.constants.values);
+  }
+
+  private getDefaultValue(type: ValueType): Value {
+    switch (type) {
+      case ValueType.Bool:
+        return false;
+      case ValueType.Byte:
+      case ValueType.Int:
+      case ValueType.Long:
+      case ValueType.Handle1:
+      case ValueType.Handle2:
+      case ValueType.Handle3:
+        return 0;
+      case ValueType.Real:
+        return 0.0;
+      case ValueType.String:
+        return '';
+      default:
+        return null;
+    }
+  }
+
+  private async executeBlock(block: FunctionBlock): Promise<void> {
+    if (!this.executionContext) {
+      this.executionContext = this.createExecutionContext();
+    }
+
+    await this.vm.execute(block, this.executionContext);
+  }
+
   /**
    * Schedule next tick with configured interval
    */
@@ -286,12 +329,12 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
     this.vm.getRuntime().ui.blankScreen();
     // Execute alloc function if present
     if (this.screen.allocFunc) {
-      await this.vm.executeBlock(this.screen.allocFunc);
+      await this.executeBlock(this.screen.allocFunc);
     }
 
     // Execute init function if present
     if (this.screen.initFunc) {
-      await this.vm.executeBlock(this.screen.initFunc);
+      await this.executeBlock(this.screen.initFunc);
     }
 
     // Transition to LINE phase
@@ -325,13 +368,13 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
     // Execute line's function block
     if (line.func) {
 
-        await this.vm.executeBlock(line.func);
+        await this.executeBlock(line.func);
     }
 
     // Execute control blocks within line
     for (const control of line.controls) {
       if (control.func) {
-        await this.vm.executeBlock(control.func);
+        await this.executeBlock(control.func);
       }
     }
 
