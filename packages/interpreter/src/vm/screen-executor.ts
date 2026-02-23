@@ -1,9 +1,12 @@
 import { EventEmitter } from 'eventemitter3';
+import { getLogger } from '@emdzej/inpax-logger';
 import type { ScreenBlock, LineBlock, FunctionBlock, StackEntry, Value } from '@emdzej/inpax-core';
 import { ValueType } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
 import { ExecutionContext } from './execution-context.js';
+
+const log = getLogger('screen-executor');
 
 /**
  * Screen execution phase
@@ -417,7 +420,7 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
    */
   private log(message: string): void {
     if (this.debug) {
-      console.log(`[ScreenExecutor] ${message}`);
+      log.debug({ message }, 'screen executor');
     }
   }
 }

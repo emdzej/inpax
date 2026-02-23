@@ -1,9 +1,12 @@
 import { EventEmitter } from 'eventemitter3';
+import { getLogger } from '@emdzej/inpax-logger';
 import type { StateMachineBlock, StateBlock } from '@emdzej/inpax-core';
 import { BlockType } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
 import type { ExecutionContext } from './execution-context.js';
+
+const log = getLogger('state-machine-executor');
 
 /**
  * State machine executor events
@@ -400,7 +403,7 @@ export class StateMachineExecutor extends EventEmitter<StateMachineExecutorEvent
    */
   private log(message: string): void {
     if (this.debug) {
-      console.log(`[StateMachineExecutor] ${message}`);
+      log.debug({ message }, 'state machine executor');
     }
   }
 }

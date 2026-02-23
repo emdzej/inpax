@@ -24,6 +24,7 @@
     "@emdzej/inpax-core": "workspace:*",
     "@emdzej/inpax-dispatcher": "workspace:*",
     "@emdzej/inpax-interfaces": "workspace:*",
+    "@emdzej/inpax-logger": "workspace:*",
     "@emdzej/inpax-parser": "workspace:*",
     "@emdzej/inpax-providers": "workspace:*",
     "eventemitter3": "^5.0.1"

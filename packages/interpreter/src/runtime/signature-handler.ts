@@ -3,8 +3,11 @@
  */
 
 import { SystemFunctionMap, ValueType, StackEntry, Scope } from '@emdzej/inpax-core';
+import { getLogger } from '@emdzej/inpax-logger';
 import type { Stack } from '../vm/stack.js';
 import type { ExecutionContext } from '../vm/execution-context.js';
+
+const log = getLogger('signature-handler');
 
 export type ParamDirection = 'in' | 'out' | 'inout';
 
@@ -153,7 +156,7 @@ export function writeOutParams(
         const value = values[i];
 
         if (!ref.refInfo) {
-            console.warn(`Expected reference for out param ${param.name}`);
+            log.warn({ param: param.name }, 'expected reference for out param');
             continue;
         }
 

@@ -7,6 +7,9 @@ import type { VM } from '../vm/interpreter.js';
 import type { ExecutionContext } from '../vm/execution-context.js';
 import { SystemFunction, ValueType } from '@emdzej/inpax-core';
 import { Stack } from '../vm/stack.js';
+import { getLogger } from '@emdzej/inpax-logger';
+
+const log = getLogger('internal-functions');
 
 type InternalHandler = (ctx: ExecutionContext) => void;
 
@@ -105,14 +108,14 @@ export class InternalFunctions {
   call(funcId: number, ctx: ExecutionContext): void {
     const handler = this.handlers.get(funcId);
     if (!handler) {
-      console.warn(`Internal function not implemented: 0x${funcId.toString(16)}`);
+      log.warn({ funcId: `0x${funcId.toString(16)}` }, 'internal function not implemented');
       return;
     }
     handler(ctx);
   }
 
   private stub(name: string): void {
-    console.warn(`[STUB] ${name} - not implemented`);
+    log.warn({ name }, 'stub function not implemented');
   }
 
   // ============ Timer ============
@@ -151,7 +154,7 @@ export class InternalFunctions {
   private setmenu(ctx: ExecutionContext): void {
     const menuHandle = ctx.popInt();
     this.vm.setMenu(menuHandle).catch(err => {
-      console.error(`[setmenu] Error activating menu: ${err}`);
+      log.error({ err }, 'setmenu error activating menu');
     });
   }
 
@@ -162,17 +165,17 @@ export class InternalFunctions {
     const handle = ctx.popRef();
     const screenId = handle.refInfo?.index;
     if (screenId === undefined) {
-      console.warn('[setscreen] Invalid screen reference');
+      log.warn('setscreen invalid screen reference');
       return;
     }
     const screenName = this.findScreenByHandle(screenId);
     if (!screenName) {
-      console.warn(`[setscreen] Screen not found for handle: ${screenId}`);
+      log.warn({ screenId }, 'setscreen screen not found for handle');
       return;
     }
 
     this.vm.setScreen(screenId, cyclic).catch(err => {
-      console.error(`[setscreen] Error activating screen: ${err}`);
+      log.error({ err, screenId }, 'setscreen error activating screen');
     });
 
     this.vm.getRuntime().ui.setScreen(screenId, cyclic);
@@ -192,7 +195,7 @@ export class InternalFunctions {
     const handle = ctx.popInt();
     const smExecutor = this.vm.getStateMachineExecutor();
     if (!smExecutor) {
-      console.warn('[setstatemachine] No state machine executor');
+      log.warn('setstatemachine no state machine executor');
       return;
     }
 
@@ -200,7 +203,7 @@ export class InternalFunctions {
     if (sm) {
       smExecutor.start(sm);
     } else {
-      console.warn(`[setstatemachine] State machine not found for handle: ${handle}`);
+      log.warn({ handle }, 'setstatemachine state machine not found for handle');
     }
   }
 
@@ -208,7 +211,7 @@ export class InternalFunctions {
     const handle = ctx.popInt();
     const smExecutor = this.vm.getStateMachineExecutor();
     if (!smExecutor) {
-      console.warn('[setstate] No state machine executor');
+      log.warn('setstate no state machine executor');
       return;
     }
 
@@ -216,7 +219,7 @@ export class InternalFunctions {
     if (stateName) {
       smExecutor.setState(stateName);
     } else {
-      console.warn(`[setstate] State not found for handle: ${handle}`);
+      log.warn({ handle }, 'setstate state not found for handle');
     }
   }
 
@@ -224,7 +227,7 @@ export class InternalFunctions {
     const handle = ctx.popInt();
     const smExecutor = this.vm.getStateMachineExecutor();
     if (!smExecutor) {
-      console.warn('[callstatemachine] No state machine executor');
+      log.warn('callstatemachine no state machine executor');
       return;
     }
 
@@ -232,14 +235,14 @@ export class InternalFunctions {
     if (sm) {
       smExecutor.callStateMachine(sm);
     } else {
-      console.warn(`[callstatemachine] State machine not found for handle: ${handle}`);
+      log.warn({ handle }, 'callstatemachine state machine not found for handle');
     }
   }
 
   private returnstatemachine(): void {
     const smExecutor = this.vm.getStateMachineExecutor();
     if (!smExecutor) {
-      console.warn('[returnstatemachine] No state machine executor');
+      log.warn('returnstatemachine no state machine executor');
       return;
     }
     smExecutor.returnStateMachine();
@@ -401,7 +404,7 @@ export class InternalFunctions {
     const path = ctx.popString();
     this.fileHandle = { path, mode, lines: [] };
     this.fileLineIndex = 0;
-    console.warn(`[fileopen] ${path} mode=${mode} - file I/O not fully implemented`);
+    log.warn({ path, mode }, 'file I/O not fully implemented');
   }
 
   private fileclose(): void {

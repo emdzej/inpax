@@ -7,17 +7,19 @@
 import { readFileSync } from 'fs';
 import { VM } from './index.js';
 import { parseIpo } from '@emdzej/inpax-parser';
+import { getLogger } from '@emdzej/inpax-logger';
 
+const log = getLogger('interpreter-cli');
 
 function main(): void {
     const args = process.argv.slice(2);
-    console.log('INPAX Interpreter CLI');
+    log.info('INPAX Interpreter CLI');
     if (args.length === 0) {
-        console.log('Usage: inpax-run <file.ipo>');
-        console.log('');
-        console.log('Options:');
-        console.log('  --parse    Only parse, don\'t execute');
-        console.log('  --debug    Enable debug output');
+        log.info('Usage: inpax-run <file.ipo>');
+        log.info('');
+        log.info('Options:');
+        log.info("  --parse    Only parse, don't execute");
+        log.info('  --debug    Enable debug output');
         process.exit(1);
     }
 
@@ -26,7 +28,7 @@ function main(): void {
     const debug = args.includes('--debug');
 
     if (!filename) {
-        console.error('No input file specified');
+        log.error('No input file specified');
         process.exit(1);
     }
 
@@ -38,37 +40,37 @@ function main(): void {
         const ipo = parseIpo(buffer);
 
         if (debug) {
-            console.log(`Version: ${ipo.header.versionHi}.${ipo.header.versionLo}`);
-            console.log(`Globals: ${ipo.globals.types.length}`);
-            console.log(`Constants: ${ipo.constants.values.length}`);
-            console.log(`Functions: ${ipo.functions.size}`);
-            console.log(`Screens: ${ipo.screens.size}`);
-            console.log(`Menus: ${ipo.menus.size}`);
-            console.log('\n--- Functions ---');
+            log.info(`Version: ${ipo.header.versionHi}.${ipo.header.versionLo}`);
+            log.info(`Globals: ${ipo.globals.types.length}`);
+            log.info(`Constants: ${ipo.constants.values.length}`);
+            log.info(`Functions: ${ipo.functions.size}`);
+            log.info(`Screens: ${ipo.screens.size}`);
+            log.info(`Menus: ${ipo.menus.size}`);
+            log.info('\n--- Functions ---');
             for (const [id, func] of ipo.functions) {
-                console.log(`  ${id}: ${func.header.name} (${func.instructions.length} instructions)`);
+                log.info(`  ${id}: ${func.header.name} (${func.instructions.length} instructions)`);
             }
 
-            console.log('\n--- Constants ---');
+            log.info('\n--- Constants ---');
             for (let i = 0; i < ipo.constants.values.length; i++) {
                 const c = ipo.constants.values[i];
-                console.log(`  ${i}: type=${c.type} value=${JSON.stringify(c.value)}`);
+                log.info(`  ${i}: type=${c.type} value=${JSON.stringify(c.value)}`);
             }
         }
 
         if (parseOnly) {
-            console.log('\nParse complete.');
+            log.info('\nParse complete.');
             return;
         }
 
-        console.log('\n--- Running ---\n');
+        log.info('\n--- Running ---\n');
         const vm = new VM(ipo);
         vm.run();
 
-        console.log('\n--- Execution complete ---');
+        log.info('\n--- Execution complete ---');
 
     } catch (error) {
-        console.error('Error:', error instanceof Error ? error.message : error);
+        log.error({ err: error instanceof Error ? error.message : error }, 'Error');
         process.exit(1);
     }
 }
