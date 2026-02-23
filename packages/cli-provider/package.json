@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/cli-provider",
+  "name": "@emdzej/inpax-cli-provider",
   "version": "0.1.0",
   "description": "Simple CLI provider for INPA runtime using stdio",
   "type": "module",
@@ -18,7 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inpax/interfaces": "workspace:*",
+    "@emdzej/inpax-interfaces": "workspace:*",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {

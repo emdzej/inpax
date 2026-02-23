@@ -2,7 +2,7 @@
  * Null SPS Provider - no-op implementation
  */
 
-import type { ISpsProvider } from '@inpax/interfaces';
+import type { ISpsProvider } from '@emdzej/inpax-interfaces';
 
 export class NullSpsProvider implements ISpsProvider {
   init(): void {}

@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/dis",
+  "name": "@emdzej/inpax-dis",
   "version": "0.1.0",
   "description": "INPA IPO bytecode disassembler",
   "type": "module",
@@ -22,8 +22,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@inpax/core": "workspace:*",
-    "@inpax/parser": "workspace:*",
+    "@emdzej/inpax-core": "workspace:*",
+    "@emdzej/inpax-parser": "workspace:*",
     "chalk": "^5.3.0"
   },
   "devDependencies": {

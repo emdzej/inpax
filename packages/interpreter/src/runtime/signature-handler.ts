@@ -2,7 +2,7 @@
  * System Function Signature Parser and Argument Handler
  */
 
-import { SystemFunctionMap, ValueType, StackEntry } from '@inpax/core';
+import { SystemFunctionMap, ValueType, StackEntry } from '@emdzej/inpax-core';
 import type { Stack } from '../vm/stack.js';
 
 export type ParamDirection = 'in' | 'out' | 'inout';

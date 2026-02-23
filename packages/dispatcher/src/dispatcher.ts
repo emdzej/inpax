@@ -3,8 +3,8 @@
  * Maps system function IDs to provider method calls
  */
 
-import { SystemFunction } from '@inpax/core';
-import type { IInpaRuntime } from '@inpax/interfaces';
+import { SystemFunction } from '@emdzej/inpax-core';
+import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 
 /** Set of async function IDs */
 const ASYNC_FUNCTIONS = new Set<number>([

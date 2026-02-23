@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { StateMachineExecutor } from './statemachine-executor.js';
-import type { StateMachineBlock, StateBlock, FunctionBlock, BlockHeader } from '@inpax/core';
-import { BlockType } from '@inpax/core';
-import type { IInpaRuntime } from '@inpax/interfaces';
+import type { StateMachineBlock, StateBlock, FunctionBlock, BlockHeader } from '@emdzej/inpax-core';
+import { BlockType } from '@emdzej/inpax-core';
+import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
 
 // Mock VM

@@ -16,7 +16,7 @@ import {
   StackEntry,
   BlockType,
   ValueType,
-} from '@inpax/core';
+} from '@emdzej/inpax-core';
 
 const MAGIC = 'TEST-Infotext';
 const SEPARATOR = 0x0a;

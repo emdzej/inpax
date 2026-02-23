@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/core",
+  "name": "@emdzej/inpax-core",
   "version": "0.1.0",
   "description": "INPAX core types and definitions",
   "type": "module",

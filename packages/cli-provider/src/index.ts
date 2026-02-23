@@ -1,5 +1,5 @@
 /**
- * @inpax/cli-provider
+ * @emdzej/inpax-cli-provider
  * Simple CLI implementation for INPA runtime using stdio
  */
 

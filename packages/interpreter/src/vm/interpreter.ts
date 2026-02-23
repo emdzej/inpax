@@ -11,10 +11,10 @@ import {
     CallTarget,
     TypeMarker,
     Value,
-} from '@inpax/core';
-import type { IInpaRuntime } from '@inpax/interfaces';
-import { SystemFunctionDispatcher } from '@inpax/dispatcher';
-import { createNullRuntime } from '@inpax/providers';
+} from '@emdzej/inpax-core';
+import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
+import { SystemFunctionDispatcher } from '@emdzej/inpax-dispatcher';
+import { createNullRuntime } from '@emdzej/inpax-providers';
 import { Stack } from './stack.js';
 import { InternalFunctions } from '../runtime/internal-functions.js';
 import {

@@ -2,7 +2,7 @@
  * Null External Provider - no-op implementation
  */
 
-import type { IExternalProvider } from '@inpax/interfaces';
+import type { IExternalProvider } from '@emdzej/inpax-interfaces';
 
 export class NullExternalProvider implements IExternalProvider {
   winHelp(_helpFile: string): void {}

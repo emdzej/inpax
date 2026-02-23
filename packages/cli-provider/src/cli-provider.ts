@@ -5,7 +5,7 @@
 
 import * as readline from 'readline';
 import { EventEmitter } from 'eventemitter3';
-import type { IUIProvider, UIEvents } from '@inpax/interfaces';
+import type { IUIProvider, UIEvents } from '@emdzej/inpax-interfaces';
 
 // ANSI color codes
 const ANSI = {

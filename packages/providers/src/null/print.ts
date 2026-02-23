@@ -2,7 +2,7 @@
  * Null Print Provider - no-op implementation
  */
 
-import type { IPrintProvider } from '@inpax/interfaces';
+import type { IPrintProvider } from '@emdzej/inpax-interfaces';
 
 export class NullPrintProvider implements IPrintProvider {
   printScreen(): void {}

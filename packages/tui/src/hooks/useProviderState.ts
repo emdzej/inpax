@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { TuiProvider, TuiState } from '@inpax/tui-provider';
+import type { TuiProvider, TuiState } from '@emdzej/inpax-tui-provider';
 
 /**
  * Subscribe to TuiProvider state changes

@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
-import type { InputDialog as InputDialogType } from '@inpax/tui-provider';
+import type { InputDialog as InputDialogType } from '@emdzej/inpax-tui-provider';
 
 export interface InputDialogProps {
   dialog: InputDialogType;

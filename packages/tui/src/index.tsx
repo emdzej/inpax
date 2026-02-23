@@ -1,13 +1,13 @@
 /**
- * @inpax/tui
+ * @emdzej/inpax-tui
  * Terminal UI renderer for INPA runtime using ink
  * 
- * Renders state from @inpax/tui-provider
+ * Renders state from @emdzej/inpax-tui-provider
  */
 
 import React from 'react';
 import { render } from 'ink';
-import type { TuiProvider } from '@inpax/tui-provider';
+import type { TuiProvider } from '@emdzej/inpax-tui-provider';
 import { RunScreen } from './screens/RunScreen.js';
 
 // Re-export components for custom UIs

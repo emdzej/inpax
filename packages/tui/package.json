@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/tui",
+  "name": "@emdzej/inpax-tui",
   "version": "0.1.0",
   "description": "Terminal UI renderer for INPA runtime using ink",
   "type": "module",
@@ -20,7 +20,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inpax/tui-provider": "workspace:*",
+    "@emdzej/inpax-tui-provider": "workspace:*",
     "@mishieck/ink-titled-box": "^0.4.2",
     "clipboardy": "^5.3.0",
     "ink": "^5.1.0",

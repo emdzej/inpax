@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import { TitledBox } from '@mishieck/ink-titled-box';
 import clipboard from 'clipboardy';
-import type { TuiProvider } from '@inpax/tui-provider';
+import type { TuiProvider } from '@emdzej/inpax-tui-provider';
 import { ScreenArea, FKeyBar, InputDialog, type RunState } from '../components/index.js';
 
 export interface RunScreenProps {

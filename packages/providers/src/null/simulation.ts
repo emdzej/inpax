@@ -2,7 +2,7 @@
  * Null Simulation Provider - no-op implementation
  */
 
-import type { ISimulationProvider } from '@inpax/interfaces';
+import type { ISimulationProvider } from '@emdzej/inpax-interfaces';
 
 export class NullSimulationProvider implements ISimulationProvider {
   async simNum(

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ScreenExecutor, ScreenPhase } from './screen-executor.js';
-import type { ScreenBlock, LineBlock, FunctionBlock } from '@inpax/core';
-import type { IInpaRuntime } from '@inpax/interfaces';
+import type { ScreenBlock, LineBlock, FunctionBlock } from '@emdzej/inpax-core';
+import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
 
 // Mock VM

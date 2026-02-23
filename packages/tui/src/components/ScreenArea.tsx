@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
-import type { TuiState, TextLine, AnalogValue, DigitalValue, UserBox } from '@inpax/tui-provider';
+import type { TuiState, TextLine, AnalogValue, DigitalValue, UserBox } from '@emdzej/inpax-tui-provider';
 import { AnalogGauge } from './AnalogGauge.js';
 import { DigitalIndicator } from './DigitalIndicator.js';
 

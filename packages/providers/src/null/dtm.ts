@@ -2,7 +2,7 @@
  * Null DTM Provider - no-op implementation
  */
 
-import type { IDtmProvider } from '@inpax/interfaces';
+import type { IDtmProvider } from '@emdzej/inpax-interfaces';
 
 export class NullDtmProvider implements IDtmProvider {
   findLogUnit(_logUnit: string): boolean {

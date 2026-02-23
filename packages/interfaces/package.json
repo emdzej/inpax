@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/interfaces",
+  "name": "@emdzej/inpax-interfaces",
   "version": "0.1.0",
   "description": "TypeScript interfaces for INPA runtime providers",
   "type": "module",

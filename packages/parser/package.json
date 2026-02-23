@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/parser",
+  "name": "@emdzej/inpax-parser",
   "version": "0.1.0",
   "description": "INPA IPO bytecode parser",
   "type": "module",
@@ -15,7 +15,7 @@
   "keywords": ["inpa", "ipo", "parser", "bmw", "diagnostics"],
   "license": "MIT",
   "dependencies": {
-    "@inpax/core": "workspace:*"
+    "@emdzej/inpax-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

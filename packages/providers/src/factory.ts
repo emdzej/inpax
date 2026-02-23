@@ -19,7 +19,7 @@ import type {
   IDtmProvider,
   IExternalProvider,
   ISpsProvider,
-} from '@inpax/interfaces';
+} from '@emdzej/inpax-interfaces';
 
 import {
   NullUIProvider,

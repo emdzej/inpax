@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/ini-parser",
+  "name": "@emdzej/inpax-ini-parser",
   "version": "0.1.0",
   "description": "INI file parser for INPA configuration files",
   "type": "module",

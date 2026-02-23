@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
-import type { MenuItem } from '@inpax/tui-provider';
+import type { MenuItem } from '@emdzej/inpax-tui-provider';
 
 export interface FKeyBarProps {
   items: readonly MenuItem[];
