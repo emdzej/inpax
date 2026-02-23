@@ -1,4 +1,4 @@
-import { StackEntry, Scope } from '@emdzej/inpax-core';
+import { StackEntry, Scope, ValueType } from '@emdzej/inpax-core';
 import { Stack } from './stack.js';
 
 /**
@@ -16,6 +16,55 @@ export class ExecutionContext {
     this.constPool = constPool;
     this.frameOffset = this.stack.getFrameOffset();
   }
+
+  // ============ Stack Helpers ============
+
+  popString(): string {
+    return String(this.stack.pop().value);
+  }
+
+  popInt(): number {
+    return Math.floor(Number(this.stack.pop().value));
+  }
+
+  popReal(): number {
+    return Number(this.stack.pop().value);
+  }
+
+  popBool(): boolean {
+    return Boolean(this.stack.pop().value);
+  }
+
+  popRef(): StackEntry {
+    return this.stack.pop();
+  }
+
+  pushString(value: string): void {
+    this.stack.push(Stack.createEntry(ValueType.String, value));
+  }
+
+  pushInt(value: number): void {
+    this.stack.push(Stack.createEntry(ValueType.Int, value));
+  }
+
+  pushReal(value: number): void {
+    this.stack.push(Stack.createEntry(ValueType.Real, value));
+  }
+
+  pushBool(value: boolean): void {
+    this.stack.push(Stack.createEntry(ValueType.Bool, value));
+  }
+
+  /**
+   * Set out parameter by reference
+   */
+  setOutParam(ref: StackEntry, value: StackEntry): void {
+    if (!ref.refInfo) throw new Error('Expected reference for out parameter');
+    const { scope, index } = ref.refInfo;
+    this.setVariable(scope as Scope, index, value);
+  }
+
+  // ============ Variable Access ============
 
   getVariable(scope: Scope, index: number): StackEntry {
     switch (scope) {
@@ -44,6 +93,8 @@ export class ExecutionContext {
         throw new Error(`Unsupported scope: 0x${scope.toString(16)}`);
     }
   }
+
+  // ============ Frame Management ============
 
   pushFrame(): void {
     this.stack.pushFrame();

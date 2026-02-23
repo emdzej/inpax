@@ -5,7 +5,7 @@
 
 import type { VM } from '../vm/interpreter.js';
 import type { ExecutionContext } from '../vm/execution-context.js';
-import { StackEntry, SystemFunction, ValueType, Scope } from '@emdzej/inpax-core';
+import { StackEntry, SystemFunction, ValueType } from '@emdzej/inpax-core';
 import { Stack } from '../vm/stack.js';
 
 type InternalHandler = (ctx: ExecutionContext) => void;
@@ -111,30 +111,6 @@ export class InternalFunctions {
     handler(ctx);
   }
 
-  // ============ Helpers ============
-
-  private popString(ctx: ExecutionContext): string {
-    return String(ctx.stack.pop().value);
-  }
-
-  private popInt(ctx: ExecutionContext): number {
-    return Math.floor(Number(ctx.stack.pop().value));
-  }
-
-  private popReal(ctx: ExecutionContext): number {
-    return Number(ctx.stack.pop().value);
-  }
-
-  private popRef(ctx: ExecutionContext): StackEntry {
-    return ctx.stack.pop();
-  }
-
-  private setOutParam(ctx: ExecutionContext, ref: StackEntry, value: StackEntry): void {
-    if (!ref.refInfo) throw new Error('Expected reference for out parameter');
-    const { scope, index } = ref.refInfo;
-    ctx.setVariable(scope as Scope, index, value);
-  }
-
   private stub(name: string): void {
     console.warn(`[STUB] ${name} - not implemented`);
   }
@@ -142,8 +118,8 @@ export class InternalFunctions {
   // ============ Timer ============
 
   private settimer(ctx: ExecutionContext): void {
-    const timeval = this.popInt(ctx);
-    const timernum = this.popInt(ctx);
+    const timeval = ctx.popInt();
+    const timernum = ctx.popInt();
 
     const executor = this.vm.getScreenExecutor();
     if (executor) {
@@ -154,8 +130,8 @@ export class InternalFunctions {
   }
 
   private testtimer(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    const timernum = this.popInt(ctx);
+    const outRef = ctx.popRef();
+    const timernum = ctx.popInt();
 
     const executor = this.vm.getScreenExecutor();
     let expired: boolean;
@@ -167,13 +143,13 @@ export class InternalFunctions {
       expired = timer ? (Date.now() - timer.start >= timer.duration) : true;
     }
 
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.Bool, expired));
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.Bool, expired));
   }
 
   // ============ Menu ==============
 
   private setmenu(ctx: ExecutionContext): void {
-    const menuHandle = this.popInt(ctx);
+    const menuHandle = ctx.popInt();
     this.vm.setMenu(menuHandle).catch(err => {
       console.error(`[setmenu] Error activating menu: ${err}`);
     });
@@ -182,8 +158,8 @@ export class InternalFunctions {
   // ============ Screen ============
 
   private setscreen(ctx: ExecutionContext): void {
-    const cyclic = this.popInt(ctx) !== 0;
-    const handle = this.popRef(ctx);
+    const cyclic = ctx.popInt() !== 0;
+    const handle = ctx.popRef();
     const screenId = handle.refInfo?.index;
     if (screenId === undefined) {
       console.warn('[setscreen] Invalid screen reference');
@@ -213,7 +189,7 @@ export class InternalFunctions {
   // ============ State Machine ============
 
   private setstatemachine(ctx: ExecutionContext): void {
-    const handle = this.popInt(ctx);
+    const handle = ctx.popInt();
     const smExecutor = this.vm.getStateMachineExecutor();
     if (!smExecutor) {
       console.warn('[setstatemachine] No state machine executor');
@@ -229,7 +205,7 @@ export class InternalFunctions {
   }
 
   private setstate(ctx: ExecutionContext): void {
-    const handle = this.popInt(ctx);
+    const handle = ctx.popInt();
     const smExecutor = this.vm.getStateMachineExecutor();
     if (!smExecutor) {
       console.warn('[setstate] No state machine executor');
@@ -245,7 +221,7 @@ export class InternalFunctions {
   }
 
   private callstatemachine(ctx: ExecutionContext): void {
-    const handle = this.popInt(ctx);
+    const handle = ctx.popInt();
     const smExecutor = this.vm.getStateMachineExecutor();
     if (!smExecutor) {
       console.warn('[callstatemachine] No state machine executor');
@@ -301,7 +277,7 @@ export class InternalFunctions {
   }
 
   private delay(ctx: ExecutionContext): void {
-    const ms = this.popInt(ctx);
+    const ms = ctx.popInt();
     const start = Date.now();
     while (Date.now() - start < ms) { /* busy wait */ }
   }
@@ -309,120 +285,120 @@ export class InternalFunctions {
   // ============ Time ============
 
   private getdate(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
+    const outRef = ctx.popRef();
     const now = new Date();
     const date = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()}`;
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.String, date));
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.String, date));
   }
 
   private gettime(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
+    const outRef = ctx.popRef();
     const now = new Date();
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.String, time));
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.String, time));
   }
 
   // ============ String ============
 
   private strcat(ctx: ExecutionContext): void {
-    const right = this.popString(ctx);
-    const left = this.popString(ctx);
-    const outRef = this.popRef(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.String, left + right));
+    const right = ctx.popString();
+    const left = ctx.popString();
+    const outRef = ctx.popRef();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.String, left + right));
   }
 
   private strlen(ctx: ExecutionContext): void {
-    const str = this.popString(ctx);
-    const outRef = this.popRef(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.Int, str.length));
+    const str = ctx.popString();
+    const outRef = ctx.popRef();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.Int, str.length));
   }
 
   private midstr(ctx: ExecutionContext): void {
-    const length = this.popInt(ctx);
-    const start = this.popInt(ctx);
-    const str = this.popString(ctx);
-    const outRef = this.popRef(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.String, str.substr(start, length)));
+    const length = ctx.popInt();
+    const start = ctx.popInt();
+    const str = ctx.popString();
+    const outRef = ctx.popRef();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.String, str.substr(start, length)));
   }
 
   // ============ Conversion ============
 
   private realtostring(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    this.popString(ctx); // format string - TODO: implement formatting
-    const value = this.popReal(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.String, value.toString()));
+    const outRef = ctx.popRef();
+    ctx.popString(); // format string - TODO: implement formatting
+    const value = ctx.popReal();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.String, value.toString()));
   }
 
   private stringtoreal(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    const value = this.popString(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.Real, parseFloat(value) || 0));
+    const outRef = ctx.popRef();
+    const value = ctx.popString();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.Real, parseFloat(value) || 0));
   }
 
   private inttostring(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    const value = this.popInt(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.String, value.toString()));
+    const outRef = ctx.popRef();
+    const value = ctx.popInt();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.String, value.toString()));
   }
 
   private stringtoint(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    const value = this.popString(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.Int, parseInt(value, 10) || 0));
+    const outRef = ctx.popRef();
+    const value = ctx.popString();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.Int, parseInt(value, 10) || 0));
   }
 
   private hexconvert(ctx: ExecutionContext): void {
-    const segRef = this.popRef(ctx);
-    const lowRef = this.popRef(ctx);
-    const midRef = this.popRef(ctx);
-    const highRef = this.popRef(ctx);
-    const hexStr = this.popString(ctx);
+    const segRef = ctx.popRef();
+    const lowRef = ctx.popRef();
+    const midRef = ctx.popRef();
+    const highRef = ctx.popRef();
+    const hexStr = ctx.popString();
 
     const clean = hexStr.replace(/[^0-9A-Fa-f]/g, '');
     const num = parseInt(clean, 16) || 0;
 
-    this.setOutParam(ctx, highRef, Stack.createEntry(ValueType.Int, (num >> 24) & 0xFF));
-    this.setOutParam(ctx, midRef, Stack.createEntry(ValueType.Int, (num >> 16) & 0xFF));
-    this.setOutParam(ctx, lowRef, Stack.createEntry(ValueType.Int, (num >> 8) & 0xFF));
-    this.setOutParam(ctx, segRef, Stack.createEntry(ValueType.Int, num & 0xFF));
+    ctx.setOutParam(highRef, Stack.createEntry(ValueType.Int, (num >> 24) & 0xFF));
+    ctx.setOutParam(midRef, Stack.createEntry(ValueType.Int, (num >> 16) & 0xFF));
+    ctx.setOutParam(lowRef, Stack.createEntry(ValueType.Int, (num >> 8) & 0xFF));
+    ctx.setOutParam(segRef, Stack.createEntry(ValueType.Int, num & 0xFF));
   }
 
   private realtoint(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    const value = this.popReal(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.Int, Math.floor(value)));
+    const outRef = ctx.popRef();
+    const value = ctx.popReal();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.Int, Math.floor(value)));
   }
 
   private inttoreal(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    const value = this.popInt(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.Real, value));
+    const outRef = ctx.popRef();
+    const value = ctx.popInt();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.Real, value));
   }
 
   private bytetoint(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    const value = this.popInt(ctx) & 0xFF;
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.Int, value));
+    const outRef = ctx.popRef();
+    const value = ctx.popInt() & 0xFF;
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.Int, value));
   }
 
   private inttolong(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    const value = this.popInt(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.Long, value));
+    const outRef = ctx.popRef();
+    const value = ctx.popInt();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.Long, value));
   }
 
   private longtoreal(ctx: ExecutionContext): void {
-    const outRef = this.popRef(ctx);
-    const value = this.popInt(ctx);
-    this.setOutParam(ctx, outRef, Stack.createEntry(ValueType.Real, value));
+    const outRef = ctx.popRef();
+    const value = ctx.popInt();
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.Real, value));
   }
 
   // ============ File I/O ============
 
   private fileopen(ctx: ExecutionContext): void {
-    const mode = this.popString(ctx);
-    const path = this.popString(ctx);
+    const mode = ctx.popString();
+    const path = ctx.popString();
     this.fileHandle = { path, mode, lines: [] };
     this.fileLineIndex = 0;
     console.warn(`[fileopen] ${path} mode=${mode} - file I/O not fully implemented`);
@@ -433,31 +409,31 @@ export class InternalFunctions {
   }
 
   private filewrite(ctx: ExecutionContext): void {
-    const str = this.popString(ctx);
+    const str = ctx.popString();
     if (this.fileHandle) {
       this.fileHandle.lines.push(str);
     }
   }
 
   private fileread(ctx: ExecutionContext): void {
-    const eofRef = this.popRef(ctx);
-    const strRef = this.popRef(ctx);
+    const eofRef = ctx.popRef();
+    const strRef = ctx.popRef();
 
     if (this.fileHandle && this.fileLineIndex < this.fileHandle.lines.length) {
-      this.setOutParam(ctx, strRef, Stack.createEntry(ValueType.String, this.fileHandle.lines[this.fileLineIndex++]));
-      this.setOutParam(ctx, eofRef, Stack.createEntry(ValueType.Bool, false));
+      ctx.setOutParam(strRef, Stack.createEntry(ValueType.String, this.fileHandle.lines[this.fileLineIndex++]));
+      ctx.setOutParam(eofRef, Stack.createEntry(ValueType.Bool, false));
     } else {
-      this.setOutParam(ctx, strRef, Stack.createEntry(ValueType.String, ''));
-      this.setOutParam(ctx, eofRef, Stack.createEntry(ValueType.Bool, true));
+      ctx.setOutParam(strRef, Stack.createEntry(ValueType.String, ''));
+      ctx.setOutParam(eofRef, Stack.createEntry(ValueType.Bool, true));
     }
   }
 
   // ============ Binary ============
 
   private getBinaryDataString(ctx: ExecutionContext): void {
-    const lenRef = this.popRef(ctx);
-    const strRef = this.popRef(ctx);
-    this.setOutParam(ctx, strRef, Stack.createEntry(ValueType.String, ''));
-    this.setOutParam(ctx, lenRef, Stack.createEntry(ValueType.Int, 0));
+    const lenRef = ctx.popRef();
+    const strRef = ctx.popRef();
+    ctx.setOutParam(strRef, Stack.createEntry(ValueType.String, ''));
+    ctx.setOutParam(lenRef, Stack.createEntry(ValueType.Int, 0));
   }
 }
