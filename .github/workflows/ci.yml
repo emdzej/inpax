@@ -26,4 +26,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build, Lint, Typecheck, Test
-        run: pnpm ci
+        run: pnpm run ci
