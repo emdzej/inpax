@@ -4,7 +4,8 @@
  */
 
 import type { VM } from '../vm/interpreter.js';
-import { StackEntry, SystemFunction, ValueType } from '@emdzej/inpax-core';
+import type { ExecutionContext } from '../vm/execution-context.js';
+import { StackEntry, SystemFunction, ValueType, Scope } from '@emdzej/inpax-core';
 import { Stack } from '../vm/stack.js';
 
 type InternalHandler = () => void;
@@ -128,14 +129,18 @@ export class InternalFunctions {
     return this.vm.getStack().pop();
   }
 
+  private getContext(): ExecutionContext {
+    const ctx = this.vm.getExecutionContext();
+    if (!ctx) {
+      throw new Error('No active execution context');
+    }
+    return ctx;
+  }
+
   private setOutParam(ref: StackEntry, value: StackEntry): void {
     if (!ref.refInfo) throw new Error('Expected reference for out parameter');
     const { scope, index } = ref.refInfo;
-    if (scope === 0x00) {
-      this.vm.getGlobals()[index] = value;
-    } else if (scope === 0x02) {
-      this.vm.getStack().set(index, value);
-    }
+    this.getContext().setVariable(scope as Scope, index, value);
   }
 
   private stub(name: string): void {

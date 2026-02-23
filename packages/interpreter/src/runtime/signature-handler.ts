@@ -2,8 +2,9 @@
  * System Function Signature Parser and Argument Handler
  */
 
-import { SystemFunctionMap, ValueType, StackEntry } from '@emdzej/inpax-core';
+import { SystemFunctionMap, ValueType, StackEntry, Scope } from '@emdzej/inpax-core';
 import type { Stack } from '../vm/stack.js';
+import type { ExecutionContext } from '../vm/execution-context.js';
 
 export type ParamDirection = 'in' | 'out' | 'inout';
 
@@ -144,8 +145,7 @@ export function writeOutParams(
     outRefs: StackEntry[],
     outParams: ParsedParam[],
     values: unknown[],
-    globals: StackEntry[],
-    stack: Stack
+    ctx: ExecutionContext
 ): void {
     for (let i = 0; i < outRefs.length && i < values.length; i++) {
         const ref = outRefs[i];
@@ -166,10 +166,6 @@ export function writeOutParams(
             value: value as StackEntry['value'],
         };
 
-        if (scope === 0x00) { // Global
-            globals[index] = newEntry;
-        } else if (scope === 0x02) { // Local
-            stack.set(index, newEntry);
-        }
+        ctx.setVariable(scope as Scope, index, newEntry);
     }
 }
