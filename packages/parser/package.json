@@ -8,11 +8,17 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "vitest",
+    "test": "vitest run --passWithNoTests",
     "lint": "eslint src/",
     "clean": "rm -rf dist/"
   },
-  "keywords": ["inpa", "ipo", "parser", "bmw", "diagnostics"],
+  "keywords": [
+    "inpa",
+    "ipo",
+    "parser",
+    "bmw",
+    "diagnostics"
+  ],
   "license": "MIT",
   "dependencies": {
     "@emdzej/inpax-core": "workspace:*"
@@ -21,5 +27,13 @@
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emdzej/inpax.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
   }
 }

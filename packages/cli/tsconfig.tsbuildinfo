@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/commands/compile.ts","./src/commands/dis.ts","./src/commands/info.ts","./src/commands/run.ts"],"version":"5.9.3"}

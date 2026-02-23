@@ -24,12 +24,12 @@
     "typescript": "^5.7.3"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/emdzej/inpax.git",
-    "directory": "packages/ediabasx-provider"
+    "url": "https://github.com/emdzej/inpax.git"
   },
   "keywords": [
     "ediabas",

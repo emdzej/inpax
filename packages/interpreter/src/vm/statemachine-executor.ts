@@ -1,5 +1,5 @@
 import { EventEmitter } from 'eventemitter3';
-import type { StateMachineBlock, StateBlock, FunctionBlock } from '@emdzej/inpax-core';
+import type { StateMachineBlock, StateBlock } from '@emdzej/inpax-core';
 import { BlockType } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';

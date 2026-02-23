@@ -9,9 +9,6 @@ import {
   MenuBlock,
   StateMachineBlock,
   LineBlock,
-  ControlBlock,
-  MenuItemBlock,
-  StateBlock,
   Instruction,
   StackEntry,
   BlockType,
@@ -107,36 +104,41 @@ export class IpoParser {
         file.constants = this.parseConstants(header);
         break;
 
-      case BlockType.Function:
+      case BlockType.Function: {
         const func = this.parseFunction(header);
         file.functions.set(header.blockId, func);
         break;
+      }
 
-      case BlockType.Screen:
+      case BlockType.Screen: {
         const screen = this.parseScreen(header);
         file.screens.set(header.blockId, screen);
         break;
+      }
 
-      case BlockType.Menu:
+      case BlockType.Menu: {
         const menu = this.parseMenu(header);
         file.menus.set(header.blockId, menu);
         break;
+      }
 
-      case BlockType.StateMachine:
+      case BlockType.StateMachine: {
         const sm = this.parseStateMachine(header);
         file.stateMachines.set(header.blockId, sm);
         break;
+      }
 
       case BlockType.ScreenFunc:
       case BlockType.LineFunc:
       case BlockType.ControlFunc:
       case BlockType.MenuItemFunc:
-      case BlockType.StateFunc:
+      case BlockType.StateFunc: {
         // Sub-functions - should be parsed as part of parent blocks
         // If we get here, it's an orphan sub-function (shouldn't happen in valid files)
         const subFunc = this.parseFunction(header);
         file.functions.set(header.blockId, subFunc);
         break;
+      }
 
       default:
         // Skip unknown block types

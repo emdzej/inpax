@@ -1,7 +1,5 @@
 import { EventEmitter } from 'eventemitter3';
 import type { VM } from './interpreter.js';
-import type { ScreenExecutor } from './screen-executor.js';
-import type { StateMachineExecutor } from './statemachine-executor.js';
 
 /**
  * Main scheduler events
