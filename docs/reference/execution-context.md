@@ -252,6 +252,71 @@ This is called after:
 3. **No separate local variable pool** - everything is on the stack
 4. **References use absolute indices** - `PUSHREF` adds frame_offset to make references stable across frame changes
 
+## Stack Internal Structure
+
+Each Stack uses MFC collection classes:
+
+```c
+struct Stack {
+    CObList   objects;      // +0x00: List of C++ objects with vtable
+    // ... MFC internal fields
+    CPtrArray entries;      // +0x1C: Array of StackEntry* (values)
+    CWordArray frames;      // +0x28: Array of frame_offset (ushort[])
+    int       frame_offset; // +0x3C: Current frame offset
+};
+```
+
+### CObList (+0x00) — UI Handles
+
+Stores MFC objects (UI handles, type 8/9 in StackEntry) that have vtables and need proper destruction.
+
+**Cleanup process:**
+```c
+void Stack_cleanup(Stack* stack) {
+    // 1. Destroy C++ objects via vtable
+    POSITION pos = stack->objects.GetHeadPosition();
+    while (pos != NULL) {
+        CObject* obj = stack->objects.GetNext(pos);
+        if (obj != NULL && obj->vtable != NULL) {
+            // Call scalar deleting destructor (vtable[1])
+            obj->vtable[1](1);  // param 1 = delete memory
+        }
+    }
+    stack->objects.RemoveAll();
+    
+    // 2. Free StackEntry (simple structs, no vtable)
+    for (int i = stack->entries.GetUpperBound(); i >= 0; i--) {
+        StackEntry* entry = stack->entries[i];
+        if (entry->type == TYPE_STRING) {
+            free(entry->value.string_ptr);
+        }
+        free(entry);
+    }
+    stack->entries.RemoveAll();
+    
+    // 3. Clear frame stack
+    stack->frames.RemoveAll();
+    stack->frame_offset = 0;
+}
+```
+
+### Why CObList for Handles?
+
+UI handles (dialogs, controls) are MFC objects that need:
+- Window destruction (`DestroyWindow`)
+- GDI resource cleanup
+- Parent window notification
+- Proper C++ destructor chain
+
+By storing them in `CObList`, the VM ensures proper cleanup when:
+- Stack frame is popped (ENDFRAME)
+- Stack is switched
+- Execution context is reset
+
+### StackEntry Has No vtable
+
+`StackEntry` is a plain C struct (24 bytes). The `FUN_00460640` destructor only frees string memory if `type == 6`.
+
 ---
 
 *Reference: INPA.exe Ghidra analysis*
