@@ -46,7 +46,10 @@ const createFunctionBlock = (instructions: Instruction[]): FunctionBlock => ({
   instructions,
 });
 
-const createIpoFile = (block: FunctionBlock): IpoFile => {
+const createIpoFile = (
+  block: FunctionBlock,
+  options: { globalsTypes?: ValueType[]; constantValues?: StackEntry[] } = {}
+): IpoFile => {
   const globals: GlobalsBlock = {
     header: {
       type: 0x01,
@@ -58,7 +61,7 @@ const createIpoFile = (block: FunctionBlock): IpoFile => {
       marker: 0,
       size: 0,
     },
-    types: [ValueType.Int],
+    types: options.globalsTypes ?? [ValueType.Int],
   };
 
   const constants: ConstantsBlock = {
@@ -72,7 +75,7 @@ const createIpoFile = (block: FunctionBlock): IpoFile => {
       marker: 0,
       size: 0,
     },
-    values: [],
+    values: options.constantValues ?? [],
   };
 
   return {
@@ -106,5 +109,58 @@ describe('VM.execute', () => {
     await vm.execute(block, ctx);
 
     expect(globals[0].value).toBe(42);
+  });
+
+  it('loads values from global, const, and local scopes', async () => {
+    const block = createFunctionBlock([
+      createInstruction(Opcode.FRAME, 0, 0),
+      createInstruction(Opcode.ALLOC, 0x51, 0),
+      createInstruction(Opcode.PUSHIMM, 0x51, 30),
+      createInstruction(Opcode.PUSHREFSTORE, Scope.Local, 0),
+      createInstruction(Opcode.MOVE, 0, 1),
+      createInstruction(Opcode.LOAD, Scope.Global, 0),
+      createInstruction(Opcode.LOAD, Scope.Const, 0),
+      createInstruction(Opcode.LOAD, Scope.Local, 0),
+      createInstruction(Opcode.RET, 0, 0),
+    ]);
+
+    const ipo = createIpoFile(block, {
+      constantValues: [entry(ValueType.Int, 20)],
+    });
+    const vm = new VM(ipo);
+
+    const globals: StackEntry[] = [entry(ValueType.Int, 10)];
+    const ctx = new ExecutionContext(globals, ipo.constants.values);
+
+    await vm.execute(block, ctx);
+
+    expect(ctx.stack.pop().value).toBe(30);
+    expect(ctx.stack.pop().value).toBe(20);
+    expect(ctx.stack.pop().value).toBe(10);
+  });
+
+  it('stores values to global and local scopes', async () => {
+    const block = createFunctionBlock([
+      createInstruction(Opcode.FRAME, 0, 0),
+      createInstruction(Opcode.ALLOC, 0x51, 0),
+      createInstruction(Opcode.PUSHIMM, 0x51, 5),
+      createInstruction(Opcode.PUSHREFSTORE, Scope.Global, 0),
+      createInstruction(Opcode.MOVE, 0, 1),
+      createInstruction(Opcode.PUSHIMM, 0x51, 7),
+      createInstruction(Opcode.PUSHREFSTORE, Scope.Local, 0),
+      createInstruction(Opcode.MOVE, 0, 1),
+      createInstruction(Opcode.RET, 0, 0),
+    ]);
+
+    const ipo = createIpoFile(block);
+    const vm = new VM(ipo);
+
+    const globals: StackEntry[] = [entry(ValueType.Int, 0)];
+    const ctx = new ExecutionContext(globals, []);
+
+    await vm.execute(block, ctx);
+
+    expect(globals[0].value).toBe(5);
+    expect(ctx.getVariable(Scope.Local, 0).value).toBe(7);
   });
 });
