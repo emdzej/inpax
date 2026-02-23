@@ -1,13 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { StateMachineExecutor } from './statemachine-executor.js';
 import type { StateMachineBlock, StateBlock, FunctionBlock, BlockHeader } from '@emdzej/inpax-core';
-import { BlockType } from '@emdzej/inpax-core';
+import { BlockType, ValueType } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
+import { ExecutionContext } from './execution-context.js';
 
 // Mock VM
 const createMockVM = () => ({
-  executeBlock: vi.fn().mockResolvedValue(undefined),
+  executeBlockWithContext: vi.fn().mockResolvedValue(undefined),
+  createExecutionContext: vi.fn(() => new ExecutionContext([
+    { type: ValueType.Int, flags: 1, value: 0 },
+  ], [])),
   getStateMachineExecutor: vi.fn().mockReturnValue(null),
 } as unknown as VM);
 
@@ -165,7 +169,7 @@ describe('StateMachineExecutor', () => {
       await executor.tick();
       
       // INIT function should have been executed
-      expect(vm.executeBlock).toHaveBeenCalledWith(sm.func);
+      expect(vm.executeBlockWithContext).toHaveBeenCalledWith(sm.func, expect.any(ExecutionContext));
     });
 
     it('should transition to new state with setState', async () => {
@@ -217,6 +221,59 @@ describe('StateMachineExecutor', () => {
       executor.setState('Z_INVALID');
       
       await expect(executor.tick()).rejects.toThrow("State 'Z_INVALID' not found");
+    });
+  });
+
+  describe('execution context', () => {
+    it('should persist context across state transitions', async () => {
+      const sm = createMockStateMachine('sm_main', ['Z_WORK']);
+      executor.registerStateMachine(sm);
+
+      const contexts: ExecutionContext[] = [];
+      (vm as any).executeBlockWithContext = vi.fn(async (block, ctx) => {
+        contexts.push(ctx);
+        if (block.header.name === 'sm_main_init') {
+          ctx.globalVars[0].value = 41;
+        }
+        if (block.header.name === 'Z_WORK_func') {
+          ctx.globalVars[0].value = Number(ctx.globalVars[0].value) + 1;
+        }
+      });
+
+      await executor.start('sm_main');
+      await executor.tick(); // INIT
+
+      executor.setState('Z_WORK');
+      await executor.tick(); // transition + Z_WORK
+
+      expect(contexts[0]).toBe(contexts[1]);
+      expect(contexts[1].globalVars[0].value).toBe(42);
+    });
+
+    it('should isolate context between nested state machines', async () => {
+      const smMain = createMockStateMachine('sm_main', ['Z_WORK']);
+      const smSub = createMockStateMachine('sm_sub', ['Z_SUB']);
+      executor.registerStateMachines([smMain, smSub]);
+
+      const contexts = new Map<string, ExecutionContext>();
+      (vm as any).executeBlockWithContext = vi.fn(async (block, ctx) => {
+        if (block.header.name === 'sm_main_init') {
+          contexts.set('main', ctx);
+        }
+        if (block.header.name === 'sm_sub_init') {
+          contexts.set('sub', ctx);
+        }
+      });
+
+      await executor.start('sm_main');
+      await executor.tick(); // INIT of sm_main
+
+      executor.callStateMachine('sm_sub');
+      await executor.tick(); // INIT of sm_sub
+
+      expect(contexts.get('main')).toBeDefined();
+      expect(contexts.get('sub')).toBeDefined();
+      expect(contexts.get('main')).not.toBe(contexts.get('sub'));
     });
   });
 
