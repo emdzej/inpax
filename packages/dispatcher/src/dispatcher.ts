@@ -277,7 +277,7 @@ function writeOutParams(
         const ref = outRefs[i];
         const param = outParams[i];
         const value = outValues[i];
-        const valueType = inpaTypeToValueType(param.type));
+        const valueType = inpaTypeToValueType(param.type);
 
         ctx.setOutParam(ref, { type: valueType, flags: 1, value: value as StackEntry['value'] });
     }
