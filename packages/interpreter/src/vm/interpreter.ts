@@ -17,11 +17,6 @@ import { createNullRuntime } from '@emdzej/inpax-providers';
 import { Stack } from './stack.js';
 import { ExecutionContext } from './execution-context.js';
 import { InternalFunctions } from '../runtime/internal-functions.js';
-import {
-    collectArguments,
-    writeOutParams,
-    type CollectedArgs,
-} from '../runtime/signature-handler.js';
 import { ScreenExecutor, type ScreenExecutorConfig } from './screen-executor.js';
 import { StateMachineExecutor, type StateMachineExecutorConfig } from './statemachine-executor.js';
 
@@ -468,53 +463,7 @@ export class VM {
             return;
         }
 
-        // Collect arguments from stack based on signature
-        const collected = collectArguments(funcId, ctx.stack);
-
-        // Dispatch to provider with input args only
-        const result = this.dispatcher.dispatch(funcId, collected.inputs);
-
-        // Handle async result
-        let returnValue: unknown;
-        if (result instanceof Promise) {
-            returnValue = await result;
-        } else {
-            returnValue = result;
-        }
-
-        // Write out params back to stack/globals
-        this.writeOutParams(collected, returnValue, ctx);
-    }
-
-    /**
-     * Write provider return values to out parameters
-     */
-    private writeOutParams(
-        collected: CollectedArgs,
-        returnValue: unknown,
-        ctx: ExecutionContext
-    ): void {
-        if (collected.outRefs.length === 0) return;
-
-        // Convert return value to array of out values
-        let outValues: unknown[];
-
-        if (returnValue === undefined || returnValue === null) {
-            outValues = [];
-        } else if (Array.isArray(returnValue)) {
-            // Provider returned tuple/array - use directly
-            outValues = returnValue;
-        } else {
-            // Single return value - wrap in array
-            outValues = [returnValue];
-        }
-
-        writeOutParams(
-            collected.outRefs,
-            collected.outParams,
-            outValues,
-            ctx
-        );
+        await this.dispatcher.dispatch(funcId, ctx, this);
     }
 
     private opCallE(index: number): void {
