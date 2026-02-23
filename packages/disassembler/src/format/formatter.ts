@@ -7,6 +7,9 @@ import {
   ValueType,
   IpoFile,
   FunctionBlock,
+  ScreenBlock,
+  MenuBlock,
+  StateMachineBlock,
   SystemFunctionMap,
 } from '@inpax/core';
 import chalk, { type ChalkInstance } from 'chalk';
@@ -302,11 +305,202 @@ export function disassembleIpo(ipo: IpoFile, options: DisassemblyOptions = {}): 
     '',
     c.comment(`; Globals: ${ipo.globals.types.length}`),
     c.comment(`; Constants: ${ipo.constants.values.length}`),
+    c.comment(`; Functions: ${ipo.functions.size}`),
+    c.comment(`; Screens: ${ipo.screens.size}`),
+    c.comment(`; Menus: ${ipo.menus.size}`),
+    c.comment(`; State Machines: ${ipo.stateMachines.size}`),
     '',
   ];
 
-  for (const [, func] of Array.from(ipo.functions.entries()).sort((a, b) => a[0] - b[0])) {
-    lines.push(...disassembleFunction(func, ipo, options), '');
+  // Functions
+  if (ipo.functions.size > 0) {
+    lines.push(c.funcHeader('; ======== FUNCTIONS ========'), '');
+    for (const [, func] of Array.from(ipo.functions.entries()).sort((a, b) => a[0] - b[0])) {
+      lines.push(...disassembleFunction(func, ipo, options), '');
+    }
+  }
+
+  // Screens
+  if (ipo.screens.size > 0) {
+    lines.push(c.funcHeader('; ======== SCREENS ========'), '');
+    for (const [, screen] of Array.from(ipo.screens.entries()).sort((a, b) => a[0] - b[0])) {
+      lines.push(...disassembleScreen(screen, ipo, options), '');
+    }
+  }
+
+  // Menus
+  if (ipo.menus.size > 0) {
+    lines.push(c.funcHeader('; ======== MENUS ========'), '');
+    for (const [, menu] of Array.from(ipo.menus.entries()).sort((a, b) => a[0] - b[0])) {
+      lines.push(...disassembleMenu(menu, ipo, options), '');
+    }
+  }
+
+  // State Machines
+  if (ipo.stateMachines.size > 0) {
+    lines.push(c.funcHeader('; ======== STATE MACHINES ========'), '');
+    for (const [, sm] of Array.from(ipo.stateMachines.entries()).sort((a, b) => a[0] - b[0])) {
+      lines.push(...disassembleStateMachine(sm, ipo, options), '');
+    }
+  }
+
+  return lines;
+}
+
+/** Disassemble screen block */
+export function disassembleScreen(
+  screen: ScreenBlock,
+  ipo?: IpoFile,
+  options: DisassemblyOptions = {}
+): string[] {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const c = getColors(opts);
+
+  const lines: string[] = [
+    c.separator(`; ----------------------------------------`),
+    c.funcHeader(`; Screen: ${screen.header.name}`),
+    c.comment(`; Block ID: ${screen.header.blockId}`),
+    c.comment(`; Lines: ${screen.lines.length}`),
+    c.separator(`; ----------------------------------------`),
+    '',
+  ];
+
+  // Alloc function
+  if (screen.allocFunc) {
+    lines.push(c.comment(`; [ALLOC]`));
+    lines.push(...disassembleFunctionBody(screen.allocFunc, ipo, opts));
+    lines.push('');
+  }
+
+  // Init function
+  if (screen.initFunc) {
+    lines.push(c.comment(`; [INIT]`));
+    lines.push(...disassembleFunctionBody(screen.initFunc, ipo, opts));
+    lines.push('');
+  }
+
+  // Lines
+  for (let i = 0; i < screen.lines.length; i++) {
+    const line = screen.lines[i];
+    if (line.func) {
+      lines.push(c.comment(`; [LINE ${i}] ${line.header.name}`));
+      lines.push(...disassembleFunctionBody(line.func, ipo, opts));
+      lines.push('');
+    }
+
+    // Controls within line
+    for (let j = 0; j < line.controls.length; j++) {
+      const ctrl = line.controls[j];
+      if (ctrl.func) {
+        lines.push(c.comment(`; [LINE ${i}][CTRL ${j}] ${ctrl.header.name}`));
+        lines.push(...disassembleFunctionBody(ctrl.func, ipo, opts));
+        lines.push('');
+      }
+    }
+  }
+
+  return lines;
+}
+
+/** Disassemble menu block */
+export function disassembleMenu(
+  menu: MenuBlock,
+  ipo?: IpoFile,
+  options: DisassemblyOptions = {}
+): string[] {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const c = getColors(opts);
+
+  const lines: string[] = [
+    c.separator(`; ----------------------------------------`),
+    c.funcHeader(`; Menu: ${menu.header.name}`),
+    c.comment(`; Block ID: ${menu.header.blockId}`),
+    c.comment(`; Items: ${menu.items.length}`),
+    c.separator(`; ----------------------------------------`),
+    '',
+  ];
+
+  // Menu init function
+  if (menu.func) {
+    lines.push(c.comment(`; [INIT]`));
+    lines.push(...disassembleFunctionBody(menu.func, ipo, opts));
+    lines.push('');
+  }
+
+  // Menu items
+  for (let i = 0; i < menu.items.length; i++) {
+    const item = menu.items[i];
+    if (item.func) {
+      lines.push(c.comment(`; [ITEM ${i}] ${item.header.name}`));
+      lines.push(...disassembleFunctionBody(item.func, ipo, opts));
+      lines.push('');
+    }
+  }
+
+  return lines;
+}
+
+/** Disassemble state machine block */
+export function disassembleStateMachine(
+  sm: StateMachineBlock,
+  ipo?: IpoFile,
+  options: DisassemblyOptions = {}
+): string[] {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const c = getColors(opts);
+
+  const lines: string[] = [
+    c.separator(`; ----------------------------------------`),
+    c.funcHeader(`; State Machine: ${sm.header.name}`),
+    c.comment(`; Block ID: ${sm.header.blockId}`),
+    c.comment(`; States: ${sm.states.length}`),
+    c.separator(`; ----------------------------------------`),
+    '',
+  ];
+
+  // State machine INIT function
+  if (sm.func) {
+    lines.push(c.comment(`; [INIT]`));
+    lines.push(...disassembleFunctionBody(sm.func, ipo, opts));
+    lines.push('');
+  }
+
+  // States
+  for (const state of sm.states) {
+    if (state.func) {
+      lines.push(c.comment(`; [STATE] ${state.header.name}`));
+      lines.push(...disassembleFunctionBody(state.func, ipo, opts));
+      lines.push('');
+    }
+  }
+
+  return lines;
+}
+
+/** Disassemble function body (without header) */
+function disassembleFunctionBody(
+  func: FunctionBlock,
+  ipo?: IpoFile,
+  options: DisassemblyOptions = {}
+): string[] {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const c = getColors(opts);
+  const lines: string[] = [];
+
+  const jumpTargets = new Set<number>();
+  if (opts.resolveLabels) {
+    for (const i of func.instructions) {
+      if ([Opcode.JMP, Opcode.JMPNZ].includes(i.opcode)) {
+        jumpTargets.add(i.operand2);
+      }
+    }
+  }
+
+  for (let i = 0; i < func.instructions.length; i++) {
+    if (opts.resolveLabels && jumpTargets.has(i)) {
+      lines.push(c.label(`L${i}:`));
+    }
+    lines.push(opts.indent + formatInstruction(func.instructions[i], i, ipo, opts));
   }
 
   return lines;
