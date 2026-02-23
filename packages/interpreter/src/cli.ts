@@ -6,7 +6,7 @@
 
 import { readFileSync } from 'fs';
 import { VM } from './index.js';
-import { parseIpo } from '@inpax/parser';
+import { parseIpo } from '@emdzej/inpax-parser';
 
 
 function main(): void {

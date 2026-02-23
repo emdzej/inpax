@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/dispatcher",
+  "name": "@emdzej/inpax-dispatcher",
   "version": "0.1.0",
   "description": "System function dispatcher for INPA runtime",
   "type": "module",
@@ -17,8 +17,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inpax/core": "workspace:*",
-    "@inpax/interfaces": "workspace:*"
+    "@emdzej/inpax-core": "workspace:*",
+    "@emdzej/inpax-interfaces": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

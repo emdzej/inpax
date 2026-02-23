@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/cli",
+  "name": "@emdzej/inpax-cli",
   "version": "0.1.0",
   "description": "INPAX CLI - IPO toolchain",
   "type": "module",
@@ -12,14 +12,14 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@inpax/core": "workspace:*",
-    "@inpax/parser": "workspace:*",
-    "@inpax/interpreter": "workspace:*",
-    "@inpax/dis": "workspace:*",
-    "@inpax/tui": "workspace:*",
-    "@inpax/tui-provider": "workspace:*",
-    "@inpax/cli-provider": "workspace:*",
-    "@inpax/mock-provider": "workspace:*",
+    "@emdzej/inpax-core": "workspace:*",
+    "@emdzej/inpax-parser": "workspace:*",
+    "@emdzej/inpax-interpreter": "workspace:*",
+    "@emdzej/inpax-dis": "workspace:*",
+    "@emdzej/inpax-tui": "workspace:*",
+    "@emdzej/inpax-tui-provider": "workspace:*",
+    "@emdzej/inpax-cli-provider": "workspace:*",
+    "@emdzej/inpax-mock-provider": "workspace:*",
     "commander": "^12.0.0",
     "chalk": "^5.3.0"
   },

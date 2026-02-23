@@ -4,7 +4,7 @@
  */
 
 import type { VM } from '../vm/interpreter.js';
-import { StackEntry, SystemFunction, ValueType } from '@inpax/core';
+import { StackEntry, SystemFunction, ValueType } from '@emdzej/inpax-core';
 import { Stack } from '../vm/stack.js';
 
 type InternalHandler = () => void;

@@ -1,5 +1,5 @@
 /**
- * @inpax/providers
+ * @emdzej/inpax-providers
  * Provider implementations for INPA runtime
  */
 

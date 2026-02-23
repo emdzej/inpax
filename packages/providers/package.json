@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/providers",
+  "name": "@emdzej/inpax-providers",
   "version": "0.1.0",
   "description": "Provider implementations for INPA runtime",
   "type": "module",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inpax/interfaces": "workspace:*",
+    "@emdzej/inpax-interfaces": "workspace:*",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {

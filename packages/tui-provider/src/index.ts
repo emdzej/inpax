@@ -1,8 +1,8 @@
 /**
- * @inpax/tui-provider
+ * @emdzej/inpax-tui-provider
  * Headless state management for INPA TUI
  * 
- * Use @inpax/tui for ink-based rendering
+ * Use @emdzej/inpax-tui for ink-based rendering
  */
 
 export { TuiProvider, type InternalEvents } from './tui-provider.js';

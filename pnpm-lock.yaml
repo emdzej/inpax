@@ -35,28 +35,28 @@ importers:
 
   packages/cli:
     dependencies:
-      '@inpax/cli-provider':
+      '@emdzej/inpax-cli-provider':
         specifier: workspace:*
         version: link:../cli-provider
-      '@inpax/core':
+      '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../core
-      '@inpax/dis':
+      '@emdzej/inpax-dis':
         specifier: workspace:*
         version: link:../disassembler
-      '@inpax/interpreter':
+      '@emdzej/inpax-interpreter':
         specifier: workspace:*
         version: link:../interpreter
-      '@inpax/mock-provider':
+      '@emdzej/inpax-mock-provider':
         specifier: workspace:*
         version: link:../mock-provider
-      '@inpax/parser':
+      '@emdzej/inpax-parser':
         specifier: workspace:*
         version: link:../parser
-      '@inpax/tui':
+      '@emdzej/inpax-tui':
         specifier: workspace:*
         version: link:../tui
-      '@inpax/tui-provider':
+      '@emdzej/inpax-tui-provider':
         specifier: workspace:*
         version: link:../tui-provider
       chalk:
@@ -75,7 +75,7 @@ importers:
 
   packages/cli-provider:
     dependencies:
-      '@inpax/interfaces':
+      '@emdzej/inpax-interfaces':
         specifier: workspace:*
         version: link:../interfaces
       eventemitter3:
@@ -106,10 +106,10 @@ importers:
 
   packages/disassembler:
     dependencies:
-      '@inpax/core':
+      '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../core
-      '@inpax/parser':
+      '@emdzej/inpax-parser':
         specifier: workspace:*
         version: link:../parser
       chalk:
@@ -128,10 +128,10 @@ importers:
 
   packages/dispatcher:
     dependencies:
-      '@inpax/core':
+      '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../core
-      '@inpax/interfaces':
+      '@emdzej/inpax-interfaces':
         specifier: workspace:*
         version: link:../interfaces
     devDependencies:
@@ -141,7 +141,7 @@ importers:
 
   packages/ediabasx-provider:
     dependencies:
-      '@inpax/interfaces':
+      '@emdzej/inpax-interfaces':
         specifier: workspace:*
         version: link:../interfaces
       eventemitter3:
@@ -173,19 +173,19 @@ importers:
 
   packages/interpreter:
     dependencies:
-      '@inpax/core':
+      '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../core
-      '@inpax/dispatcher':
+      '@emdzej/inpax-dispatcher':
         specifier: workspace:*
         version: link:../dispatcher
-      '@inpax/interfaces':
+      '@emdzej/inpax-interfaces':
         specifier: workspace:*
         version: link:../interfaces
-      '@inpax/parser':
+      '@emdzej/inpax-parser':
         specifier: workspace:*
         version: link:../parser
-      '@inpax/providers':
+      '@emdzej/inpax-providers':
         specifier: workspace:*
         version: link:../providers
       eventemitter3:
@@ -204,10 +204,10 @@ importers:
 
   packages/mock-provider:
     dependencies:
-      '@inpax/interfaces':
+      '@emdzej/inpax-interfaces':
         specifier: workspace:*
         version: link:../interfaces
-      '@inpax/providers':
+      '@emdzej/inpax-providers':
         specifier: workspace:*
         version: link:../providers
       eventemitter3:
@@ -220,7 +220,7 @@ importers:
 
   packages/parser:
     dependencies:
-      '@inpax/core':
+      '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -236,7 +236,7 @@ importers:
 
   packages/providers:
     dependencies:
-      '@inpax/interfaces':
+      '@emdzej/inpax-interfaces':
         specifier: workspace:*
         version: link:../interfaces
       eventemitter3:
@@ -249,7 +249,7 @@ importers:
 
   packages/tui:
     dependencies:
-      '@inpax/tui-provider':
+      '@emdzej/inpax-tui-provider':
         specifier: workspace:*
         version: link:../tui-provider
       '@mishieck/ink-titled-box':
@@ -274,7 +274,7 @@ importers:
 
   packages/tui-provider:
     dependencies:
-      '@inpax/interfaces':
+      '@emdzej/inpax-interfaces':
         specifier: workspace:*
         version: link:../interfaces
       eventemitter3:

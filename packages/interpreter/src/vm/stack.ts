@@ -1,4 +1,4 @@
-import { StackEntry, CallFrame, ReturnAddress, ValueType, Value } from '@inpax/core';
+import { StackEntry, CallFrame, ReturnAddress, ValueType, Value } from '@emdzej/inpax-core';
 
 /**
  * VM Stack - manages value stack and call frames

@@ -1,5 +1,5 @@
 /**
- * @inpax/ini-parser
+ * @emdzej/inpax-ini-parser
  * INI file parser for INPA configuration files
  */
 

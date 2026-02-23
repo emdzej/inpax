@@ -2,11 +2,11 @@
  * TUI Provider - Headless state management for IUIProvider
  * 
  * This provider manages UI state but does NOT render.
- * Use @inpax/tui for ink-based rendering of this state.
+ * Use @emdzej/inpax-tui for ink-based rendering of this state.
  */
 
 import { EventEmitter } from 'eventemitter3';
-import type { IUIProvider, UIEvents } from '@inpax/interfaces';
+import type { IUIProvider, UIEvents } from '@emdzej/inpax-interfaces';
 import {
   TuiState,
   initialTuiState,

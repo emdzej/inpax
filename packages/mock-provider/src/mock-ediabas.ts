@@ -3,7 +3,7 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import type { IEdiabasProvider, EdiabasEvents } from '@inpax/interfaces';
+import type { IEdiabasProvider, EdiabasEvents } from '@emdzej/inpax-interfaces';
 
 export interface JobCall {
   ecu: string;

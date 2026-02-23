@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/compiler",
+  "name": "@emdzej/inpax-compiler",
   "version": "0.1.0",
   "description": "INPA IPS to IPO compiler",
   "type": "module",

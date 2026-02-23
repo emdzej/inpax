@@ -3,7 +3,7 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import type { IUIProvider, UIEvents } from '@inpax/interfaces';
+import type { IUIProvider, UIEvents } from '@emdzej/inpax-interfaces';
 
 export interface UICall {
   method: string;

@@ -1,5 +1,5 @@
 /**
- * @inpax/interfaces
+ * @emdzej/inpax-interfaces
  * TypeScript interfaces for INPA runtime providers
  */
 

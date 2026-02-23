@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/tui-provider",
+  "name": "@emdzej/inpax-tui-provider",
   "version": "0.1.0",
   "description": "Headless TUI state management for INPA runtime",
   "type": "module",
@@ -18,7 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@inpax/interfaces": "workspace:*",
+    "@emdzej/inpax-interfaces": "workspace:*",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {

@@ -62,10 +62,10 @@ export const runCommand = new Command('run')
  * Run with full TUI interface
  */
 async function runWithTui(filePath: string, scriptName: string, options: RunOptions) {
-    const { parseIpo } = await import('@inpax/parser');
-    const { VM, MainScheduler } = await import('@inpax/interpreter');
-    const { TuiProvider } = await import('@inpax/tui-provider');
-    const { renderTui } = await import('@inpax/tui');
+    const { parseIpo } = await import('@emdzej/inpax-parser');
+    const { VM, MainScheduler } = await import('@emdzej/inpax-interpreter');
+    const { TuiProvider } = await import('@emdzej/inpax-tui-provider');
+    const { renderTui } = await import('@emdzej/inpax-tui');
 
     // Parse IPO file
     const buffer = readFileSync(filePath);
@@ -165,9 +165,9 @@ async function runWithTui(filePath: string, scriptName: string, options: RunOpti
  * Run with headless CLI provider (no TUI)
  */
 async function runHeadless(filePath: string, scriptName: string, options: RunOptions) {
-    const { parseIpo } = await import('@inpax/parser');
-    const { VM, MainScheduler } = await import('@inpax/interpreter');
-    const { CliProvider } = await import('@inpax/cli-provider');
+    const { parseIpo } = await import('@emdzej/inpax-parser');
+    const { VM, MainScheduler } = await import('@emdzej/inpax-interpreter');
+    const { CliProvider } = await import('@emdzej/inpax-cli-provider');
 
     console.log(chalk.bold('=== INPAX Headless Mode ==='));
     console.log(`Script: ${scriptName}`);

@@ -2,7 +2,7 @@
  * Null PEM Provider - no-op implementation
  */
 
-import type { IPemProvider } from '@inpax/interfaces';
+import type { IPemProvider } from '@emdzej/inpax-interfaces';
 
 export class NullPemProvider implements IPemProvider {
   initialisiere(): boolean { return true; }

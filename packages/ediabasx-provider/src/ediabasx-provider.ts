@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import type { IEdiabasProvider, EdiabasEvents } from '@inpax/interfaces';
+import type { IEdiabasProvider, EdiabasEvents } from '@emdzej/inpax-interfaces';
 
 // Type definitions for @ediabasx/ediabas
 // These match the actual API from the package

@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/ediabasx-provider",
+  "name": "@emdzej/inpax-ediabasx-provider",
   "version": "0.1.0",
   "description": "EdiabasX provider for INPA interpreter - uses @ediabasx/ediabas for real ECU communication",
   "type": "module",
@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@inpax/interfaces": "workspace:*",
+    "@emdzej/inpax-interfaces": "workspace:*",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {

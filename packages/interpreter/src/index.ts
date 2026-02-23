@@ -3,7 +3,7 @@
  *
  * @example
  * ```typescript
- * import { parseIpo, VM } from '@inpax/interpreter';
+ * import { parseIpo, VM } from '@emdzej/inpax-interpreter';
  * import { readFileSync } from 'fs';
  *
  * const buffer = readFileSync('script.ipo');

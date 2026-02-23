@@ -4,8 +4,8 @@
 import { Command } from 'commander';
 import { readFileSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
-import { parseIpo } from '@inpax/parser';
-import { disassembleIpo, disassembleFunction, type DisassemblyOptions } from '@inpax/dis';
+import { parseIpo } from '@emdzej/inpax-parser';
+import { disassembleIpo, disassembleFunction, type DisassemblyOptions } from '@emdzej/inpax-dis';
 
 export const disCommand = new Command('dis')
   .description('Disassemble IPO bytecode file')

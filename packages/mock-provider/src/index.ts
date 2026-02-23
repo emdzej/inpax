@@ -1,12 +1,12 @@
 /**
- * @inpax/mock-provider
+ * @emdzej/inpax-mock-provider
  * Mock providers for INPA unit testing
  */
 
 export { MockEdiabasProvider, type JobCall, type MockJobResult } from './mock-ediabas.js';
 export { MockUIProvider, type UICall, type InputQueue } from './mock-ui.js';
 
-import type { IInpaRuntime } from '@inpax/interfaces';
+import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import { MockEdiabasProvider } from './mock-ediabas.js';
 import { MockUIProvider } from './mock-ui.js';
 
@@ -19,7 +19,7 @@ import {
   NullDtmProvider,
   NullExternalProvider,
   NullSpsProvider,
-} from '@inpax/providers';
+} from '@emdzej/inpax-providers';
 
 export interface MockRuntime extends IInpaRuntime {
   ui: MockUIProvider;

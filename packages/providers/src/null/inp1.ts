@@ -3,7 +3,7 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import type { IInp1Provider, Inp1Events } from '@inpax/interfaces';
+import type { IInp1Provider, Inp1Events } from '@emdzej/inpax-interfaces';
 
 export class NullInp1Provider
   extends EventEmitter<Inp1Events>

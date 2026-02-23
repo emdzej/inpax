@@ -1,5 +1,5 @@
 {
-  "name": "@inpax/interpreter",
+  "name": "@emdzej/inpax-interpreter",
   "version": "0.1.0",
   "description": "INPA IPO bytecode interpreter",
   "type": "module",
@@ -21,11 +21,11 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@inpax/core": "workspace:*",
-    "@inpax/dispatcher": "workspace:*",
-    "@inpax/interfaces": "workspace:*",
-    "@inpax/parser": "workspace:*",
-    "@inpax/providers": "workspace:*",
+    "@emdzej/inpax-core": "workspace:*",
+    "@emdzej/inpax-dispatcher": "workspace:*",
+    "@emdzej/inpax-interfaces": "workspace:*",
+    "@emdzej/inpax-parser": "workspace:*",
+    "@emdzej/inpax-providers": "workspace:*",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {

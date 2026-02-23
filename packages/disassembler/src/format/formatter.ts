@@ -11,7 +11,7 @@ import {
   MenuBlock,
   StateMachineBlock,
   SystemFunctionMap,
-} from '@inpax/core';
+} from '@emdzej/inpax-core';
 import chalk, { type ChalkInstance } from 'chalk';
 
 /** Opcode names */
