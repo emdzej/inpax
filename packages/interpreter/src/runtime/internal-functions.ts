@@ -215,7 +215,7 @@ export class InternalFunctions {
    * Find screen name by handle (block ID)
    */
   private findScreenByHandle(handle: number): string | null {
-    const ipo = (this.vm as any).ipo;
+    const ipo = this.vm.getIpo();
     if (!ipo?.screens) return null;
 
     const screen = ipo.screens.get(handle);
@@ -290,7 +290,7 @@ export class InternalFunctions {
    * The IPO stores state machines by ID, but StateMachineExecutor uses names
    */
   private findStateMachineByHandle(handle: number): string | null {
-    const ipo = (this.vm as any).ipo; // Access IPO through VM
+    const ipo = this.vm.getIpo(); // Access IPO through VM
     if (!ipo?.stateMachines) return null;
 
     const sm = ipo.stateMachines.get(handle);
@@ -302,7 +302,7 @@ export class InternalFunctions {
    * States are stored within state machines
    */
   private findStateNameByHandle(handle: number): string | null {
-    const ipo = (this.vm as any).ipo;
+    const ipo = this.vm.getIpo();
     if (!ipo?.stateMachines) return null;
 
     // Search all state machines for a state with this handle
@@ -376,9 +376,8 @@ export class InternalFunctions {
 
   private realtostring(): void {
     const outRef = this.popRef();
-    const format = this.popString();
+    this.popString(); // format string - TODO: implement formatting
     const value = this.popReal();
-    // TODO: Parse format string
     this.setOutParam(outRef, Stack.createEntry(ValueType.String, value.toString()));
   }
 

@@ -1,7 +1,6 @@
 import {
     IpoFile,
     FunctionBlock,
-    ScreenBlock,
     Instruction,
     StackEntry,
     ValueType,
@@ -9,7 +8,6 @@ import {
     AluOp,
     Scope,
     CallTarget,
-    TypeMarker,
     Value,
 } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
@@ -621,6 +619,10 @@ export class VM {
 
     getRuntime(): IInpaRuntime {
         return this.runtime;
+    }
+
+    getIpo(): IpoFile {
+        return this.ipo;
     }
 
     stop(): void {

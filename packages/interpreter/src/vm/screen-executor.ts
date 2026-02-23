@@ -272,7 +272,6 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
           break;
       }
     } catch (error) {
-        throw error;
       this.log(`Error in tick: ${error}`);
       // Continue execution despite errors (like original INPA)
     }
