@@ -96,12 +96,11 @@ export class ExecutionContext {
 
   createRef(scope: Scope, index: number): StackEntry {
     const entry = this.getVariable(scope, index);
-    const absoluteIndex = scope === Scope.Local ? this.frameOffset + index : index;
     return {
       type: entry.type,
       flags: StackEntryFlags.ByReference,
       value: null,
-      refInfo: { scope, index: absoluteIndex },
+      refInfo: { scope, index },
     };
   }
 

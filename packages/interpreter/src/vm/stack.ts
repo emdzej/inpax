@@ -74,8 +74,7 @@ export class Stack {
    * Get local variable (relative to frame)
    */
   getLocal(index: number): StackEntry {
-    //return this.get(this.frameOffset + index);
-    return this.get(index);
+    return this.get(this.frameOffset + index);
   }
 
   /**
