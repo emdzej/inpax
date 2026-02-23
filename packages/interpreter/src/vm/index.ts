@@ -1,4 +1,5 @@
 export { Stack } from './stack.js';
+export { ExecutionContext } from './execution-context.js';
 export { VM, VMState, VMConfig } from './interpreter.js';
 export { 
   ScreenExecutor, 
