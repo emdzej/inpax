@@ -188,23 +188,27 @@ export class InternalFunctions {
 
   private setscreen(): void {
     const cyclic = this.popInt() !== 0; // bool as int
-    const handle = this.popInt();
-
+    const handle = this.popRef();
+    const screenId = handle.refInfo?.index;
+    if (screenId === undefined) {
+      console.warn('[setscreen] Invalid screen reference');
+      return;
+    }
     // Find screen name by handle
-    const screenName = this.findScreenByHandle(handle);
+    const screenName = this.findScreenByHandle(screenId);
     if (!screenName) {
-      console.warn(`[setscreen] Screen not found for handle: ${handle}`);
+      console.warn(`[setscreen] Screen not found for handle: ${screenId}`);
       return;
     }
 
     // Activate screen via VM
     // Note: This is async but system functions are sync - we start it and let it run
-    this.vm.setScreen(handle, cyclic).catch(err => {
+    this.vm.setScreen(screenId, cyclic).catch(err => {
       console.error(`[setscreen] Error activating screen: ${err}`);
     });
 
     // Also notify UI provider for display purposes
-    this.vm.getRuntime().ui.setScreen(handle, cyclic);
+    this.vm.getRuntime().ui.setScreen(screenId, cyclic);
   }
 
   /**

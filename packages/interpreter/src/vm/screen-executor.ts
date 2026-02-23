@@ -284,6 +284,7 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   private async executeInitPhase(): Promise<void> {
     this.log('Executing INIT phase');
 
+    this.vm.getRuntime().ui.blankScreen();
     // Execute alloc function if present
     if (this.screen.allocFunc) {
       await this.vm.executeBlock(this.screen.allocFunc);

@@ -229,7 +229,7 @@ async function runHeadless(filePath: string, scriptName: string, options: RunOpt
 
         // Start scheduler
         console.log(chalk.gray('Starting main scheduler...'));
-        scheduler.start();
+        //scheduler.start();
 
         // In headless mode, run for a limited time or until exit() is called
         console.log(chalk.yellow('Running... (Ctrl+C to stop)'));

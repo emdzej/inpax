@@ -234,7 +234,7 @@ export const systemFunctions = [
   { id: 0x47, name: "input2int", signature: "(out: int val1, out: int val2, in: string BoxTitle, in: string BoxText, in: string BoxStr1, in: string BoxStr2, in: int min1, in: int max1, in: int min2, in: int max2)" },
   { id: 0x48, name: "text", signature: "(in: int row, in: int col, in: string text)" },
   { id: 0x49, name: "textout", signature: "(in: string text, in: int row, in: int col)" },
-  { id: 0x4A, name: "ftextout", signature: "(in: string text, in: int row, in: int col, in: int fgcolor, in: int bgcolor, in: int fontsize, in: int fontattr)" },
+  { id: 0x4A, name: "ftextout", signature: "(in: string text, in: int row, in: int col, in: int fontsize, in: int fontattr)" },
   { id: 0x4B, name: "digitalout", signature: "(in: bool val, in: int row, in: int col, in: string TrueText, in: string FalseText)" },
   { id: 0x4C, name: "analogout", signature: "(in: real val, in: int row, in: int col, in: real min, in: real max, in: real minvalid, in: real maxvalid, in: string format)" },
   { id: 0x4D, name: "multianalogout", signature: "(in: int row, in: int col, ...)" },

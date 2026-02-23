@@ -68,6 +68,8 @@ export class VM {
     private stateMachineExecutor: StateMachineExecutor | null = null;
     private stateMachineExecutorConfig: StateMachineExecutorConfig;
 
+    private config: VMConfig;
+
     constructor(ipo: IpoFile, config: VMConfig = {}) {
         this.ipo = ipo;
         this.stack = new Stack();
@@ -84,7 +86,7 @@ export class VM {
         this.internal = new InternalFunctions(this);
         this.screenExecutorConfig = config.screenExecutor ?? {};
         this.stateMachineExecutorConfig = config.stateMachineExecutor ?? {};
-
+        this.config = config;
         // Initialize state machine executor and register all state machines from IPO
         this.initStateMachineExecutor();
     }
@@ -259,11 +261,7 @@ export class VM {
     }
 
     private opPushRef(scope: Scope, index: number): void {
-        let actualIndex = index;
-        if (scope === Scope.Local) {
-            actualIndex = index;
-        }
-        this.stack.push(Stack.createRef(scope, actualIndex));
+        this.stack.push(Stack.createRef(scope, index));
     }
 
     private opLoadInOutRef(scope: Scope, index: number): void {
@@ -273,32 +271,16 @@ export class VM {
   private opMove(count: number): void {
     // MOVE: Assign value to reference
     // Stack: [..., target_ref, value] → [...]
-
-    if (count >= 2) {
-      // Get value (top of stack)
-      const value = this.stack.get(this.stack.topIndex());
-
-      // Get target reference (below value)
-      const ref = this.stack.get(this.stack.topIndex() - 1);
-
-      // If it's a reference, perform the assignment
-      if (ref.refInfo) {
-        this.storeVariable(ref.refInfo.scope, ref.refInfo.index, value);
-      }
-
-      // If value is bool, update condition register
-      if (value.type === ValueType.Bool) {
-        this.state.condition = value.value ? 1 : 0;
-      }
-    } else if (count === 1) {
-      // Single value - just update condition if bool
-      const top = this.stack.peek();
-      if (top.type === ValueType.Bool) {
-        this.state.condition = top.value ? 1 : 0;
-      }
+    for (let i = 0; i < count; i++) {
+        const ref = this.stack.pop();
+        const value = this.stack.pop();
+        if (ref.refInfo) {
+            this.storeVariable(ref.refInfo.scope, ref.refInfo.index, value);
+        }
+        if (value.type === ValueType.Bool) {
+            this.state.condition = value.value ? 1 : 0;
+        }
     }
-
-    this.stack.popN(count);
   }
 
   private storeVariable(scope: Scope, index: number, entry: StackEntry): void {
@@ -321,6 +303,7 @@ export class VM {
     }
 
     private opPushRefStore(scope: Scope, index: number): void {
+        // PUSHREFSTORE: Push reference for storing value (used by out params)
         this.opPushRef(scope, index);
     }
 
@@ -467,10 +450,10 @@ export class VM {
             const func = this.ipo.functions.get(funcId);
             if (!func) throw new Error(`Function not found: ${funcId}`);
 
-            this.stack.pushReturnAddress(
-                this.state.currentBlock!.header.blockId,
-                this.state.ip
-            );
+            // this.stack.pushReturnAddress(
+            //     this.state.currentBlock!.header.blockId,
+            //     this.state.ip
+            // );
             this.callFunction(func);
         } else {
             // System function call
@@ -657,22 +640,10 @@ export class VM {
      * Runs the block to completion and returns
      */
     async executeBlock(block: FunctionBlock): Promise<void> {
-        // Save current state
-        const savedBlock = this.state.currentBlock;
-        const savedIp = this.state.ip;
-        const savedRunning = this.state.running;
+        const subVm = new VM(this.ipo, this.config);
 
-        // Push a sentinel return address
-        //this.stack.pushReturnAddress(-2, 0);
-
-        // Execute the block
-        this.callFunction(block);
-        await this.execute();
-
-        // Restore state
-        this.state.currentBlock = savedBlock;
-        this.state.ip = savedIp;
-        this.state.running = savedRunning;
+        subVm.callFunction(block);
+        await subVm.execute();
     }
 
     async setMenu(menuHandle: number): Promise<void> {
