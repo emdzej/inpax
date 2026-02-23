@@ -8,6 +8,7 @@ import {
     AluOp,
     Scope,
     CallTarget,
+    StackEntryFlags,
     Value,
 } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
@@ -269,7 +270,7 @@ export class VM {
     }
 
     private opPushRef(scope: Scope, index: number, ctx: ExecutionContext): void {
-        ctx.stack.push(Stack.createRef(scope, index));
+        ctx.stack.push(ctx.createRef(scope, index));
     }
 
     private opLoadInOutRef(scope: Scope, index: number, ctx: ExecutionContext): void {
@@ -292,7 +293,9 @@ export class VM {
     }
 
     private opPushR(scope: Scope, index: number, ctx: ExecutionContext): void {
-        this.opPushRef(scope, index, ctx);
+        const entry = ctx.getVariable(scope, index);
+        const ref = ctx.createRef(scope, index);
+        ctx.stack.push({ ...ref, type: entry.type, flags: StackEntryFlags.ByReference });
     }
 
     private opPushRefStore(scope: Scope, index: number, ctx: ExecutionContext): void {
