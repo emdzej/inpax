@@ -7,22 +7,22 @@ import chalk from 'chalk';
 import { parseIpo } from '@emdzej/inpax-parser';
 import { disassembleIpo, disassembleFunction, type DisassemblyOptions } from '@emdzej/inpax-dis';
 
-export const disCommand = new Command('dis')
+export const disasmCommand = new Command('disasm')
   .description('Disassemble IPO bytecode file')
   .argument('<file>', 'IPO file to disassemble')
   .option('-o, --output <file>', 'Output file (default: stdout)')
   .option('-f, --function <name>', 'Disassemble specific function only')
-  .option('-c, --color', 'Enable colored output')
+  .option('--no-color', 'Disable colored output')
   .option('--no-raw', 'Hide raw hex bytes')
   .option('--no-comments', 'Hide comments')
   .option('--no-labels', 'Do not resolve jump labels')
   .action(async (file, options) => {
     try {
       const buffer = readFileSync(file);
-      
+
       console.error(chalk.gray(`Parsing ${file}...`));
       const ipo = parseIpo(buffer);
-      
+
       console.error(chalk.gray(`Version: ${ipo.header.versionHi}.${ipo.header.versionLo}`));
       console.error(chalk.gray(`Functions: ${ipo.functions.size}`));
       console.error();
@@ -32,7 +32,7 @@ export const disCommand = new Command('dis')
         showAddress: true,
         resolveLabels: options.labels !== false,
         showComments: options.comments !== false,
-        colorize: options.color === true && !options.output, // No colors when outputting to file
+        noColor: options.noColor || options.output, // No colors when outputting to file
       };
 
       let lines: string[];
@@ -42,7 +42,7 @@ export const disCommand = new Command('dis')
         const func = Array.from(ipo.functions.values()).find(
           f => f.header.name === options.function
         );
-        
+
         if (!func) {
           console.error(chalk.red(`Function not found: ${options.function}`));
           console.error(chalk.gray('Available functions:'));
@@ -51,7 +51,7 @@ export const disCommand = new Command('dis')
           }
           process.exit(1);
         }
-        
+
         lines = disassembleFunction(func, ipo, disOptions);
       } else {
         // Disassemble entire file

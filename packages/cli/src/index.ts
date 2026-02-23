@@ -4,7 +4,7 @@
  * Unified command-line interface for IPO toolchain
  */
 import { Command } from 'commander';
-import { disCommand } from './commands/dis.js';
+import { disasmCommand } from './commands/disasm.js';
 import { runCommand } from './commands/run.js';
 import { infoCommand } from './commands/info.js';
 import { compileCommand } from './commands/compile.js';
@@ -17,7 +17,7 @@ program
   .version('0.1.0');
 
 // Register commands
-program.addCommand(disCommand);
+program.addCommand(disasmCommand);
 program.addCommand(runCommand);
 program.addCommand(infoCommand);
 program.addCommand(compileCommand);
