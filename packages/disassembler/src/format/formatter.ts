@@ -164,8 +164,15 @@ export function formatInstruction(
   }
 
   if (opts.showRaw) {
-    const raw = instr.raw.toString(16).padStart(8, '0').toUpperCase();
-    parts.push(c.raw(`[${raw}]`));
+    // Display bytes in file order (little-endian): [0C 81 5D 00]
+    const rawHex = instr.raw.toString(16).padStart(8, '0').toUpperCase();
+    const bytes = [
+      rawHex.slice(6, 8),  // byte 0 (lowest)
+      rawHex.slice(4, 6),  // byte 1
+      rawHex.slice(2, 4),  // byte 2
+      rawHex.slice(0, 2),  // byte 3 (highest)
+    ].join(' ');
+    parts.push(c.raw(`[${bytes}]`));
   }
 
   const mnemonic = OPCODE_NAMES[instr.opcode] || `UNK_${instr.opcode.toString(16)}`;
