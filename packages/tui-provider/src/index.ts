@@ -6,4 +6,5 @@
  */
 
 export { TuiProvider, type InternalEvents } from './tui-provider.js';
+export { ScreenBuffer, type ScreenCell } from './screen-buffer.js';
 export * from './state.js';

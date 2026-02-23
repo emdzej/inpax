@@ -17,14 +17,33 @@ import {
   UserBox,
   InputDialog,
 } from './state.js';
+import { ScreenBuffer } from './screen-buffer.js';
 
 /** Internal events for state synchronization */
 export interface InternalEvents {
   'state:changed': () => void;
 }
 
+const formatAnalogValue = (value: number, format: string): string => {
+  if (!format) return value.toString();
+  const regex = /%(\.(\d+))?[fdeg]/g;
+  const matches = format.match(regex);
+  if (!matches || matches.length === 0) return format;
+  const match = matches[0];
+  const decimals = match.match(/\.(\d+)/)?.[1];
+  let formatted = value.toString();
+  if (decimals) {
+    formatted = value.toFixed(parseInt(decimals, 10));
+  } else if (match.endsWith('d')) {
+    formatted = Math.round(value).toString();
+  }
+  return format.replace(regex, formatted);
+};
+
 export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
   private _state: TuiState;
+  private screenBuffer: ScreenBuffer;
+  private lastWriteLengths = new Map<string, number>();
   
   /** Internal event emitter for state changes */
   readonly internal = new EventEmitter<InternalEvents>();
@@ -32,6 +51,7 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
   constructor() {
     super();
     this._state = { ...initialTuiState, userBoxes: new Map() };
+    this.screenBuffer = new ScreenBuffer();
   }
 
   /** Get current state (readonly snapshot) */
@@ -75,8 +95,23 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
     return this._state.inputDialog;
   }
 
+  /** Get screen buffer for rendering */
+  getScreenBuffer(): ScreenBuffer {
+    return this.screenBuffer;
+  }
+
   private update(): void {
     this.internal.emit('state:changed');
+  }
+
+  private writeBuffer(row: number, col: number, text: string, fg: number, bg: number): void {
+    const key = `${row}:${col}`;
+    const previousLength = this.lastWriteLengths.get(key);
+    if (previousLength && previousLength > text.length) {
+      this.screenBuffer.clearRect(row, col, previousLength, 1);
+    }
+    this.screenBuffer.write(row, col, text, fg, bg);
+    this.lastWriteLengths.set(key, text.length);
   }
 
   // === Menu Selection (called by TUI layer) ===
@@ -125,6 +160,8 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
     this._state.analogValues = [];
     this._state.digitalValues = [];
     this._state.hexDumps = [];
+    this.screenBuffer.clear();
+    this.lastWriteLengths.clear();
     this.emit('screen:ready');
     this.update();
   }
@@ -134,6 +171,8 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
     this._state.analogValues = [];
     this._state.digitalValues = [];
     this._state.hexDumps = [];
+    this.screenBuffer.clear();
+    this.lastWriteLengths.clear();
     this.update();
   }
 
@@ -141,6 +180,7 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
     this._state.textLines = this._state.textLines.filter(
       l => !(l.row >= row && l.row < row + height && l.col >= col && l.col < col + width)
     );
+    this.screenBuffer.clearRect(row, col, width, height);
     this.update();
   }
 
@@ -195,6 +235,7 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
       fg: this._state.fg,
       bg: this._state.bg,
     });
+    this.writeBuffer(row, col, text, this._state.fg, this._state.bg);
     this.update();
   }
 
@@ -204,6 +245,7 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
 
   fTextOut(text: string, row: number, col: number, fg: number, bg: number, fontSize: number, fontAttr: number): void {
     this._state.textLines.push({ row, col, text, fg, bg, fontSize, fontAttr });
+    this.writeBuffer(row, col, text, fg, bg);
     this.update();
   }
 
@@ -211,6 +253,7 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
     this._state.textLines = this._state.textLines.filter(
       l => !(l.row === row && l.col === col && l.text === text)
     );
+    this.screenBuffer.clearRect(row, col, text.length, 1);
     this.update();
   }
 
@@ -219,6 +262,7 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
       .map(b => b.toString(16).padStart(2, '0').toUpperCase())
       .join(' ');
     this._state.hexDumps.push({ row, col, data: hex });
+    this.writeBuffer(row, col, hex, this._state.fg, this._state.bg);
     this.update();
   }
 
@@ -229,6 +273,8 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
       d => !(d.row === row && d.col === col)
     );
     this._state.digitalValues.push({ row, col, value, trueText, falseText });
+    const text = value ? trueText : falseText;
+    this.writeBuffer(row, col, text, this._state.fg, this._state.bg);
     this.update();
   }
 
@@ -237,6 +283,8 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
       a => !(a.row === row && a.col === col)
     );
     this._state.analogValues.push({ row, col, value, min, max, minValid, maxValid, format });
+    const formatted = formatAnalogValue(value, format);
+    this.writeBuffer(row, col, formatted, this._state.fg, this._state.bg);
     this.update();
   }
 
