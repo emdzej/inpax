@@ -3,6 +3,7 @@ import type { StateMachineBlock, StateBlock } from '@emdzej/inpax-core';
 import { BlockType } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
+import type { ExecutionContext } from './execution-context.js';
 
 /**
  * State machine executor events
@@ -30,6 +31,7 @@ interface CallStackEntry {
   stateMachine: StateMachineBlock;
   currentState: string;
   pendingState: string | null;
+  context: ExecutionContext;
 }
 
 /**
@@ -116,6 +118,7 @@ export class StateMachineExecutor extends EventEmitter<StateMachineExecutorEvent
       stateMachine: sm,
       currentState: 'INIT',
       pendingState: null,
+      context: this.vm.createExecutionContext(),
     });
 
     this.running = true;
@@ -265,7 +268,7 @@ export class StateMachineExecutor extends EventEmitter<StateMachineExecutorEvent
 
     // Execute state's function block
     if (state.func) {
-      await this.vm.executeBlock(state.func);
+      await this.vm.executeBlockWithContext(state.func, current.context);
     }
 
     this.emit('cycle:complete');
@@ -330,6 +333,7 @@ export class StateMachineExecutor extends EventEmitter<StateMachineExecutorEvent
       stateMachine: sm,
       currentState: 'INIT',
       pendingState: null,
+      context: this.vm.createExecutionContext(),
     });
 
     this.log(`Entered state machine: ${sm.header.name} (from ${callerName})`);

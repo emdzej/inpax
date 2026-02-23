@@ -548,6 +548,10 @@ export class VM {
         return this.ipo.constants.values;
     }
 
+    createExecutionContext(): ExecutionContext {
+        return new ExecutionContext(this.initGlobals(), this.ipo.constants.values);
+    }
+
     getState(): VMState {
         return this.state;
     }
@@ -579,6 +583,15 @@ export class VM {
     async executeBlock(block: FunctionBlock): Promise<void> {
         const subVm = new VM(this.ipo, this.config);
         await subVm.executeIsolated(block);
+    }
+
+    /**
+     * Execute a function block with a provided execution context
+     * (used by StateMachineExecutor to preserve context across states)
+     */
+    async executeBlockWithContext(block: FunctionBlock, ctx: ExecutionContext): Promise<void> {
+        const subVm = new VM(this.ipo, this.config);
+        await subVm.execute(block, ctx);
     }
 
     async setMenu(menuHandle: number): Promise<void> {
