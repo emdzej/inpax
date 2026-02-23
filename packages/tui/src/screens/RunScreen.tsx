@@ -50,59 +50,7 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
 
   // Generate text representation of screen area
   const getScreenText = useCallback(() => {
-    const lines: string[] = [];
-    const textLines = provider.getTextLines();
-    const analogValues = provider.getAnalogValues();
-    const digitalValues = provider.getDigitalValues();
-
-    // Group text by rows
-    const rowMap = new Map<number, Array<{ col: number; text: string }>>();
-
-    for (const line of textLines) {
-      if (!rowMap.has(line.row)) {
-        rowMap.set(line.row, []);
-      }
-      rowMap.get(line.row)!.push({ col: line.col, text: line.text });
-    }
-
-    // Add analog values
-    for (const av of analogValues) {
-      const formatted = av.format.replace(/%[.\d]*[fdeg]/g, av.value.toString());
-      if (!rowMap.has(av.row)) {
-        rowMap.set(av.row, []);
-      }
-      rowMap.get(av.row)!.push({ col: av.col, text: `${formatted}` });
-    }
-
-    // Add digital values
-    for (const dv of digitalValues) {
-      const text = dv.value ? dv.trueText : dv.falseText;
-      if (!rowMap.has(dv.row)) {
-        rowMap.set(dv.row, []);
-      }
-      rowMap.get(dv.row)!.push({ col: dv.col, text });
-    }
-
-    // Sort rows and build output
-    const sortedRows = Array.from(rowMap.keys()).sort((a, b) => a - b);
-
-    for (const row of sortedRows) {
-      const items = rowMap.get(row)!.sort((a, b) => a.col - b.col);
-      let line = '';
-      let currentCol = 0;
-
-      for (const item of items) {
-        if (item.col > currentCol) {
-          line += ' '.repeat(item.col - currentCol);
-        }
-        line += item.text;
-        currentCol = item.col + item.text.length;
-      }
-
-      lines.push(line);
-    }
-
-    return lines.join('\n');
+    return provider.getScreenBuffer().renderPlain();
   }, [provider]);
 
   // Copy screen to clipboard
@@ -215,7 +163,7 @@ export function RunScreen({ provider, title, onQuit }: RunScreenProps) {
 
       {/* Main content area */}
       <Box flexGrow={1} flexDirection="column">
-        <ScreenArea state={state} />
+        <ScreenArea screenBuffer={provider.getScreenBuffer()} />
       </Box>
 
       {/* Input dialog overlay */}
