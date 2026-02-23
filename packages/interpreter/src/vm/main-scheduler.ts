@@ -1,5 +1,8 @@
 import { EventEmitter } from 'eventemitter3';
+import { getLogger } from '@emdzej/inpax-logger';
 import type { VM } from './interpreter.js';
+
+const log = getLogger('main-scheduler');
 
 /**
  * Main scheduler events
@@ -235,7 +238,7 @@ export class MainScheduler extends EventEmitter<MainSchedulerEvents> {
    */
   private log(message: string): void {
     if (this.debug) {
-      console.log(`[MainScheduler] ${message}`);
+      log.debug({ message }, 'main scheduler');
     }
   }
 }

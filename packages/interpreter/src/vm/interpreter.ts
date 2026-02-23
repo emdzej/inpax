@@ -14,11 +14,14 @@ import {
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import { SystemFunctionDispatcher } from '@emdzej/inpax-dispatcher';
 import { createNullRuntime } from '@emdzej/inpax-providers';
+import { getLogger } from '@emdzej/inpax-logger';
 import { Stack } from './stack.js';
 import { ExecutionContext } from './execution-context.js';
 import { InternalFunctions } from '../runtime/internal-functions.js';
 import { ScreenExecutor, type ScreenExecutorConfig } from './screen-executor.js';
 import { StateMachineExecutor, type StateMachineExecutorConfig } from './statemachine-executor.js';
+
+const log = getLogger('vm');
 
 /**
  * VM State
@@ -178,7 +181,7 @@ export class VM {
         const { opcode, operand1, operand2 } = instr;
 
         if (this.debug) {
-            console.log(`[VM] IP=${this.state.ip} OP=0x${opcode.toString(16)} op1=${operand1} op2=${operand2}`);
+            log.debug({ ip: this.state.ip, opcode: `0x${opcode.toString(16)}`, op1: operand1, op2: operand2 }, 'vm instruction');
         }
 
         switch (opcode) {
@@ -501,7 +504,7 @@ export class VM {
     }
 
     private opLogTable(index: number, ctx: ExecutionContext): void {
-        console.warn(`LOGTABLE lookup at index ${index} - returning 0`);
+        log.warn({ index }, 'LOGTABLE lookup returned 0');
         ctx.stack.push({ type: ValueType.Long, flags: 1, value: 0 });
     }
 
