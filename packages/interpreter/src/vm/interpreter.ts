@@ -54,7 +54,6 @@ export class VM {
     private stack: Stack;
     private globals: StackEntry[];
     private state: VMState;
-    private currentContext: ExecutionContext | null = null;
     private runtime: IInpaRuntime;
     private dispatcher: SystemFunctionDispatcher;
     private internal: InternalFunctions;
@@ -151,7 +150,6 @@ export class VM {
      * Main execution loop (async for provider calls)
      */
     async execute(block: FunctionBlock, ctx: ExecutionContext): Promise<void> {
-        this.currentContext = ctx;
         this.callFunction(block);
         this.state.running = true;
 
@@ -463,7 +461,7 @@ export class VM {
     private async callSystemFunction(funcId: number, ctx: ExecutionContext): Promise<void> {
         // Check if internal (handled by interpreter)
         if (this.dispatcher.isInternal(funcId)) {
-            this.internal.call(funcId);
+            this.internal.call(funcId, ctx);
             return;
         }
 
@@ -587,19 +585,15 @@ export class VM {
     // ============ Public API ============
 
     getStack(): Stack {
-        return this.currentContext?.stack ?? this.stack;
+        return this.stack;
     }
 
     getGlobals(): StackEntry[] {
-        return this.currentContext?.globalVars ?? this.globals;
+        return this.globals;
     }
 
     getConstants(): StackEntry[] {
         return this.ipo.constants.values;
-    }
-
-    getExecutionContext(): ExecutionContext | null {
-        return this.currentContext;
     }
 
     getState(): VMState {
