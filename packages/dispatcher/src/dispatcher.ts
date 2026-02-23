@@ -3,7 +3,7 @@
  * Maps system function IDs to provider method calls
  */
 
-import { SystemFunction } from '@emdzej/inpax-core';
+import { SystemFunction, SystemFunctionMap, type StackEntry, type Scope, ValueType } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 
 /** Set of async function IDs */
@@ -102,14 +102,195 @@ const INTERNAL_FUNCTIONS = new Set<number>([
 
 ]);
 
+export interface ExecutionContext {
+    popString(): string;
+    popInt(): number;
+    popReal(): number;
+    popBool(): boolean;
+    popRef(): StackEntry;
+    setOutParam(ref: StackEntry, value: StackEntry): void;
+    getVariable?(scope: Scope, index: number): StackEntry;
+}
+
+export type VM = unknown;
+
+export type ParamDirection = 'in' | 'out' | 'inout';
+
+export interface ParsedParam {
+    direction: ParamDirection;
+    type: string;
+    name: string;
+}
+
+export interface ParsedSignature {
+    params: ParsedParam[];
+    isVariadic: boolean;
+}
+
+function parseSignature(signature: string): ParsedSignature {
+    const params: ParsedParam[] = [];
+
+    if (signature === '()') return { params, isVariadic: false };
+    if (signature === '(...)') return { params, isVariadic: true };
+
+    const inner = signature.slice(1, -1).trim();
+    if (!inner) return { params, isVariadic: false };
+
+    const isVariadic = inner.endsWith('...');
+    const paramStr = isVariadic ? inner.replace(/,?\s*\.\.\.$/, '') : inner;
+
+    const parts = paramStr.split(',').map(p => p.trim()).filter(p => p);
+
+    for (const part of parts) {
+        const match = part.match(/^(in|out|inout):\s*(\w+)\s+(\w+)$/i);
+        if (match) {
+            params.push({
+                direction: match[1] as ParamDirection,
+                type: match[2],
+                name: match[3],
+            });
+        }
+    }
+
+    return { params, isVariadic };
+}
+
+function getSignature(funcId: number): ParsedSignature | null {
+    const info = SystemFunctionMap.get(funcId);
+    if (!info) return null;
+    return parseSignature(info.signature);
+}
+
+function popByType(ctx: ExecutionContext, typeName: string): unknown {
+    switch (typeName.toLowerCase()) {
+        case 'string':
+            return ctx.popString();
+        case 'real':
+            return ctx.popReal();
+        case 'bool':
+            return ctx.popBool();
+        case 'byte':
+        case 'int':
+        case 'long':
+        case 'menu':
+        case 'screen':
+        case 'statemachine':
+        case 'state':
+        default:
+            return ctx.popInt();
+    }
+}
+
+function inpaTypeToValueType(typeName: string): ValueType {
+    switch (typeName.toLowerCase()) {
+        case 'bool':
+            return ValueType.Bool;
+        case 'byte':
+            return ValueType.Byte;
+        case 'int':
+            return ValueType.Int;
+        case 'long':
+            return ValueType.Long;
+        case 'real':
+            return ValueType.Real;
+        case 'string':
+            return ValueType.String;
+        case 'menu':
+        case 'screen':
+        case 'statemachine':
+        case 'state':
+            return ValueType.Handle1;
+        default:
+            return ValueType.Int;
+    }
+}
+
+interface CollectedArgs {
+    inputs: unknown[];
+    outRefs: StackEntry[];
+    outParams: ParsedParam[];
+}
+
+function collectArguments(funcId: number, ctx: ExecutionContext): CollectedArgs {
+    const sig = getSignature(funcId);
+    if (!sig) {
+        return { inputs: [], outRefs: [], outParams: [] };
+    }
+
+    const inputs: unknown[] = [];
+    const outRefs: StackEntry[] = [];
+    const outParams: ParsedParam[] = [];
+
+    const popped: Array<{ entry: StackEntry | unknown; param: ParsedParam }> = [];
+
+    for (let i = sig.params.length - 1; i >= 0; i--) {
+        const param = sig.params[i];
+        if (param.direction === 'in') {
+            const value = popByType(ctx, param.type);
+            popped.unshift({ entry: value, param });
+        } else {
+            const ref = ctx.popRef();
+            popped.unshift({ entry: ref, param });
+        }
+    }
+
+    for (const { entry, param } of popped) {
+        if (param.direction === 'in') {
+            inputs.push(entry);
+        } else if (param.direction === 'out') {
+            outRefs.push(entry as StackEntry);
+            outParams.push(param);
+        } else if (param.direction === 'inout') {
+            const ref = entry as StackEntry;
+            let value = ref.value;
+            if (ref.refInfo && ctx.getVariable) {
+                value = ctx.getVariable(ref.refInfo.scope as Scope, ref.refInfo.index).value;
+            }
+            inputs.push(value);
+            outRefs.push(ref);
+            outParams.push(param);
+        }
+    }
+
+    return { inputs, outRefs, outParams };
+}
+
+function writeOutParams(
+    outRefs: StackEntry[],
+    outParams: ParsedParam[],
+    returnValue: unknown,
+    ctx: ExecutionContext
+): void {
+    if (outRefs.length === 0) return;
+
+    let outValues: unknown[];
+
+    if (returnValue === undefined || returnValue === null) {
+        outValues = [];
+    } else if (Array.isArray(returnValue)) {
+        outValues = returnValue;
+    } else {
+        outValues = [returnValue];
+    }
+
+    for (let i = 0; i < outRefs.length && i < outValues.length; i++) {
+        const ref = outRefs[i];
+        const param = outParams[i];
+        const value = outValues[i];
+        const valueType = inpaTypeToValueType(param.type));
+
+        ctx.setOutParam(ref, { type: valueType, flags: 1, value: value as StackEntry['value'] });
+    }
+}
+
 export interface ISystemFunctionDispatcher {
     /**
      * Dispatch system function call to appropriate provider
      * @param funcId System function ID (0x00-0xA1)
-     * @param args Arguments from VM stack
-     * @returns Result value or Promise for async operations
+     * @param ctx Execution context for stack operations
+     * @param vm VM instance
      */
-    dispatch(funcId: number, args: unknown[]): unknown | Promise<unknown>;
+    dispatch(funcId: number, ctx: ExecutionContext, vm: VM): void | Promise<void>;
 
     /**
      * Check if function requires await
@@ -133,344 +314,351 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
         return INTERNAL_FUNCTIONS.has(funcId);
     }
 
-    dispatch(funcId: number, args: unknown[]): unknown | Promise<unknown> {
+    async dispatch(funcId: number, ctx: ExecutionContext, vm: VM): Promise<void> {
         const { ui, simulation, ediabas, inp1, print, pem, dtm, external, sps } = this.runtime;
+        const collected = collectArguments(funcId, ctx);
+        const { inputs } = collected;
+
+        const finalize = async (value: unknown | Promise<unknown>): Promise<void> => {
+            const resolved = value instanceof Promise ? await value : value;
+            writeOutParams(collected.outRefs, collected.outParams, resolved, ctx);
+        };
 
         switch (funcId) {
             // === UI: Menu ===
             case SystemFunction.setmenutitle:
-                return ui.setMenuTitle(args[0] as string);
+                return finalize(ui.setMenuTitle(inputs[0] as string));
             case SystemFunction.setmenu:
-                return ui.setMenu(args[0] as number);
+                return finalize(ui.setMenu(inputs[0] as number));
             case SystemFunction.setitem:
-                return ui.setItem(args[0] as number, args[1] as string, args[2] as boolean);
+                return finalize(ui.setItem(inputs[0] as number, inputs[1] as string, inputs[2] as boolean));
             case SystemFunction.setitemrepeat:
-                return ui.setItemRepeat(args[0] as number, args[1] as boolean);
+                return finalize(ui.setItemRepeat(inputs[0] as number, inputs[1] as boolean));
 
             // === UI: Screen ===
             case SystemFunction.settitle:
-                return ui.setTitle(args[0] as string);
+                return finalize(ui.setTitle(inputs[0] as string));
             case SystemFunction.setscreen:
-                return ui.setScreen(args[0] as number, args[1] as boolean);
+                return finalize(ui.setScreen(inputs[0] as number, inputs[1] as boolean));
             case SystemFunction.setcolor:
-                return ui.setColor(args[0] as number, args[1] as number);
+                return finalize(ui.setColor(inputs[0] as number, inputs[1] as number));
             case SystemFunction.clearrect:
-                return ui.clearRect(
-                    args[0] as number, args[1] as number,
-                    args[2] as number, args[3] as number
-                );
+                return finalize(ui.clearRect(
+                    inputs[0] as number, inputs[1] as number,
+                    inputs[2] as number, inputs[3] as number
+                ));
             case SystemFunction.blankscreen:
-                return ui.blankScreen();
+                return finalize(ui.blankScreen());
 
             // === UI: Text Output ===
             case SystemFunction.text:
-                return ui.text(args[0] as number, args[1] as number, args[2] as string);
+                return finalize(ui.text(inputs[0] as number, inputs[1] as number, inputs[2] as string));
             case SystemFunction.textout:
-                return ui.textOut(args[0] as string, args[1] as number, args[2] as number);
+                return finalize(ui.textOut(inputs[0] as string, inputs[1] as number, inputs[2] as number));
             case SystemFunction.ftextout:
-                return ui.fTextOut(
-                    args[0] as string, args[1] as number, args[2] as number,
-                    args[3] as number, args[4] as number,
-                    args[5] as number, args[6] as number
-                );
+                return finalize(ui.fTextOut(
+                    inputs[0] as string, inputs[1] as number, inputs[2] as number,
+                    inputs[3] as number, inputs[4] as number,
+                    inputs[5] as number, inputs[6] as number
+                ));
             case SystemFunction.ftextclear:
-                return ui.fTextClear(
-                    args[0] as string, args[1] as number, args[2] as number,
-                    args[3] as number, args[4] as number
-                );
+                return finalize(ui.fTextClear(
+                    inputs[0] as string, inputs[1] as number, inputs[2] as number,
+                    inputs[3] as number, inputs[4] as number
+                ));
             case SystemFunction.hexdump:
-                return ui.hexDump(
-                    args[0] as number, args[1] as number,
-                    args[2] as Uint8Array, args[3] as number
-                );
+                return finalize(ui.hexDump(
+                    inputs[0] as number, inputs[1] as number,
+                    inputs[2] as Uint8Array, inputs[3] as number
+                ));
 
             // === UI: Data Output ===
             case SystemFunction.digitalout:
-                return ui.digitalOut(
-                    args[0] as boolean, args[1] as number, args[2] as number,
-                    args[3] as string, args[4] as string
-                );
+                return finalize(ui.digitalOut(
+                    inputs[0] as boolean, inputs[1] as number, inputs[2] as number,
+                    inputs[3] as string, inputs[4] as string
+                ));
             case SystemFunction.analogout:
-                return ui.analogOut(
-                    args[0] as number, args[1] as number, args[2] as number,
-                    args[3] as number, args[4] as number,
-                    args[5] as number, args[6] as number,
-                    args[7] as string
-                );
+                return finalize(ui.analogOut(
+                    inputs[0] as number, inputs[1] as number, inputs[2] as number,
+                    inputs[3] as number, inputs[4] as number,
+                    inputs[5] as number, inputs[6] as number,
+                    inputs[7] as string
+                ));
             case SystemFunction.multianalogout:
-                return ui.multiAnalogOut(args[0] as number, args[1] as number, ...args.slice(2));
+                return finalize(ui.multiAnalogOut(inputs[0] as number, inputs[1] as number, ...inputs.slice(2)));
 
             // === UI: Input ===
             case SystemFunction.getinputstate:
-                return ui.getInputState();
+                return finalize(ui.getInputState());
             case SystemFunction.inputtext:
-                return ui.inputText(args[0] as string, args[1] as string);
+                return finalize(ui.inputText(inputs[0] as string, inputs[1] as string));
             case SystemFunction.inputnum:
-                return ui.inputNum(
-                    args[0] as string, args[1] as string,
-                    args[2] as number, args[3] as number
-                );
+                return finalize(ui.inputNum(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as number, inputs[3] as number
+                ));
             case SystemFunction.inputhex:
-                return ui.inputHex(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as string
-                );
+                return finalize(ui.inputHex(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string
+                ));
             case SystemFunction.inputdigital:
-                return ui.inputDigital(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as string
-                );
+                return finalize(ui.inputDigital(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string
+                ));
             case SystemFunction.input2text:
-                return ui.input2Text(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as string
-                );
+                return finalize(ui.input2Text(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string
+                ));
             case SystemFunction.input2hexnum:
-                return ui.input2HexNum(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as string,
-                    args[4] as string, args[5] as string,
-                    args[6] as number, args[7] as number
-                );
+                return finalize(ui.input2HexNum(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string,
+                    inputs[4] as string, inputs[5] as string,
+                    inputs[6] as number, inputs[7] as number
+                ));
             case SystemFunction.input2hex:
-                return ui.input2Hex(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as string,
-                    args[4] as string, args[5] as string,
-                    args[6] as string, args[7] as string
-                );
+                return finalize(ui.input2Hex(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string,
+                    inputs[4] as string, inputs[5] as string,
+                    inputs[6] as string, inputs[7] as string
+                ));
             case SystemFunction.inputint:
-                return ui.inputInt(
-                    args[0] as string, args[1] as string,
-                    args[2] as number, args[3] as number
-                );
+                return finalize(ui.inputInt(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as number, inputs[3] as number
+                ));
             case SystemFunction.input2int:
-                return ui.input2Int(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as string,
-                    args[4] as number, args[5] as number,
-                    args[6] as number, args[7] as number
-                );
+                return finalize(ui.input2Int(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string,
+                    inputs[4] as number, inputs[5] as number,
+                    inputs[6] as number, inputs[7] as number
+                ));
 
             // === UI: Message Boxes ===
             case SystemFunction.messagebox:
-                return ui.messageBox(args[0] as string, args[1] as string);
+                return finalize(ui.messageBox(inputs[0] as string, inputs[1] as string));
             case SystemFunction.infobox:
-                return ui.infoBox(args[0] as string, args[1] as string);
+                return finalize(ui.infoBox(inputs[0] as string, inputs[1] as string));
             case SystemFunction.userboxopen:
-                return ui.userBoxOpen(
-                    args[0] as number, args[1] as number, args[2] as number,
-                    args[3] as number, args[4] as number,
-                    args[5] as string, args[6] as string
-                );
+                return finalize(ui.userBoxOpen(
+                    inputs[0] as number, inputs[1] as number, inputs[2] as number,
+                    inputs[3] as number, inputs[4] as number,
+                    inputs[5] as string, inputs[6] as string
+                ));
             case SystemFunction.userboxclose:
-                return ui.userBoxClose(args[0] as number);
+                return finalize(ui.userBoxClose(inputs[0] as number));
             case SystemFunction.userboxftextout:
-                return ui.userBoxFTextOut(
-                    args[0] as number, args[1] as string,
-                    args[2] as number, args[3] as number,
-                    args[4] as number, args[5] as number
-                );
+                return finalize(ui.userBoxFTextOut(
+                    inputs[0] as number, inputs[1] as string,
+                    inputs[2] as number, inputs[3] as number,
+                    inputs[4] as number, inputs[5] as number
+                ));
             case SystemFunction.userboxclear:
-                return ui.userBoxClear(args[0] as number);
+                return finalize(ui.userBoxClear(inputs[0] as number));
             case SystemFunction.userboxsetcolor:
-                return ui.userBoxSetColor(
-                    args[0] as number, args[1] as number, args[2] as number
-                );
+                return finalize(ui.userBoxSetColor(
+                    inputs[0] as number, inputs[1] as number, inputs[2] as number
+                ));
 
             // === Simulation ===
             case SystemFunction.simnum:
-                return simulation.simNum(
-                    args[0] as string, args[1] as string,
-                    args[2] as number, args[3] as number
-                );
+                return finalize(simulation.simNum(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as number, inputs[3] as number
+                ));
             case SystemFunction.simdigital:
-                return simulation.simDigital(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as string
-                );
+                return finalize(simulation.simDigital(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string
+                ));
 
             // === EDIABAS ===
             case SystemFunction.INPAapiInit:
-                return ediabas.init();
+                return finalize(ediabas.init());
             case SystemFunction.INPAapiEnd:
-                return ediabas.end();
+                return finalize(ediabas.end());
             case SystemFunction.INPAapiJob:
-                return ediabas.job(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as string
-                );
+                return finalize(ediabas.job(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string
+                ));
             case SystemFunction.INPAapiResultText:
-                return ediabas.resultText(
-                    args[0] as string, args[1] as number, args[2] as string
-                );
+                return finalize(ediabas.resultText(
+                    inputs[0] as string, inputs[1] as number, inputs[2] as string
+                ));
             case SystemFunction.INPAapiResultInt:
-                return ediabas.resultInt(args[0] as string, args[1] as number);
+                return finalize(ediabas.resultInt(inputs[0] as string, inputs[1] as number));
             case SystemFunction.INPAapiResultSets:
-                return ediabas.resultSets();
+                return finalize(ediabas.resultSets());
             case SystemFunction.INPAapiResultDigital:
-                return ediabas.resultDigital(args[0] as string, args[1] as number);
+                return finalize(ediabas.resultDigital(inputs[0] as string, inputs[1] as number));
             case SystemFunction.INPAapiResultAnalog:
-                return ediabas.resultAnalog(args[0] as string, args[1] as number);
+                return finalize(ediabas.resultAnalog(inputs[0] as string, inputs[1] as number));
             case SystemFunction.INPAapiResultBinary:
-                return ediabas.resultBinary(args[0] as string, args[1] as number);
+                return finalize(ediabas.resultBinary(inputs[0] as string, inputs[1] as number));
             case SystemFunction.INPAapiCheckJobStatus:
-                return ediabas.checkJobStatus(args[0] as string);
+                return finalize(ediabas.checkJobStatus(inputs[0] as string));
             case SystemFunction.INPAapiFsLesen:
-                return ediabas.fsLesen(args[0] as string, args[1] as string);
+                return finalize(ediabas.fsLesen(inputs[0] as string, inputs[1] as string));
             case SystemFunction.INPAapiFsLesen2:
-                return ediabas.fsLesen2(args[0] as string, args[1] as string);
+                return finalize(ediabas.fsLesen2(inputs[0] as string, inputs[1] as string));
             case SystemFunction.INPAapiFsMode:
-                return ediabas.fsMode(
-                    args[0] as number, args[1] as string,
-                    args[2] as string, args[3] as string, args[4] as string
-                );
+                return finalize(ediabas.fsMode(
+                    inputs[0] as number, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string, inputs[4] as string
+                ));
 
             // === INP1 ===
             case SystemFunction.INP1apiInit:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.init();
+                return finalize(inp1.init());
             case SystemFunction.INP1apiEnd:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.end();
+                return finalize(inp1.end());
             case SystemFunction.INP1apiJob:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.job(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as string
-                );
+                return finalize(inp1.job(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as string
+                ));
             case SystemFunction.INP1apiState:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.state();
+                return finalize(inp1.state());
             case SystemFunction.INP1apiResultText:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.resultText(args[0] as string, args[1] as number, args[2] as string);
+                return finalize(inp1.resultText(inputs[0] as string, inputs[1] as number, inputs[2] as string));
             case SystemFunction.INP1apiResultInt:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.resultInt(args[0] as string, args[1] as number);
+                return finalize(inp1.resultInt(inputs[0] as string, inputs[1] as number));
             case SystemFunction.INP1apiResultSets:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.resultSets();
+                return finalize(inp1.resultSets());
             case SystemFunction.INP1apiResultReal:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.resultReal(args[0] as string, args[1] as number);
+                return finalize(inp1.resultReal(inputs[0] as string, inputs[1] as number));
             case SystemFunction.INP1apiResultBinary:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.resultBinary(args[0] as string, args[1] as number);
+                return finalize(inp1.resultBinary(inputs[0] as string, inputs[1] as number));
             case SystemFunction.INP1apiErrorCode:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.errorCode();
+                return finalize(inp1.errorCode());
             case SystemFunction.INP1apiErrorText:
                 if (!inp1) throw new Error('INP1 provider not available');
-                return inp1.errorText();
+                return finalize(inp1.errorText());
 
             // === Print ===
             case SystemFunction.printscreen:
-                return print.printScreen();
+                return finalize(print.printScreen());
             case SystemFunction.printfile:
-                return print.printFile(
-                    args[0] as string, args[1] as string,
-                    args[2] as string, args[3] as boolean
-                );
+                return finalize(print.printFile(
+                    inputs[0] as string, inputs[1] as string,
+                    inputs[2] as string, inputs[3] as boolean
+                ));
 
             // === PEM ===
             case SystemFunction.PEMInitialisiere:
-                return pem.initialisiere();
+                return finalize(pem.initialisiere());
             case SystemFunction.PEMProtokollKopf:
-                return pem.protokollKopf();
+                return finalize(pem.protokollKopf());
             case SystemFunction.PEMProtokollZeile:
-                return pem.protokollZeile();
+                return finalize(pem.protokollZeile());
             case SystemFunction.PEMSGZ_Kopfzeile:
-                return pem.sgzKopfzeile();
+                return finalize(pem.sgzKopfzeile());
             case SystemFunction.PEMTrennLinie:
-                return pem.trennLinie();
+                return finalize(pem.trennLinie());
             case SystemFunction.PEMEndLinie:
-                return pem.endLinie();
+                return finalize(pem.endLinie());
             case SystemFunction.PEMLoescheTabZeilenPuffer:
-                return pem.loescheTabZeilenPuffer();
+                return finalize(pem.loescheTabZeilenPuffer());
             case SystemFunction.PEMUebertrageTabZeilenPuffer:
-                return pem.uebertrageTabZeilenPuffer();
+                return finalize(pem.uebertrageTabZeilenPuffer());
             case SystemFunction.PEMProtokollAusgabe:
-                return pem.protokollAusgabe();
+                return finalize(pem.protokollAusgabe());
             case SystemFunction.PEMDruckeEtikett:
-                return pem.druckeEtikett();
+                return finalize(pem.druckeEtikett());
             case SystemFunction.PEMPrintFormular:
-                return pem.printFormular();
+                return finalize(pem.printFormular());
             case SystemFunction.PEMPrinter_ff:
-                return pem.printerFf();
+                return finalize(pem.printerFf());
             case SystemFunction.PEMFree_mem:
-                return pem.freeMem();
+                return finalize(pem.freeMem());
             case SystemFunction.PEMLoad_formular:
-                return pem.loadFormular();
+                return finalize(pem.loadFormular());
             case SystemFunction.PEMDefault_druckfeld:
-                return pem.defaultDruckfeld();
+                return finalize(pem.defaultDruckfeld());
             case SystemFunction.PEMDefault_besetzen:
-                return pem.defaultBesetzen();
+                return finalize(pem.defaultBesetzen());
             case SystemFunction.PEMForget_formular:
-                return pem.forgetFormular();
+                return finalize(pem.forgetFormular());
             case SystemFunction.PEMWrite_druckfeld:
-                return pem.writeDruckfeld();
+                return finalize(pem.writeDruckfeld());
 
             // === DTM ===
             case SystemFunction.DTMFindLogUnit:
-                return dtm.findLogUnit(args[0] as string);
+                return finalize(dtm.findLogUnit(inputs[0] as string));
             case SystemFunction.DTMGetSGVar:
-                return dtm.getSGVar(args[0] as string);
+                return finalize(dtm.getSGVar(inputs[0] as string));
             case SystemFunction.DTMGetSGArt:
-                return dtm.getSGArt(args[0] as string);
+                return finalize(dtm.getSGArt(inputs[0] as string));
             case SystemFunction.DTMGetVarWert:
-                return dtm.getVarWert(args[0] as string);
+                return finalize(dtm.getVarWert(inputs[0] as string));
             case SystemFunction.DTMSetupGetVarWert:
-                return dtm.setupGetVarWert(args[0] as string);
+                return finalize(dtm.setupGetVarWert(inputs[0] as string));
             case SystemFunction.DTMSetupGetStartPosition:
-                return dtm.setupGetStartPosition();
+                return finalize(dtm.setupGetStartPosition());
             case SystemFunction.DTMSetupGetNextAssoc:
-                return dtm.setupGetNextAssoc();
+                return finalize(dtm.setupGetNextAssoc());
             case SystemFunction.DTMLogUnitEintragen:
-                return dtm.logUnitEintragen(args[0] as string);
+                return finalize(dtm.logUnitEintragen(inputs[0] as string));
             case SystemFunction.DTMSGEintragen:
-                return dtm.sgEintragen(args[0] as string, args[1] as string);
+                return finalize(dtm.sgEintragen(inputs[0] as string, inputs[1] as string));
             case SystemFunction.DTMLoescheAuftrag:
-                return dtm.loescheAuftrag();
+                return finalize(dtm.loescheAuftrag());
             case SystemFunction.DTMVariableEintragen:
-                return dtm.variableEintragen(args[0] as string, args[1] as string);
+                return finalize(dtm.variableEintragen(inputs[0] as string, inputs[1] as string));
             case SystemFunction.DTMVariableLoeschen:
-                return dtm.variableLoeschen(args[0] as string);
+                return finalize(dtm.variableLoeschen(inputs[0] as string));
             case SystemFunction.DTMLoescheAlleVariablen:
-                return dtm.loescheAlleVariablen();
+                return finalize(dtm.loescheAlleVariablen());
             case SystemFunction.DTMSetupVariableEintragen:
-                return dtm.setupVariableEintragen(args[0] as string, args[1] as string);
+                return finalize(dtm.setupVariableEintragen(inputs[0] as string, inputs[1] as string));
             case SystemFunction.DTMSetupVariableLoeschen:
-                return dtm.setupVariableLoeschen(args[0] as string);
+                return finalize(dtm.setupVariableLoeschen(inputs[0] as string));
 
             // === External ===
             case SystemFunction.winhelp:
-                return external.winHelp(args[0] as string);
+                return finalize(external.winHelp(inputs[0] as string));
             case SystemFunction.winhelpkey:
-                return external.winHelpKey(args[0] as string, args[1] as string);
+                return finalize(external.winHelpKey(inputs[0] as string, inputs[1] as string));
             case SystemFunction.callwin:
-                return external.callWin(args[0] as string);
+                return finalize(external.callWin(inputs[0] as string));
             case SystemFunction.viewopen:
-                return external.viewOpen(args[0] as string, args[1] as string);
+                return finalize(external.viewOpen(inputs[0] as string, inputs[1] as string));
             case SystemFunction.viewclose:
-                return external.viewClose();
+                return finalize(external.viewClose());
 
             // === SPS ===
             case SystemFunction.SPSInit:
                 if (!sps) throw new Error('SPS provider not available');
-                return sps.init();
+                return finalize(sps.init());
             case SystemFunction.SPSEnd:
                 if (!sps) throw new Error('SPS provider not available');
-                return sps.end();
+                return finalize(sps.end());
             case SystemFunction.SPSLeseVonSPS:
                 if (!sps) throw new Error('SPS provider not available');
-                return sps.leseVonSPS(...args);
+                return finalize(sps.leseVonSPS(...inputs));
             case SystemFunction.SPSSendeAnSPS:
                 if (!sps) throw new Error('SPS provider not available');
-                return sps.sendeAnSPS(...args);
+                return finalize(sps.sendeAnSPS(...inputs));
             case SystemFunction.SPSLeseVakWerte:
                 if (!sps) throw new Error('SPS provider not available');
-                return sps.leseVakWerte(...args);
+                return finalize(sps.leseVakWerte(...inputs));
 
             default:
                 if (this.isInternal(funcId)) {
