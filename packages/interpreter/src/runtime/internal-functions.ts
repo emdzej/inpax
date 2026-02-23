@@ -5,7 +5,7 @@
 
 import type { VM } from '../vm/interpreter.js';
 import type { ExecutionContext } from '../vm/execution-context.js';
-import { StackEntry, SystemFunction, ValueType } from '@emdzej/inpax-core';
+import { SystemFunction, ValueType } from '@emdzej/inpax-core';
 import { Stack } from '../vm/stack.js';
 
 type InternalHandler = (ctx: ExecutionContext) => void;
