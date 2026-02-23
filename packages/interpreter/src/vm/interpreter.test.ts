@@ -1,0 +1,110 @@
+import { describe, it, expect } from 'vitest';
+import {
+  AluOp,
+  Opcode,
+  Scope,
+  StackEntry,
+  StackEntryFlags,
+  ValueType,
+  type ConstantsBlock,
+  type FunctionBlock,
+  type GlobalsBlock,
+  type Instruction,
+  type IpoFile,
+} from '@emdzej/inpax-core';
+import { ExecutionContext } from './execution-context.js';
+import { VM } from './interpreter.js';
+
+const entry = (type: ValueType, value: StackEntry['value']): StackEntry => ({
+  type,
+  flags: StackEntryFlags.ByValue,
+  value,
+});
+
+const createInstruction = (
+  opcode: Opcode,
+  operand1 = 0,
+  operand2 = 0
+): Instruction => ({
+  opcode,
+  operand1,
+  operand2,
+  raw: 0,
+});
+
+const createFunctionBlock = (instructions: Instruction[]): FunctionBlock => ({
+  header: {
+    type: 0x10,
+    name: 'test_block',
+    blockId: 1,
+    flags: 0,
+    arg1: '',
+    arg2: '',
+    marker: 0,
+    size: 0,
+  },
+  instructions,
+});
+
+const createIpoFile = (block: FunctionBlock): IpoFile => {
+  const globals: GlobalsBlock = {
+    header: {
+      type: 0x01,
+      name: 'globals',
+      blockId: 2,
+      flags: 0,
+      arg1: '',
+      arg2: '',
+      marker: 0,
+      size: 0,
+    },
+    types: [ValueType.Int],
+  };
+
+  const constants: ConstantsBlock = {
+    header: {
+      type: 0x02,
+      name: 'consts',
+      blockId: 3,
+      flags: 0,
+      arg1: '',
+      arg2: '',
+      marker: 0,
+      size: 0,
+    },
+    values: [],
+  };
+
+  return {
+    header: { versionHi: 1, versionLo: 0, magic: 'IPO' },
+    globals,
+    constants,
+    functions: new Map([[block.header.blockId, block]]),
+    screens: new Map(),
+    menus: new Map(),
+    stateMachines: new Map(),
+  };
+};
+
+describe('VM.execute', () => {
+  it('executes a block using the provided execution context', async () => {
+    const block = createFunctionBlock([
+      createInstruction(Opcode.LOAD, Scope.Global, 0),
+      createInstruction(Opcode.PUSHIMM, 0x51, 1),
+      createInstruction(Opcode.ALU, AluOp.ADD, 0),
+      createInstruction(Opcode.PUSHREFSTORE, Scope.Global, 0),
+      createInstruction(Opcode.MOVE, 0, 1),
+      createInstruction(Opcode.RET, 0, 0),
+    ]);
+
+    const ipo = createIpoFile(block);
+    const vm = new VM(ipo);
+
+    const globals: StackEntry[] = [entry(ValueType.Int, 41)];
+    const ctx = new ExecutionContext(globals, []);
+
+    await vm.execute(block, ctx);
+
+    expect(globals[0].value).toBe(42);
+  });
+});

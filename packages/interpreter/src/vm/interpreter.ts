@@ -14,6 +14,7 @@ import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import { SystemFunctionDispatcher } from '@emdzej/inpax-dispatcher';
 import { createNullRuntime } from '@emdzej/inpax-providers';
 import { Stack } from './stack.js';
+import { ExecutionContext } from './execution-context.js';
 import { InternalFunctions } from '../runtime/internal-functions.js';
 import {
     collectArguments,
@@ -133,8 +134,8 @@ export class VM {
             throw new Error('__inpa_startup__ function not found');
         }
 
-        this.callFunction(initFunc);
-        await this.execute();
+        const ctx = new ExecutionContext(this.globals, this.ipo.constants.values);
+        await this.execute(initFunc, ctx);
     }
 
     /**
@@ -148,27 +149,36 @@ export class VM {
     /**
      * Main execution loop (async for provider calls)
      */
-    private async execute(): Promise<void> {
+    async execute(block: FunctionBlock, ctx: ExecutionContext): Promise<void> {
+        this.callFunction(block);
         this.state.running = true;
 
         while (this.state.running && this.state.currentBlock) {
-            const block = this.state.currentBlock;
+            const currentBlock = this.state.currentBlock;
 
-            if (this.state.ip >= block.instructions.length) {
+            if (this.state.ip >= currentBlock.instructions.length) {
                 // End of function - implicit return
-                this.doReturn();
+                this.doReturn(ctx);
                 continue;
             }
 
-            const instr = block.instructions[this.state.ip];
-            await this.executeInstruction(instr);
+            const instr = currentBlock.instructions[this.state.ip];
+            await this.executeInstruction(instr, ctx);
         }
+    }
+
+    /**
+     * Execute a function block with a new isolated execution context
+     */
+    async executeIsolated(block: FunctionBlock): Promise<void> {
+        const ctx = new ExecutionContext(this.initGlobals(), this.ipo.constants.values);
+        await this.execute(block, ctx);
     }
 
     /**
      * Execute single instruction
      */
-    private async executeInstruction(instr: Instruction): Promise<void> {
+    private async executeInstruction(instr: Instruction, ctx: ExecutionContext): Promise<void> {
         const { opcode, operand1, operand2 } = instr;
 
         if (this.debug) {
@@ -177,15 +187,15 @@ export class VM {
 
         switch (opcode) {
             case Opcode.LOAD:
-                this.opLoad(operand1, operand2);
+                this.opLoad(operand1, operand2, ctx);
                 break;
 
             case Opcode.PUSHREF:
-                this.opPushRef(operand1, operand2);
+                this.opPushRef(operand1, operand2, ctx);
                 break;
 
             case Opcode.LOADINOUTREF:
-                this.opLoadInOutRef(operand1, operand2);
+                this.opLoadInOutRef(operand1, operand2, ctx);
                 break;
 
             case Opcode.NOP:
@@ -193,23 +203,23 @@ export class VM {
                 break;
 
             case Opcode.MOVE:
-                this.opMove(operand2);
+                this.opMove(operand2, ctx);
                 break;
 
             case Opcode.PUSHR:
-                this.opPushR(operand1, operand2);
+                this.opPushR(operand1, operand2, ctx);
                 break;
 
             case Opcode.PUSHREFSTORE:
-                this.opPushRefStore(operand1, operand2);
+                this.opPushRefStore(operand1, operand2, ctx);
                 break;
 
             case Opcode.ALLOC:
-                this.opAlloc(operand1);
+                this.opAlloc(operand1, ctx);
                 break;
 
             case Opcode.ALU:
-                this.opAlu(operand1 as AluOp);
+                this.opAlu(operand1 as AluOp, ctx);
                 break;
 
             case Opcode.JMP:
@@ -221,7 +231,7 @@ export class VM {
                 break;
 
             case Opcode.CALL:
-                await this.opCall(operand1 as CallTarget, operand2);
+                await this.opCall(operand1 as CallTarget, operand2, ctx);
                 return; // IP handled by call
 
             case Opcode.CALLE:
@@ -229,19 +239,19 @@ export class VM {
                 break;
 
             case Opcode.RET:
-                this.doReturn();
+                this.doReturn(ctx);
                 return; // IP handled by return
 
             case Opcode.FRAME:
-                this.opFrame();
+                this.opFrame(ctx);
                 break;
 
             case Opcode.LOGTABLE:
-                this.opLogTable(operand2);
+                this.opLogTable(operand2, ctx);
                 break;
 
             case Opcode.PUSHIMM:
-                this.opPushImm(operand1, operand2);
+                this.opPushImm(operand1, operand2, ctx);
                 break;
 
             default:
@@ -253,59 +263,44 @@ export class VM {
 
     // ============ Opcode implementations ============
 
-    private opLoad(scope: Scope, index: number): void {
-        const entry = this.resolveVariable(scope, index);
-        this.stack.push({ ...entry, flags: 1 });
+    private opLoad(scope: Scope, index: number, ctx: ExecutionContext): void {
+        const entry = ctx.getVariable(scope, index);
+        ctx.stack.push({ ...entry, flags: 1 });
     }
 
-    private opPushRef(scope: Scope, index: number): void {
-        this.stack.push(Stack.createRef(scope, index));
+    private opPushRef(scope: Scope, index: number, ctx: ExecutionContext): void {
+        ctx.stack.push(Stack.createRef(scope, index));
     }
 
-    private opLoadInOutRef(scope: Scope, index: number): void {
-        this.opPushRef(scope, index);
+    private opLoadInOutRef(scope: Scope, index: number, ctx: ExecutionContext): void {
+        this.opPushRef(scope, index, ctx);
     }
 
-  private opMove(count: number): void {
-    // MOVE: Assign value to reference
-    // Stack: [..., target_ref, value] → [...]
-    for (let i = 0; i < count; i++) {
-        const ref = this.stack.pop();
-        const value = this.stack.pop();
-        if (ref.refInfo) {
-            this.storeVariable(ref.refInfo.scope, ref.refInfo.index, value);
+    private opMove(count: number, ctx: ExecutionContext): void {
+        // MOVE: Assign value to reference
+        // Stack: [..., target_ref, value] → [...]
+        for (let i = 0; i < count; i++) {
+            const ref = ctx.stack.pop();
+            const value = ctx.stack.pop();
+            if (ref.refInfo) {
+                ctx.setVariable(ref.refInfo.scope as Scope, ref.refInfo.index, value);
+            }
+            if (value.type === ValueType.Bool) {
+                this.state.condition = value.value ? 1 : 0;
+            }
         }
-        if (value.type === ValueType.Bool) {
-            this.state.condition = value.value ? 1 : 0;
-        }
-    }
-  }
-
-  private storeVariable(scope: Scope, index: number, entry: StackEntry): void {
-    switch (scope) {
-      case Scope.Global:
-        this.globals[index] = { ...entry };
-        break;
-      case Scope.Local:
-        this.stack.setLocal(index, { ...entry });
-        break;
-      case Scope.Const:
-        throw new Error('Cannot assign to constant');
-      default:
-        throw new Error(`Cannot store to scope: 0x${scope.toString(16)}`);
-    }
-  }
-
-    private opPushR(scope: Scope, index: number): void {
-        this.opPushRef(scope, index);
     }
 
-    private opPushRefStore(scope: Scope, index: number): void {
+    private opPushR(scope: Scope, index: number, ctx: ExecutionContext): void {
+        this.opPushRef(scope, index, ctx);
+    }
+
+    private opPushRefStore(scope: Scope, index: number, ctx: ExecutionContext): void {
         // PUSHREFSTORE: Push reference for storing value (used by out params)
-        this.opPushRef(scope, index);
+        this.opPushRef(scope, index, ctx);
     }
 
-    private opAlloc(typeMarker: number): void {
+    private opAlloc(typeMarker: number, ctx: ExecutionContext): void {
         let type: ValueType;
         let value: Value;
 
@@ -347,7 +342,7 @@ export class VM {
                 value = null;
         }
 
-        this.stack.push({ type, flags: 1, value });
+        ctx.stack.push({ type, flags: 1, value });
     }
 
     private opJmp(offset: number): void {
@@ -362,9 +357,9 @@ export class VM {
         return false;
     }
 
-    private opAlu(op: AluOp): void {
+    private opAlu(op: AluOp, ctx: ExecutionContext): void {
         if (op === AluOp.NEG || op === AluOp.NOT) {
-            const entry = this.stack.peek();
+            const entry = ctx.stack.peek();
             if (op === AluOp.NEG) {
                 entry.value = -(entry.value as number);
             } else {
@@ -373,7 +368,7 @@ export class VM {
             return;
         }
 
-        const [lhs, rhs] = this.stack.getTwoOperands();
+        const [lhs, rhs] = ctx.stack.getTwoOperands();
         let result: Value;
 
         switch (op) {
@@ -436,12 +431,12 @@ export class VM {
             default:
                 throw new Error(`Unknown ALU op: 0x${(op as number).toString(16)}`);
         }
-        this.stack.push({ type: lhs.type, flags: 1, value: result });
+        ctx.stack.push({ type: lhs.type, flags: 1, value: result });
         //lhs.value = result;
         //this.stack.popN(1);
     }
 
-    private async opCall(target: CallTarget, funcId: number): Promise<void> {
+    private async opCall(target: CallTarget, funcId: number, ctx: ExecutionContext): Promise<void> {
         this.state.ip++;
 
         if (target === CallTarget.UserFunction) {
@@ -455,23 +450,23 @@ export class VM {
             this.callFunction(func);
         } else {
             // System function call
-            await this.callSystemFunction(funcId);
-            this.stack.popFrame();
+            await this.callSystemFunction(funcId, ctx);
+            ctx.popFrame();
         }
     }
 
     /**
      * Call system function - routes to internal or dispatcher
      */
-    private async callSystemFunction(funcId: number): Promise<void> {
+    private async callSystemFunction(funcId: number, ctx: ExecutionContext): Promise<void> {
         // Check if internal (handled by interpreter)
         if (this.dispatcher.isInternal(funcId)) {
-            this.internal.call(funcId);
+            this.internal.call(funcId, ctx);
             return;
         }
 
         // Collect arguments from stack based on signature
-        const collected = collectArguments(funcId, this.stack);
+        const collected = collectArguments(funcId, ctx.stack);
 
         // Dispatch to provider with input args only
         const result = this.dispatcher.dispatch(funcId, collected.inputs);
@@ -485,13 +480,17 @@ export class VM {
         }
 
         // Write out params back to stack/globals
-        this.writeOutParams(collected, returnValue);
+        this.writeOutParams(collected, returnValue, ctx);
     }
 
     /**
      * Write provider return values to out parameters
      */
-    private writeOutParams(collected: CollectedArgs, returnValue: unknown): void {
+    private writeOutParams(
+        collected: CollectedArgs,
+        returnValue: unknown,
+        ctx: ExecutionContext
+    ): void {
         if (collected.outRefs.length === 0) return;
 
         // Convert return value to array of out values
@@ -511,8 +510,7 @@ export class VM {
             collected.outRefs,
             collected.outParams,
             outValues,
-            this.globals,
-            this.stack
+            ctx
         );
     }
 
@@ -520,8 +518,8 @@ export class VM {
         throw new Error(`CALLE (external DLL call) not implemented: ${index}`);
     }
 
-    private doReturn(): void {
-        const ret = this.stack.popReturnAddress();
+    private doReturn(ctx: ExecutionContext): void {
+        const ret = ctx.stack.popReturnAddress();
 
         if (ret.blockId === -1) {
             // Normal end of execution (from run())
@@ -543,19 +541,19 @@ export class VM {
         this.state.currentBlock = callerFunc;
         this.state.ip = ret.ip;
         this.state.condition = 0;
-        this.stack.popFrame();
+        ctx.popFrame();
     }
 
-    private opFrame(): void {
-        this.stack.pushFrame();
+    private opFrame(ctx: ExecutionContext): void {
+        ctx.pushFrame();
     }
 
-    private opLogTable(index: number): void {
+    private opLogTable(index: number, ctx: ExecutionContext): void {
         console.warn(`LOGTABLE lookup at index ${index} - returning 0`);
-        this.stack.push({ type: ValueType.Long, flags: 1, value: 0 });
+        ctx.stack.push({ type: ValueType.Long, flags: 1, value: 0 });
     }
 
-    private opPushImm(typeMarker: number, rawValue: number): void {
+    private opPushImm(typeMarker: number, rawValue: number, ctx: ExecutionContext): void {
         let type: ValueType;
         let value: Value;
 
@@ -581,22 +579,7 @@ export class VM {
                 value = rawValue;
         }
 
-        this.stack.push({ type, flags: 1, value });
-    }
-
-    // ============ Helper methods ============
-
-    private resolveVariable(scope: Scope, index: number): StackEntry {
-        switch (scope) {
-            case Scope.Global:
-                return this.globals[index];
-            case Scope.Const:
-                return this.ipo.constants.values[index];
-            case Scope.Local:
-                return this.stack.getLocal(index);
-            default:
-                throw new Error(`UI handle scope not implemented: 0x${scope.toString(16)}`);
-        }
+        ctx.stack.push({ type, flags: 1, value });
     }
 
     // ============ Public API ============
@@ -643,9 +626,7 @@ export class VM {
      */
     async executeBlock(block: FunctionBlock): Promise<void> {
         const subVm = new VM(this.ipo, this.config);
-
-        subVm.callFunction(block);
-        await subVm.execute();
+        await subVm.executeIsolated(block);
     }
 
     async setMenu(menuHandle: number): Promise<void> {
