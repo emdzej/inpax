@@ -164,7 +164,7 @@ const value = view.getUint32(offset, true); // little-endian
 
 ```typescript
 // ✅ Use typed errors
-import { InpaxError, ErrorCodes } from '@inpax/core';
+import { InpaxError, ErrorCodes } from '@emdzej/inpax-core';
 
 throw new InpaxError(ErrorCodes.INVALID_OPCODE, `Unknown opcode: 0x${opcode.toString(16)}`);
 

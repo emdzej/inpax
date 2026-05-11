@@ -1,13 +1,13 @@
-# @inpax/interpreter
+# @emdzej/inpax-interpreter
 
 VM interpreter for INPAX bytecode execution.
 
 ## Usage
 
 ```typescript
-import { Interpreter } from '@inpax/interpreter';
-import { parseIPO } from '@inpax/parser';
-import type { IUIProvider, IEdiabasProvider } from '@inpax/interfaces';
+import { Interpreter } from '@emdzej/inpax-interpreter';
+import { parseIPO } from '@emdzej/inpax-parser';
+import type { IUIProvider, IEdiabasProvider } from '@emdzej/inpax-interfaces';
 
 const ipo = parseIPO(buffer);
 

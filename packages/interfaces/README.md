@@ -1,4 +1,4 @@
-# @inpax/interfaces
+# @emdzej/inpax-interfaces
 
 TypeScript interfaces for INPAX provider system.
 
@@ -61,7 +61,7 @@ interface UIEvents {
 ## Usage
 
 ```typescript
-import type { IUIProvider, IEdiabasProvider } from '@inpax/interfaces';
+import type { IUIProvider, IEdiabasProvider } from '@emdzej/inpax-interfaces';
 
 class MyProvider implements IUIProvider {
   // Implement interface...

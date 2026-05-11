@@ -1,4 +1,4 @@
-# @inpax/dispatcher
+# @emdzej/inpax-dispatcher
 
 Event dispatcher for INPAX runtime.
 
@@ -7,7 +7,7 @@ Internal package for routing events between interpreter, UI, and EDIABAS provide
 ## Usage
 
 ```typescript
-import { Dispatcher } from '@inpax/dispatcher';
+import { Dispatcher } from '@emdzej/inpax-dispatcher';
 
 const dispatcher = new Dispatcher();
 

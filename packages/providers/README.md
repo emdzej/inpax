@@ -1,4 +1,4 @@
-# @inpax/providers
+# @emdzej/inpax-providers
 
 Provider factory for INPAX.
 
@@ -7,7 +7,7 @@ Creates and configures provider instances based on runtime environment.
 ## Usage
 
 ```typescript
-import { createProviders } from '@inpax/providers';
+import { createProviders } from '@emdzej/inpax-providers';
 
 const { ui, ediabas } = createProviders({
   mode: 'tui',        // 'tui' | 'cli' | 'mock'

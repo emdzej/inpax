@@ -1,4 +1,4 @@
-# @inpax/ini-parser
+# @emdzej/inpax-ini-parser
 
 INPA configuration file parser.
 
@@ -12,7 +12,7 @@ Parses INI files used by INPA with support for:
 ### Basic INI Parsing
 
 ```typescript
-import { parse, parseFile, stringify } from '@inpax/ini-parser';
+import { parse, parseFile, stringify } from '@emdzej/inpax-ini-parser';
 
 const content = `
 // Configuration file
@@ -32,7 +32,7 @@ const config = await parseFile('/path/to/config.ini');
 ### INPA.INI Format
 
 ```typescript
-import { parseInpaConfig } from '@inpax/ini-parser';
+import { parseInpaConfig } from '@emdzej/inpax-ini-parser';
 
 const config = parseInpaConfig(content);
 // {
@@ -46,7 +46,7 @@ const config = parseInpaConfig(content);
 ### Group Config (E46.ENG, etc.)
 
 ```typescript
-import { parseGroupConfig, findRootSection, getValidEntries } from '@inpax/ini-parser';
+import { parseGroupConfig, findRootSection, getValidEntries } from '@emdzej/inpax-ini-parser';
 
 const config = parseGroupConfig(content);
 const root = findRootSection(config);
@@ -59,7 +59,7 @@ console.log(getValidEntries(root));
 ## Helper Functions
 
 ```typescript
-import { get, getFirst, getAll, hasSection, hasKey, sections, keys } from '@inpax/ini-parser';
+import { get, getFirst, getAll, hasSection, hasKey, sections, keys } from '@emdzej/inpax-ini-parser';
 
 get(ini, 'SECTION', 'KEY');           // 'value'
 get(ini, 'SECTION', 'MISSING', 'def'); // 'def'

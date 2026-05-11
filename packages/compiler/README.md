@@ -1,4 +1,4 @@
-# @inpax/compiler
+# @emdzej/inpax-compiler
 
 IPS source code compiler for INPAX (Work in Progress).
 
@@ -9,7 +9,7 @@ IPS source code compiler for INPAX (Work in Progress).
 ## Planned Usage
 
 ```typescript
-import { compile } from '@inpax/compiler';
+import { compile } from '@emdzej/inpax-compiler';
 import { readFileSync, writeFileSync } from 'fs';
 
 const source = readFileSync('script.ips', 'utf-8');

@@ -39,22 +39,22 @@ inpax run script.ipo --headless
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                        CLI                               │
-│                    (@inpax/cli)                          │
+│                    (@emdzej/inpax-cli)                          │
 ├─────────────────────────────────────────────────────────┤
 │      TUI Provider       │       CLI Provider            │
-│  (@inpax/tui-provider)  │   (@inpax/cli-provider)       │
+│  (@emdzej/inpax-tui-provider)  │   (@emdzej/inpax-cli-provider)       │
 ├─────────────────────────┴───────────────────────────────┤
 │                    TUI Renderer                          │
-│                     (@inpax/tui)                         │
+│                     (@emdzej/inpax-tui)                         │
 ├─────────────────────────────────────────────────────────┤
 │                     Interpreter                          │
-│                 (@inpax/interpreter)                     │
+│                 (@emdzej/inpax-interpreter)                     │
 ├─────────────────────────────────────────────────────────┤
 │     IPO Parser      │      EDIABAS Provider             │
-│  (@inpax/parser)    │     (via @inpax/interfaces)       │
+│  (@emdzej/inpax-parser)    │     (via @emdzej/inpax-interfaces)       │
 ├─────────────────────┴───────────────────────────────────┤
 │                    Core Types                            │
-│                    (@inpax/core)                         │
+│                    (@emdzej/inpax-core)                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -62,18 +62,18 @@ inpax run script.ipo --headless
 
 | Package | Description |
 |---------|-------------|
-| [@inpax/cli](./packages/cli) | Command-line interface |
-| [@inpax/core](./packages/core) | Constants, opcodes, types |
-| [@inpax/interfaces](./packages/interfaces) | Provider interfaces |
-| [@inpax/parser](./packages/parser) | IPO bytecode parser |
-| [@inpax/disassembler](./packages/disassembler) | IPO → assembly |
-| [@inpax/interpreter](./packages/interpreter) | VM execution |
-| [@inpax/compiler](./packages/compiler) | IPS → IPO compiler |
-| [@inpax/tui](./packages/tui) | Terminal UI (ink) |
-| [@inpax/tui-provider](./packages/tui-provider) | TUI state management |
-| [@inpax/cli-provider](./packages/cli-provider) | Headless UI provider |
-| [@inpax/mock-provider](./packages/mock-provider) | Mock providers for testing |
-| [@inpax/ini-parser](./packages/ini-parser) | INPA config file parser |
+| [@emdzej/inpax-cli](./packages/cli) | Command-line interface |
+| [@emdzej/inpax-core](./packages/core) | Constants, opcodes, types |
+| [@emdzej/inpax-interfaces](./packages/interfaces) | Provider interfaces |
+| [@emdzej/inpax-parser](./packages/parser) | IPO bytecode parser |
+| [@emdzej/inpax-disassembler](./packages/disassembler) | IPO → assembly |
+| [@emdzej/inpax-interpreter](./packages/interpreter) | VM execution |
+| [@emdzej/inpax-compiler](./packages/compiler) | IPS → IPO compiler |
+| [@emdzej/inpax-tui](./packages/tui) | Terminal UI (ink) |
+| [@emdzej/inpax-tui-provider](./packages/tui-provider) | TUI state management |
+| [@emdzej/inpax-cli-provider](./packages/cli-provider) | Headless UI provider |
+| [@emdzej/inpax-mock-provider](./packages/mock-provider) | Mock providers for testing |
+| [@emdzej/inpax-ini-parser](./packages/ini-parser) | INPA config file parser |
 
 ## Development
 

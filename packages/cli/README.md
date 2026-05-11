@@ -1,4 +1,4 @@
-# @inpax/cli
+# @emdzej/inpax-cli
 
 Command-line interface for INPAX toolchain.
 

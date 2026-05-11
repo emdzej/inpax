@@ -1,4 +1,4 @@
-# @inpax/cli-provider
+# @emdzej/inpax-cli-provider
 
 Headless CLI provider for INPAX.
 
@@ -7,7 +7,7 @@ Simple `IUIProvider` implementation that outputs to stdout. Useful for batch exe
 ## Usage
 
 ```typescript
-import { CliProvider } from '@inpax/cli-provider';
+import { CliProvider } from '@emdzej/inpax-cli-provider';
 
 const provider = new CliProvider();
 

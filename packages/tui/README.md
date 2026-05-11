@@ -1,12 +1,12 @@
-# @inpax/tui
+# @emdzej/inpax-tui
 
 Terminal UI renderer for INPAX using [ink](https://github.com/vadimdemedes/ink).
 
 ## Usage
 
 ```typescript
-import { renderTui } from '@inpax/tui';
-import { TuiProvider } from '@inpax/tui-provider';
+import { renderTui } from '@emdzej/inpax-tui';
+import { TuiProvider } from '@emdzej/inpax-tui-provider';
 
 const provider = new TuiProvider();
 

@@ -1,29 +1,26 @@
-# @inpax/ediabasx-provider
+# @emdzej/inpax-ediabasx-provider
 
-EdiabasX provider for the INPA interpreter. Uses [@ediabasx/ediabas](https://github.com/emdzej/ediabasx) for real BMW ECU communication.
+EdiabasX provider for the INPA interpreter. Binds the 13 `INPAapi*` system functions to [`@emdzej/ediabasx-ediabas`](https://www.npmjs.com/package/@emdzej/ediabasx-ediabas) so INPA scripts run against real BMW ECUs (or its simulation transport).
 
 ## Installation
 
 ```bash
-# Install the provider
-npm install @inpax/ediabasx-provider
-
-# Install the required @ediabasx/ediabas package
-# (see https://github.com/emdzej/ediabasx for setup)
-npm install @ediabasx/ediabas
+npm install @emdzej/inpax-ediabasx-provider
 ```
+
+`@emdzej/ediabasx-ediabas` is a runtime dependency and gets pulled in automatically.
 
 ## Usage
 
 ```typescript
-import { EdiabasXProvider } from '@inpax/ediabasx-provider';
+import { EdiabasXProvider } from '@emdzej/inpax-ediabasx-provider';
 
-// With config file
+// Load from an `ediabas.config.json` (interface + ecu path + timeouts).
 const provider = new EdiabasXProvider({
   configFile: './ediabas.config.json',
 });
 
-// Or with direct config
+// Or pass an EdiabasX config directly.
 const provider = new EdiabasXProvider({
   config: {
     ecuPath: './ecu',
@@ -31,71 +28,87 @@ const provider = new EdiabasXProvider({
   },
 });
 
-// Initialize
-await provider.init();
+await provider.init();              // connects according to the config
 
-// Execute job
 await provider.job('D_MOTOR', 'IDENT', '', '');
-
-// Get results
 const sets = provider.resultSets();
-const value = provider.resultText('ECU', 1, '');
+const ecu  = provider.resultText('ECU', 1, '');
+const ok   = provider.checkJobStatus('OKAY');
 
-// Cleanup
 await provider.end();
 ```
 
+## INPA → EdiabasX bindings
+
+The provider implements every method `@emdzej/inpax-interfaces`'s `IEdiabasProvider` requires, mapped to the EdiabasX `Ediabas` class as follows:
+
+| INPA system function | EdiabasX call |
+|---|---|
+| `INPAapiInit` | `new Ediabas(...)` / `createFromConfigFile(...)` + `connect()` |
+| `INPAapiEnd` | `disconnect()` |
+| `INPAapiJob(ecu, job, arg1, arg2)` | `loadSgbd(<ecu>.prg)` (cached) + `executeJob(job, { params: [arg1, arg2] })` |
+| `INPAapiResultSets` | length of the last `executeJob` set array |
+| `INPAapiResultText(name, set, format)` | result by `name` from the 1-based `set`; `format` honoured for numeric values via a `printf`-compatible subset (`%d %i %u %o %x %X %f %e %g`) |
+| `INPAapiResultInt(name, set)` | C-style truncation toward zero |
+| `INPAapiResultAnalog(name, set)` | float; parses strings via `parseFloat` |
+| `INPAapiResultBinary(name, set)` | passes `Uint8Array` through; strings encoded as UTF-8 bytes |
+| `INPAapiResultDigital(name, set)` | true for `1`, `"true"`, `"1"`, `"OKAY"`, `"JA"`, `"YES"` |
+| `INPAapiCheckJobStatus(ref)` | compares against the captured `JOB_STATUS` system result from the most recent job |
+| `INPAapiFsLesen(ecu, fileName)` | runs the configured fault-storage job (default `FS_LESEN`), emits `fs:complete` with the multi-set count |
+| `INPAapiFsLesen2(ecu, fileName)` | alias for `FsLesen` |
+| `INPAapiFsMode(mode, fileMode, preInfo, postInfo, jobName)` | overrides the configured fault-storage job name |
+
+Multi-set results (e.g. `FS_LESEN` with N fault records emitted via the BEST2 `enewset` opcode, one set per record) are preserved — `resultSets()` returns N and `result*(name, k)` reads from the k-th record (1-based).
+
 ## Configuration
 
-### From Config File
-
-Create `ediabas.config.json`:
+### From `ediabas.config.json`
 
 ```json
 {
   "version": 1,
   "interface": {
-    "type": "serial",
-    "serial": {
-      "port": "/dev/ttyUSB0",
-      "baudRate": 9600
+    "type": "kdcan",
+    "kdcan": {
+      "port": "/dev/cu.usbserial-A50285BI",
+      "baudRate": 9600,
+      "protocol": "isotp"
     }
   },
-  "paths": {
-    "sgbd": "./ecu"
-  }
+  "paths": { "sgbd": "./ecu" }
 }
 ```
 
-### Direct Configuration
+Loaded via `@emdzej/ediabasx-ediabas/node`'s `createFromConfigFile()`.
+
+### Direct configuration
 
 ```typescript
 const provider = new EdiabasXProvider({
   config: {
-    ecuPath: './ecu',        // Path to SGBD/PRG files
-    simulation: true,        // Use simulation mode
-    timeout: 5000,           // Response timeout (ms)
-    logging: false,          // Enable debug logging
+    ecuPath: './ecu',     // directory containing .prg / .grp files
+    simulation: false,    // pass true for in-memory canned responses
+    timeout: 5000,        // ms
+    logging: false,
   },
-  autoConnect: true,         // Auto-connect on init
+  autoConnect: true,      // false to defer connect() until first job
 });
 ```
 
 ## Events
 
-The provider emits standard INPA EDIABAS events:
+Mirrors the `EdiabasEvents` map from `@emdzej/inpax-interfaces`:
 
-- `job:complete` - Job executed successfully
-- `job:error` - Job execution failed
-- `connection:lost` - Connection to ECU lost
-- `connection:restored` - Connection restored
+- `job:complete` — `{ ecu, job, sets }`
+- `job:error` — `{ code, message }`
+- `fs:complete` — `{ ecu, fileName, faultCount }`
+- `connection:lost` / `connection:restored`
 
 ## Requirements
 
 - Node.js 18+
-- `@ediabasx/ediabas` package (runtime dependency)
-- SGBD/PRG files for target ECUs
-- Hardware interface (K-Line adapter, DCAN, ENET) or simulation mode
+- SGBD/GRP files for the target ECUs in `ecuPath`
+- Hardware interface (K-line / K+DCAN / ENET) or simulation mode
 
 ## License
 

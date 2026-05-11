@@ -1,12 +1,12 @@
-# @inpax/disassembler
+# @emdzej/inpax-disassembler
 
 IPO bytecode disassembler for INPAX.
 
 ## Usage
 
 ```typescript
-import { disassemble, formatDisassembly } from '@inpax/disassembler';
-import { parseIPO } from '@inpax/parser';
+import { disassemble, formatDisassembly } from '@emdzej/inpax-disassembler';
+import { parseIPO } from '@emdzej/inpax-parser';
 import { readFileSync } from 'fs';
 
 const buffer = new Uint8Array(readFileSync('script.ipo'));

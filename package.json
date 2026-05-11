@@ -29,5 +29,11 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/emdzej/inpax.git"
+  },
+  "pnpm": {
+    "overrides": {
+      "@emdzej/ediabasx-ediabas": "link:../ediabasx/packages/ediabas",
+      "@emdzej/ediabasx-interfaces": "link:../ediabasx/packages/interfaces"
+    }
   }
 }

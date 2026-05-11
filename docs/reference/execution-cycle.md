@@ -214,8 +214,8 @@ Time    Component       Action
 ### Basic Setup
 
 ```typescript
-import { VM, MainScheduler, parseIpo } from '@inpax/interpreter';
-import { createTuiRuntime } from '@inpax/tui-provider';
+import { VM, MainScheduler, parseIpo } from '@emdzej/inpax-interpreter';
+import { createTuiRuntime } from '@emdzej/inpax-tui-provider';
 
 // Parse IPO file
 const ipo = parseIpo(buffer);

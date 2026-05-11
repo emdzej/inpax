@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@emdzej/ediabasx-ediabas': link:../ediabasx/packages/ediabas
+  '@emdzej/ediabasx-interfaces': link:../ediabasx/packages/interfaces
+
 importers:
 
   .:
@@ -38,6 +42,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@emdzej/ediabasx-interfaces':
+        specifier: link:../../../ediabasx/packages/interfaces
+        version: link:../../../ediabasx/packages/interfaces
       '@emdzej/inpax-cli-provider':
         specifier: workspace:*
         version: link:../cli-provider
@@ -47,6 +54,15 @@ importers:
       '@emdzej/inpax-dis':
         specifier: workspace:*
         version: link:../disassembler
+      '@emdzej/inpax-ediabasx-provider':
+        specifier: workspace:*
+        version: link:../ediabasx-provider
+      '@emdzej/inpax-ini-parser':
+        specifier: workspace:*
+        version: link:../ini-parser
+      '@emdzej/inpax-interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
       '@emdzej/inpax-interpreter':
         specifier: workspace:*
         version: link:../interpreter
@@ -144,6 +160,12 @@ importers:
 
   packages/ediabasx-provider:
     dependencies:
+      '@emdzej/ediabasx-ediabas':
+        specifier: link:../../../ediabasx/packages/ediabas
+        version: link:../../../ediabasx/packages/ediabas
+      '@emdzej/inpax-core':
+        specifier: workspace:*
+        version: link:../core
       '@emdzej/inpax-interfaces':
         specifier: workspace:*
         version: link:../interfaces
@@ -154,6 +176,9 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.10)
 
   packages/ini-parser:
     devDependencies:
@@ -280,9 +305,6 @@ importers:
       ink:
         specifier: ^5.1.0
         version: 5.2.1(@types/react@18.3.28)(react@18.3.1)
-      ink-use-stdout-dimensions:
-        specifier: ^1.0.0
-        version: 1.0.5(ink@5.2.1(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -306,6 +328,9 @@ importers:
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.10)
 
 packages:
 
@@ -1361,12 +1386,6 @@ packages:
   indent-string@5.0.0:
     resolution: {integrity: sha512-m6FAo/spmsW2Ab2fU35JTYwtOKa2yAwXSwgjSv1TJzh4Mh7mC3lzAOVLBprb72XsTrgkEIsl7YrFNAiDiRhIGg==}
     engines: {node: '>=12'}
-
-  ink-use-stdout-dimensions@1.0.5:
-    resolution: {integrity: sha512-rVsqnw4tQEAJUoknU09+zHdDf30GJdkumkHr0iz/TOYMYEZJkYqziQSGJAM+Z+M603EDfO89+Nxyn/Ko2Zknfw==}
-    peerDependencies:
-      ink: '>=2.0.0'
-      react: '>=16.0.0'
 
   ink@5.2.1:
     resolution: {integrity: sha512-BqcUyWrG9zq5HIwW6JcfFHsIYebJkWWb4fczNah1goUO0vv5vneIlfwuS85twyJ5hYR/y18FlAYUxrO9ChIWVg==}
@@ -3078,11 +3097,6 @@ snapshots:
   imurmurhash@0.1.4: {}
 
   indent-string@5.0.0: {}
-
-  ink-use-stdout-dimensions@1.0.5(ink@5.2.1(@types/react@18.3.28)(react@18.3.1))(react@18.3.1):
-    dependencies:
-      ink: 5.2.1(@types/react@18.3.28)(react@18.3.1)
-      react: 18.3.1
 
   ink@5.2.1(@types/react@18.3.28)(react@18.3.1):
     dependencies:

@@ -1,4 +1,4 @@
-# @inpax/core
+# @emdzej/inpax-core
 
 Core types, constants, and opcodes for INPAX.
 
@@ -17,7 +17,7 @@ import {
   SystemFunction,
   IPOHeader,
   INPA_VERSION 
-} from '@inpax/core';
+} from '@emdzej/inpax-core';
 
 // Check opcode
 if (opcode === Opcode.CALL) {

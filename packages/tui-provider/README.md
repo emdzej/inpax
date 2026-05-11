@@ -1,13 +1,13 @@
-# @inpax/tui-provider
+# @emdzej/inpax-tui-provider
 
 Headless state management for INPAX TUI.
 
-Implements `IUIProvider` interface and manages UI state without rendering. Use with `@inpax/tui` for terminal rendering.
+Implements `IUIProvider` interface and manages UI state without rendering. Use with `@emdzej/inpax-tui` for terminal rendering.
 
 ## Usage
 
 ```typescript
-import { TuiProvider } from '@inpax/tui-provider';
+import { TuiProvider } from '@emdzej/inpax-tui-provider';
 
 const provider = new TuiProvider();
 
@@ -59,8 +59,8 @@ provider.on('screen:ready', () => { });
 ## With TUI Renderer
 
 ```typescript
-import { TuiProvider } from '@inpax/tui-provider';
-import { renderTui } from '@inpax/tui';
+import { TuiProvider } from '@emdzej/inpax-tui-provider';
+import { renderTui } from '@emdzej/inpax-tui';
 
 const provider = new TuiProvider();
 const { waitUntilExit } = renderTui(provider);

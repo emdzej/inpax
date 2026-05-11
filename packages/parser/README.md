@@ -1,11 +1,11 @@
-# @inpax/parser
+# @emdzej/inpax-parser
 
 IPO bytecode parser for INPAX.
 
 ## Usage
 
 ```typescript
-import { parseIPO, parseIPOHeader } from '@inpax/parser';
+import { parseIPO, parseIPOHeader } from '@emdzej/inpax-parser';
 import { readFileSync } from 'fs';
 
 const buffer = new Uint8Array(readFileSync('script.ipo'));

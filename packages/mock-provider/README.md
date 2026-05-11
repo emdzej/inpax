@@ -1,11 +1,11 @@
-# @inpax/mock-provider
+# @emdzej/inpax-mock-provider
 
 Mock providers for INPAX testing.
 
 ## Usage
 
 ```typescript
-import { MockUIProvider, MockEdiabasProvider } from '@inpax/mock-provider';
+import { MockUIProvider, MockEdiabasProvider } from '@emdzej/inpax-mock-provider';
 
 // Mock UI
 const ui = new MockUIProvider();
@@ -64,8 +64,8 @@ const result = await ediabas.job('IDENT');
 ## Use with Interpreter
 
 ```typescript
-import { Interpreter } from '@inpax/interpreter';
-import { MockUIProvider, MockEdiabasProvider } from '@inpax/mock-provider';
+import { Interpreter } from '@emdzej/inpax-interpreter';
+import { MockUIProvider, MockEdiabasProvider } from '@emdzej/inpax-mock-provider';
 
 const interpreter = new Interpreter({
   ipo,
