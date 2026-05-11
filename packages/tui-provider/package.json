@@ -17,14 +17,16 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@emdzej/inpax-interfaces": "workspace:*",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.8"
   },
   "repository": {
     "type": "git",

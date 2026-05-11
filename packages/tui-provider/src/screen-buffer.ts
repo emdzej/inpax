@@ -82,4 +82,33 @@ export class ScreenBuffer {
   renderPlain(): string {
     return this.cells.map(row => row.map(cell => cell.char).join('')).join('\n');
   }
+
+  /**
+   * Render as structured spans for ink-native styling. Each row becomes a
+   * list of runs grouping consecutive cells that share the same fg/bg.
+   * Use this instead of `render()` when feeding into ink components —
+   * ink's width measurement treats inline SGR escape codes as visible
+   * characters and wraps rows it shouldn't, producing zebra stripes.
+   */
+  renderSpans(): ScreenSpan[][] {
+    return this.cells.map(row => {
+      const spans: ScreenSpan[] = [];
+      let current: ScreenSpan | null = null;
+      for (const cell of row) {
+        if (current && current.fg === cell.fg && current.bg === cell.bg) {
+          current.text += cell.char;
+        } else {
+          current = { text: cell.char, fg: cell.fg, bg: cell.bg };
+          spans.push(current);
+        }
+      }
+      return spans;
+    });
+  }
+}
+
+export interface ScreenSpan {
+  text: string;
+  fg: number;
+  bg: number;
 }

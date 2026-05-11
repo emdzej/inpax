@@ -273,8 +273,19 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
       d => !(d.row === row && d.col === col)
     );
     this._state.digitalValues.push({ row, col, value, trueText, falseText });
-    const text = value ? trueText : falseText;
-    this.writeBuffer(row, col, text, this._state.fg, this._state.bg);
+    // INPA draws digitalout as a graphical LED-style indicator (filled
+    // circle = true, empty = false) PLUS the optional trueText/falseText
+    // label next to it. Scripts like UTILITY/STATUS_UBATT pass empty
+    // strings for the labels and write their own "on"/"off" text via
+    // ftextout — so writing only the label leaves the indicator slot
+    // blank. Render the indicator glyph here too, with the label
+    // appended after it. Green for on, dim red for off — matches the
+    // colour convention real INPA uses.
+    const glyph = value ? '●' : '○'; // ● / ○
+    const label = value ? trueText : falseText;
+    const text = label ? `${glyph} ${label}` : glyph;
+    const fg = value ? 2 /* green */ : 1 /* red */;
+    this.writeBuffer(row, col, text, fg, this._state.bg);
     this.update();
   }
 
