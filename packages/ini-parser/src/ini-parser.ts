@@ -101,24 +101,6 @@ export function parse(content: string, options: ParseOptions = {}): IniFile {
 }
 
 /**
- * Parse INI file from filesystem
- */
-export async function parseFile(path: string, options?: ParseOptions): Promise<IniFile> {
-  const fs = await import('fs/promises');
-  const content = await fs.readFile(path, 'utf-8');
-  return parse(content, options);
-}
-
-/**
- * Synchronously parse INI file
- */
-export function parseFileSync(path: string, options?: ParseOptions): IniFile {
-  const fs = require('fs') as typeof import('fs');
-  const content = fs.readFileSync(path, 'utf-8');
-  return parse(content, options);
-}
-
-/**
  * Stringify INI object back to INI format
  */
 export function stringify(data: IniFile, options: { comment?: string } = {}): string {

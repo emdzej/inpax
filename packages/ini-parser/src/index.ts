@@ -5,8 +5,6 @@
 
 export {
   parse,
-  parseFile,
-  parseFileSync,
   stringify,
   get,
   getFirst,
@@ -19,6 +17,8 @@ export {
   type IniSection,
   type ParseOptions,
 } from './ini-parser.js';
+// `parseFile` / `parseFileSync` live under `@emdzej/inpax-ini-parser/node`
+// — Node-only so browser bundles don't pull `fs` into the static graph.
 
 export {
   parseInpaConfig,

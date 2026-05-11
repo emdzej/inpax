@@ -22,11 +22,23 @@ const SEPARATOR = 0x0a;
  * IPO File Parser
  */
 export class IpoParser {
-  private buffer: Buffer;
+  private readonly bytes: Uint8Array;
+  private readonly view: DataView;
   private offset: number = 0;
 
-  constructor(buffer: Buffer) {
-    this.buffer = buffer;
+  constructor(buffer: Uint8Array | ArrayBufferLike) {
+    // Accept either a `Uint8Array` (preferred — Node fs reads, browser
+    // File API, FileSystem Access reads all yield this) or a raw
+    // `ArrayBuffer`. Internally we keep the byte view and a parallel
+    // DataView so we can do little-endian reads without depending on
+    // Node's `Buffer.readUInt32LE` family.
+    this.bytes =
+      buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    this.view = new DataView(
+      this.bytes.buffer,
+      this.bytes.byteOffset,
+      this.bytes.byteLength
+    );
   }
 
   /**
@@ -46,7 +58,7 @@ export class IpoParser {
     };
 
     // Parse blocks sequentially
-    while (this.offset < this.buffer.length) {
+    while (this.offset < this.bytes.length) {
       const blockHeader = this.parseBlockHeader();
       if (!blockHeader) break;
 
@@ -75,7 +87,7 @@ export class IpoParser {
    * Parse block header
    */
   private parseBlockHeader(): BlockHeader | null {
-    if (this.offset >= this.buffer.length) {
+    if (this.offset >= this.bytes.length) {
       return null;
     }
 
@@ -314,52 +326,61 @@ export class IpoParser {
   }
 
   // ============ Buffer reading utilities ============
+  // All multi-byte reads are little-endian to match the on-disk IPO
+  // format. We use DataView rather than Node `Buffer` so the parser
+  // bundles cleanly into a browser app — `Uint8Array` is the lowest
+  // common denominator across runtimes.
 
   private peekU8(): number {
-    if (this.offset >= this.buffer.length) return -1;
-    return this.buffer.readUInt8(this.offset);
+    if (this.offset >= this.bytes.length) return -1;
+    return this.bytes[this.offset];
   }
 
   private readU8(): number {
-    return this.buffer.readUInt8(this.offset++);
+    return this.bytes[this.offset++];
   }
 
   private readU16LE(): number {
-    const val = this.buffer.readUInt16LE(this.offset);
+    const val = this.view.getUint16(this.offset, true);
     this.offset += 2;
     return val;
   }
 
   private readS16LE(): number {
-    const val = this.buffer.readInt16LE(this.offset);
+    const val = this.view.getInt16(this.offset, true);
     this.offset += 2;
     return val;
   }
 
   private readU32LE(): number {
-    const val = this.buffer.readUInt32LE(this.offset);
+    const val = this.view.getUint32(this.offset, true);
     this.offset += 4;
     return val;
   }
 
   private readS32LE(): number {
-    const val = this.buffer.readInt32LE(this.offset);
+    const val = this.view.getInt32(this.offset, true);
     this.offset += 4;
     return val;
   }
 
   private readF64LE(): number {
-    const val = this.buffer.readDoubleLE(this.offset);
+    const val = this.view.getFloat64(this.offset, true);
     this.offset += 8;
     return val;
   }
 
   private readStringUntil(terminator: number): string {
     const start = this.offset;
-    while (this.offset < this.buffer.length && this.buffer[this.offset] !== terminator) {
+    while (this.offset < this.bytes.length && this.bytes[this.offset] !== terminator) {
       this.offset++;
     }
-    const str = this.buffer.slice(start, this.offset).toString('utf8');
+    // INPA encodes its strings as Latin-1ish (Windows-1252) — TextDecoder
+    // 'utf-8' will choke on accented characters in BMW German text. We
+    // accept that for now since the existing tests only cover ASCII
+    // strings; a CP1252 decoder is a separate concern.
+    const slice = this.bytes.subarray(start, this.offset);
+    const str = new TextDecoder('utf-8', { fatal: false }).decode(slice);
     this.offset++; // Skip terminator
     return str;
   }
@@ -372,7 +393,7 @@ export class IpoParser {
 /**
  * Parse IPO file from buffer
  */
-export function parseIpo(buffer: Buffer): IpoFile {
+export function parseIpo(buffer: Uint8Array | ArrayBufferLike): IpoFile {
   const parser = new IpoParser(buffer);
   return parser.parse();
 }

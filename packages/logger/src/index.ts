@@ -9,8 +9,17 @@ export interface LoggerOptions {
   destination?: string; // File path for TUI mode
 }
 
-const defaultLevel = (process.env.INPAX_LOG_LEVEL as LogLevel) || "info";
-const isPretty = process.env.NODE_ENV !== "production";
+// Env-driven defaults are Node-side conveniences; in a browser bundle
+// `process` may not exist (or be a stub without `env`). Guard so this
+// module imports cleanly in any host.
+const envLevel =
+  typeof process !== "undefined" && process.env?.INPAX_LOG_LEVEL
+    ? (process.env.INPAX_LOG_LEVEL as LogLevel)
+    : undefined;
+const envIsProd =
+  typeof process !== "undefined" && process.env?.NODE_ENV === "production";
+const defaultLevel: LogLevel = envLevel ?? "info";
+const isPretty = !envIsProd;
 
 export function createLogger(options: LoggerOptions = {}): pino.Logger {
   const level = options.level ?? defaultLevel;

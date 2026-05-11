@@ -18,16 +18,19 @@ import type { IEdiabasProvider, EdiabasEvents } from '@emdzej/inpax-interfaces';
 
 export interface EdiabasXProviderConfig {
   /**
-   * Path to an `ediabas.config.json` consumed via
-   * `@emdzej/ediabasx-ediabas/node`'s `createFromConfigFile()`. The
-   * file format is documented by EdiabasX — interface type, port,
-   * baud, ecu path, timeouts.
+   * Pre-built `Ediabas` instance to wrap directly. Browser hosts
+   * build this themselves (file picked via `FileSystemDirectoryHandle`,
+   * transport via Web Serial); Node hosts can use the convenience
+   * `createNodeProvider` helper in `/node` instead, which still
+   * accepts a path to an `ediabas.config.json`.
+   *
+   * Mutually exclusive with `config`.
    */
-  configFile?: string;
+  instance?: Ediabas;
   /**
    * Direct EdiabasX configuration. Mutually exclusive with
-   * `configFile`. Falls back to in-memory simulation if neither is
-   * supplied.
+   * `instance`. Falls back to in-memory simulation if neither is
+   * supplied (mainly useful for unit tests).
    */
   config?: EdiabasConfig;
   /**
@@ -63,6 +66,17 @@ export class EdiabasXProvider
   private lastResults: JobResultSet[] = [];
 
   /**
+   * Metadata / system result snapshot from `ediabas.getSystemResults()` —
+   * populated at SGBD load time (VARIANTE from the basename, plus the
+   * INFO job's ECU / ORIGIN / REVISION / AUTHOR / COMMENT / PACKAGE /
+   * SPRACHE) and refreshed on every executeJob (JOB_STATUS). Used as
+   * a by-name fallback when the per-set lookup misses — matches what
+   * native EDIABAS exposes to scripts that read SGBD metadata without
+   * knowing which set holds it.
+   */
+  private systemResults: Map<string, EdiabasJobResult> = new Map();
+
+  /**
    * `JOB_STATUS` from the most recent job, captured for
    * `INPAapiCheckJobStatus()`. EDIABAS always emits this as a system
    * result; see the BEST2 interpreter's `eoj` handler.
@@ -87,21 +101,18 @@ export class EdiabasXProvider
 
   async init(): Promise<void> {
     try {
-      if (this.providerConfig.configFile) {
-        // `createFromConfigFile` lives in the Node subpath because it
-        // reads the JSON via `node:fs`. INPA always runs in Node, so
-        // hitting the `/node` entry is fine.
-        const { createFromConfigFile } = await import(
-          '@emdzej/ediabasx-ediabas/node'
-        );
-        this.ediabas = await createFromConfigFile(this.providerConfig.configFile);
+      if (this.providerConfig.instance) {
+        this.ediabas = this.providerConfig.instance;
       } else if (this.providerConfig.config) {
         this.ediabas = new Ediabas(this.providerConfig.config);
       } else {
-        // Default to in-memory simulation so a script that only reads
-        // the API surface (no real ECU expected) still works in tests.
+        // No config supplied — fall back to an empty simulation. The
+        // ecuPath default used to be `process.cwd()`, which broke
+        // browser bundles; an empty string is safe in both runtimes
+        // and the simulation interface doesn't actually touch disk
+        // unless the host supplies sim data.
         this.ediabas = new Ediabas({
-          ecuPath: process.cwd(),
+          ecuPath: '',
           simulation: true,
         });
       }
@@ -172,6 +183,17 @@ export class EdiabasXProvider
       this.lastResults = sets.map((set) => ({
         results: new Map(set.map((r) => [r.name.toUpperCase(), r])),
       }));
+
+      // Snapshot the system result set (VARIANTE + INFO job outputs +
+      // most recent JOB_STATUS) so by-name lookups that miss the per-
+      // job sets transparently fall through to SGBD metadata. The map
+      // is re-keyed by uppercase name for case-insensitive lookups.
+      this.systemResults = new Map(
+        Array.from(this.ediabas.getSystemResults(), ([name, value]) => [
+          name.toUpperCase(),
+          value,
+        ])
+      );
 
       // Capture JOB_STATUS for `checkJobStatus()`. EDIABAS emits it
       // somewhere in the result stream — usually set 1 — but a few
@@ -349,11 +371,17 @@ export class EdiabasXProvider
   private getResult(name: string, set: number): EdiabasJobResult | undefined {
     // INPA uses 1-based set indexing throughout. Convert before
     // touching the array.
+    const key = name.toUpperCase();
     const setIndex = set - 1;
-    if (setIndex < 0 || setIndex >= this.lastResults.length) {
-      return undefined;
+    if (setIndex >= 0 && setIndex < this.lastResults.length) {
+      const hit = this.lastResults[setIndex].results.get(key);
+      if (hit !== undefined) return hit;
     }
-    return this.lastResults[setIndex].results.get(name.toUpperCase());
+    // Transparent metadata fallback. Scripts read VARIANTE / ECU /
+    // REVISION / etc. by name without caring which set holds them —
+    // and `set=0` lookups (the native EDIABAS system-result idiom)
+    // bypass the per-set range entirely and land here.
+    return this.systemResults.get(key);
   }
 
   private coerceText(value: EdiabasJobResult['value']): string {

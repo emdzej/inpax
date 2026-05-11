@@ -19,6 +19,10 @@ class FakeEdiabas {
   nextError: Error | null = null;
   connectCalls = 0;
   disconnectCalls = 0;
+  // System results map mirrors ediabasx's `getSystemResults()` — the
+  // provider snapshots this after every executeJob to back its
+  // by-name metadata fallback (VARIANTE, JOB_STATUS, INFO outputs).
+  systemResults: Map<string, EdiabasJobResult> = new Map();
 
   async loadSgbd(filename: string): Promise<void> {
     this.loadCalls.push(filename);
@@ -42,6 +46,9 @@ class FakeEdiabas {
     const result = this.nextResult;
     this.nextResult = [];
     return result;
+  }
+  getSystemResults(): Map<string, EdiabasJobResult> {
+    return this.systemResults;
   }
 }
 
@@ -101,11 +108,18 @@ describe('EdiabasXProvider', () => {
       expect(fake.connectCalls).toBe(0);
     });
 
-    it('init() reads from configFile via the /node subpath', async () => {
-      const { createFromConfigFile } = await import('@emdzej/ediabasx-ediabas/node');
-      const p = new EdiabasXProvider({ configFile: '/tmp/ediabas.config.json', autoConnect: false });
+    it('init() wraps a pre-built Ediabas instance when given via `instance`', async () => {
+      const externalInstance = new FakeEdiabas();
+      const p = new EdiabasXProvider({
+        instance: externalInstance as unknown as import('@emdzej/ediabasx-ediabas').Ediabas,
+        autoConnect: false,
+      });
       await p.init();
-      expect(createFromConfigFile).toHaveBeenCalledWith('/tmp/ediabas.config.json');
+      // The provider should adopt the supplied instance — calls go to it,
+      // not to a fresh `new Ediabas(...)`. We just verify the linkage by
+      // routing a job through and confirming the external instance saw it.
+      await p.job('ECU', 'JOB', '', '');
+      expect(externalInstance.jobCalls.length).toBe(1);
     });
 
     it('end() disconnects and clears cached state', async () => {
