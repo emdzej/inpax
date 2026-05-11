@@ -64,7 +64,16 @@ export interface IEdiabasProvider extends EventEmitter<EdiabasEvents> {
    * Get binary result
    */
   resultBinary(result: string, set: number): Uint8Array;
-  
+
+  /**
+   * Whether a named result exists in the given set. Used by the INP1
+   * surface to derive its `rc` (return code) flag — INP1's result*()
+   * methods return [rc, value] tuples where rc reflects existence,
+   * while the INPA-API result*() methods silently default missing
+   * results to "" / 0.
+   */
+  hasResult(result: string, set: number): boolean;
+
   /**
    * Check job status
    * @param refStr Reference string to check

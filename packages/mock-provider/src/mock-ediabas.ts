@@ -182,6 +182,10 @@ export class MockEdiabasProvider extends EventEmitter<EdiabasEvents> implements 
     return Boolean(value);
   }
 
+  hasResult(name: string, set: number): boolean {
+    return this.currentResult?.results.get(name.toUpperCase())?.has(set) ?? false;
+  }
+
   checkJobStatus(_ref: string): boolean {
     // In mock, jobs complete synchronously
     return true;

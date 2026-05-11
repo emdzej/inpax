@@ -1,7 +1,7 @@
 {
   "name": "@emdzej/inpax-ediabasx-provider",
   "version": "0.1.0",
-  "description": "EdiabasX provider for INPA interpreter - uses @ediabasx/ediabas for real ECU communication",
+  "description": "EdiabasX provider for INPA interpreter — uses @emdzej/ediabasx-ediabas for real ECU communication.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,14 +14,18 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@emdzej/ediabasx-ediabas": "^0.1.1",
+    "@emdzej/inpax-core": "workspace:*",
     "@emdzej/inpax-interfaces": "workspace:*",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",

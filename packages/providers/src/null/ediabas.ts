@@ -45,6 +45,10 @@ export class NullEdiabasProvider
     return new Uint8Array(0);
   }
 
+  hasResult(_result: string, _set: number): boolean {
+    return false;
+  }
+
   checkJobStatus(_refStr: string): boolean {
     return true;
   }
