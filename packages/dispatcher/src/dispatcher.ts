@@ -355,13 +355,25 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
                 return finalize(ui.text(inputs[0] as number, inputs[1] as number, inputs[2] as string));
             case SystemFunction.textout:
                 return finalize(ui.textOut(inputs[0] as string, inputs[1] as number, inputs[2] as number));
-            case SystemFunction.ftextout:
+            case SystemFunction.ftextout: {
+                // INPA signature: `(text, row, col, fontsize, fontattr)` —
+                // 5 args, NO colors. Colors come from the current
+                // `setcolor(fg, bg)` state. The previous dispatch read
+                // inputs[3]/[4] as fg/bg, which silently consumed the
+                // script's fontsize/fontattr and produced wrong tints
+                // (e.g. `< F1 > Information` rendered as fg=0 bg=1
+                // → "white on black" with the docs palette, when the
+                // script actually wanted the current setcolor pair).
+                const { fg, bg } = ui.getCurrentColors();
                 return finalize(ui.fTextOut(
                     inputs[0] as string, inputs[1] as number, inputs[2] as number,
-                    inputs[3] as number, inputs[4] as number,
-                    inputs[5] as number, inputs[6] as number
+                    fg, bg,
+                    inputs[3] as number, inputs[4] as number
                 ));
+            }
             case SystemFunction.ftextclear:
+                // Same shape as ftextout: `(text, row, col, size, attr)`.
+                // The 4th/5th args are font metrics, not colors.
                 return finalize(ui.fTextClear(
                     inputs[0] as string, inputs[1] as number, inputs[2] as number,
                     inputs[3] as number, inputs[4] as number

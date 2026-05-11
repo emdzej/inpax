@@ -1,8 +1,10 @@
 <script lang="ts">
   import { app } from "./lib/state.svelte";
+  import { connection } from "./lib/connection.svelte";
   import InstallPicker from "./components/InstallPicker.svelte";
   import IpoSidebar from "./components/IpoSidebar.svelte";
-  import IpoDetails from "./components/IpoDetails.svelte";
+  import IpoRunner from "./components/IpoRunner.svelte";
+  import ConfigPanel from "./components/ConfigPanel.svelte";
 </script>
 
 <div class="flex h-full flex-col">
@@ -12,9 +14,32 @@
       <span class="text-zinc-500">
         {app.install.root.name || "INPA install"}
       </span>
+
+      <span
+        class="ml-auto rounded px-2 py-0.5 text-xs font-medium"
+        class:bg-green-900={connection.phase === "connected"}
+        class:text-green-200={connection.phase === "connected"}
+        class:bg-amber-900={connection.phase === "connecting"}
+        class:text-amber-200={connection.phase === "connecting"}
+        class:bg-red-900={connection.phase === "error"}
+        class:text-red-200={connection.phase === "error"}
+        class:bg-zinc-800={connection.phase === "idle" || connection.phase === "disconnected"}
+        class:text-zinc-400={connection.phase === "idle" || connection.phase === "disconnected"}
+      >
+        {connection.message}
+      </span>
+
       <button
         type="button"
-        class="ml-auto text-xs text-zinc-500 hover:text-zinc-300"
+        class="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+        onclick={() => (app.showSettings = true)}
+      >
+        Settings
+      </button>
+
+      <button
+        type="button"
+        class="text-xs text-zinc-500 hover:text-zinc-300"
         onclick={() => {
           app.view = "welcome";
           app.install = null;
@@ -27,9 +52,11 @@
     </header>
     <div class="flex flex-1 overflow-hidden">
       <IpoSidebar />
-      <IpoDetails />
+      <IpoRunner />
     </div>
   {:else}
     <InstallPicker />
   {/if}
+
+  <ConfigPanel />
 </div>

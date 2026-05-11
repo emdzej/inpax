@@ -23,7 +23,6 @@ export default defineConfig({
       "@emdzej/inpax-ediabasx-provider",
       "@emdzej/inpax-ini-parser",
       "@emdzej/inpax-logger",
-      "@emdzej/inpax-mock-provider",
       "@emdzej/ediabasx-ediabas",
       "@emdzej/ediabasx-interfaces",
       "@emdzej/ediabasx-interface-base",

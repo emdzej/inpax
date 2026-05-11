@@ -36,6 +36,17 @@ export interface IUIProvider extends EventEmitter<UIEvents> {
    */
   setColor(foreground: number, background: number): void;
 
+  /**
+   * Read the current foreground/background colour codes — what the next
+   * `ftextout` / `textout` call will use when the script doesn't supply
+   * its own. The dispatcher reads this because INPA's `ftextout`
+   * signature has no colour parameters; the args the script passes
+   * after `(text, row, col)` are `fontsize, fontattr`, NOT colours.
+   * Without this hook the dispatcher would have to peek into the TUI
+   * provider's private state.
+   */
+  getCurrentColors(): { fg: number; bg: number };
+
   // === Menu System ===
   
   /**

@@ -75,9 +75,6 @@ importers:
       '@emdzej/inpax-logger':
         specifier: workspace:*
         version: link:../../packages/logger
-      '@emdzej/inpax-mock-provider':
-        specifier: workspace:*
-        version: link:../../packages/mock-provider
       '@emdzej/inpax-parser':
         specifier: workspace:*
         version: link:../../packages/parser

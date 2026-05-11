@@ -29,6 +29,8 @@ export class MockUIProvider extends EventEmitter<UIEvents> implements IUIProvide
 
   /** Input values to return (FIFO queues) */
   private inputQueue: InputQueue = { text: [], num: [], bool: [] };
+  private currentFg = 1;
+  private currentBg = 0;
 
   /** Current title */
   title = '';
@@ -114,6 +116,12 @@ export class MockUIProvider extends EventEmitter<UIEvents> implements IUIProvide
 
   setColor(fg: number, bg: number): void {
     this.record('setColor', fg, bg);
+    this.currentFg = fg;
+    this.currentBg = bg;
+  }
+
+  getCurrentColors(): { fg: number; bg: number } {
+    return { fg: this.currentFg, bg: this.currentBg };
   }
 
   setMenuTitle(title: string): void {

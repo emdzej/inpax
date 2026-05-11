@@ -181,6 +181,10 @@ export class CliProvider extends EventEmitter<UIEvents> implements IUIProvider {
     this.bg = bg;
   }
 
+  getCurrentColors(): { fg: number; bg: number } {
+    return { fg: this.fg, bg: this.bg };
+  }
+
   // === Menu ===
 
   setMenuTitle(title: string): void {

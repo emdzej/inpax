@@ -95,7 +95,10 @@ export const initialTuiState: TuiState = {
   title: 'INPA',
   screenHandle: null,
   screenCyclic: false,
-  fg: 7,
+  // INPA palette codes — `1 = C_BLACK`, `0 = C_WHITE`. Real INPA paints
+  // black text on a white canvas by default; scripts that don't call
+  // `setcolor(...)` first should still come out reading correctly.
+  fg: 1,
   bg: 0,
   menuTitle: '',
   menuHandle: null,

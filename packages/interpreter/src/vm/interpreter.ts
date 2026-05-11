@@ -524,9 +524,25 @@ export class VM {
             default:
                 throw new Error(`Unknown ALU op: 0x${(op as number).toString(16)}`);
         }
-        ctx.stack.push({ type: lhs.type, flags: 1, value: result });
-        //lhs.value = result;
-        //this.stack.popN(1);
+        // Comparisons + boolean ops produce a bool result; arithmetic
+        // and bitwise ops preserve the lhs type. Tagging the result
+        // type correctly is load-bearing for `MOVE` (which copies the
+        // top value into the condition register only when it sees a
+        // Bool on top) — without this, a `JMPNZ` after a string-vs-
+        // string comparison sees a stale condition and either always
+        // jumps or never jumps. That's exactly what hid the F2-F9
+        // conditional ftextouts in startus.ipo's main screen.
+        const isBoolResult =
+            op === AluOp.LT ||
+            op === AluOp.LE ||
+            op === AluOp.GT ||
+            op === AluOp.GE ||
+            op === AluOp.EQ ||
+            op === AluOp.NE ||
+            op === AluOp.AND ||
+            op === AluOp.OR;
+        const resultType = isBoolResult ? ValueType.Bool : lhs.type;
+        ctx.stack.push({ type: resultType, flags: 1, value: result });
     }
 
     private async opCall(target: CallTarget, funcId: number, ctx: ExecutionContext): Promise<void> {
@@ -541,8 +557,17 @@ export class VM {
             // instruction holds markerPosition = where args start; that
             // becomes the callee's frameOffset so its local[0] reads the
             // first argument.
+            //
+            // Pin the caller as a FunctionBlock reference (not just an
+            // ID): LINE / CONTROL / MENU-ITEM blocks share the integer
+            // namespace with top-level functions, so an ID-only return
+            // address would mis-route RET to whatever function happens
+            // to live at the same numeric ID (`function 0` =
+            // `__inpa_startup__` collides with every screen's `LINE 0`,
+            // which produced an inpainit re-run loop when the screen
+            // executor returned from a user CALL inside a line).
             const caller = this.state.currentBlock!;
-            ctx.stack.pushReturnAddress(caller.header.blockId, this.state.ip);
+            ctx.stack.pushReturnAddress(caller, this.state.ip);
             ctx.stack.setFrameOffset(ctx.stack.getTopFrameMarker());
             this.callFunction(func);
         } else {
@@ -645,24 +670,16 @@ export class VM {
     private doReturn(ctx: ExecutionContext): void {
         const ret = ctx.stack.popReturnAddress();
 
-        if (ret.blockId === -1) {
-            // Normal end of execution (from run())
+        // No caller pinned on the stack → top-level RET, stop the VM
+        // loop. Covers both the natural end-of-`vm.run()` case and the
+        // `executeBlock()` sentinel that the screen executor relies
+        // on to bound a single block's execution.
+        if (!ret.block) {
             this.state.running = false;
             return;
         }
 
-        if (ret.blockId === -2) {
-            // Sentinel from executeBlock() - stop execution
-            this.state.running = false;
-            return;
-        }
-
-        const callerFunc = this.ipo.functions.get(ret.blockId);
-        if (!callerFunc) {
-            throw new Error(`Return to unknown function: ${ret.blockId}`);
-        }
-
-        this.state.currentBlock = callerFunc;
+        this.state.currentBlock = ret.block;
         this.state.ip = ret.ip;
         this.state.condition = 0;
         ctx.popFrame();
@@ -721,7 +738,13 @@ export class VM {
     }
 
     createExecutionContext(): ExecutionContext {
-        return new ExecutionContext(this.initGlobals(), this.ipo.constants.values);
+        // Share the VM's globals — every executor (state machine,
+        // screen, menu handlers) must see the writes `__inpa_startup__`
+        // and `inpainit` made. Building a fresh `initGlobals()` here
+        // would orphan the F-key bindings, the title, the SGBD/install
+        // paths, etc. and the script's later phases would read zeros /
+        // empty strings.
+        return new ExecutionContext(this.globals, this.ipo.constants.values);
     }
 
     getState(): VMState {
@@ -770,6 +793,32 @@ export class VM {
         const menu = this.ipo.menus.get(menuHandle);
         if (!menu) {
             throw new Error(`Menu not found: ${menuHandle}`);
+        }
+        // Run the menu's INIT block — that's where every `setitem(itemNum,
+        // text, enabled)` call lives. Without this the menu is registered
+        // on the VM but the F-key bar stays empty: the script's only path
+        // for binding F-keys to handlers is the init block executing
+        // `setitem` against the script's globals (which inpainit already
+        // populated). The block's RET behaves like any other block end —
+        // doReturn pops the halt sentinel and execute() returns.
+        //
+        // CRITICAL: defer the actual bytecode execution past the current
+        // microtask. `setMenu` is invoked from a `setmenu` system-call
+        // inside an `await` chain, so `this.state.currentBlock` /
+        // `this.state.ip` are still owned by the *caller's* execute()
+        // loop. Running `this.execute(menu.func, …)` synchronously here
+        // would overwrite those fields, and when the outer loop resumes
+        // it would re-enter the menu's bytecode (or worse, a garbage
+        // mix) instead of finishing `__inpa_startup__`. The setTimeout
+        // hop puts the menu init on a fresh task — `vm.run()` is done
+        // by then, `state` is idle, and the menu can have it.
+        if (menu.func) {
+            const menuFunc = menu.func;
+            setTimeout(() => {
+                this.execute(menuFunc, this.createExecutionContext()).catch((err: unknown) => {
+                    log.error({ err }, 'menu init block failed');
+                });
+            }, 0);
         }
     }
 

@@ -163,11 +163,27 @@ export interface IpoFile {
 }
 
 /**
- * Return address for call stack
+ * Return address for call stack.
+ *
+ * `block` is the FunctionBlock reference the callee should return to —
+ * carried by reference (not by ID lookup) because LINE/CONTROL/ITEM
+ * blocks share the integer ID namespace with top-level functions
+ * (e.g. function `__inpa_startup__` has blockId 0, AND every screen's
+ * first LINE block has blockId 0). An integer-only return address
+ * would resolve back to the wrong block on RET.
+ *
+ * `blockId` is kept alongside `block` purely for diagnostics; the
+ * interpreter only reads `block`. `null` is the sentinel — popping a
+ * null `block` means "no caller", which is how `vm.execute()` knows
+ * to halt at the top-level function's RET.
  */
 export interface ReturnAddress {
-    blockId: number;
+    /** Block to resume in; null when the stack is empty (halt sentinel). */
+    block: FunctionBlock | null;
+    /** Instruction pointer to resume at (within `block`). */
     ip: number;
+    /** Diagnostic only — matches `block.header.blockId` when non-null. */
+    blockId: number;
 }
 
 /**

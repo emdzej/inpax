@@ -236,14 +236,17 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   // === Internal Methods ===
 
   private createExecutionContext(): ExecutionContext {
-    const ipo = this.vm.getIpo();
-    const globals = ipo.globals.types.map((type) => ({
-      type,
-      flags: 1,
-      value: this.getDefaultValue(type),
-    } as StackEntry));
-
-    return new ExecutionContext(globals, ipo.constants.values);
+    // Reuse the VM's globals array — `__inpa_startup__` / `inpainit`
+    // wrote into it during `vm.run()`, and the script's screen / line
+    // / menu blocks need to *see* those writes (F-key bindings,
+    // configured title, the SGBD/install paths the user picked, …).
+    //
+    // The old behaviour here built a fresh defaults-only globals array
+    // every time the screen executor (re)started, which silently
+    // discarded all of `inpainit`'s setup. F2-F9 ftextouts skipped
+    // themselves because the bindings looked empty, the menu bar
+    // showed no items, etc.
+    return new ExecutionContext(this.vm.getGlobals(), this.vm.getConstants());
   }
 
   private getDefaultValue(type: ValueType): Value {

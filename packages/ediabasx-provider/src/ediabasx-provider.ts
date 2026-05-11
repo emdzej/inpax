@@ -39,6 +39,18 @@ export interface EdiabasXProviderConfig {
    * Defaults to true.
    */
   autoConnect?: boolean;
+  /**
+   * How to load an SGBD when the script switches ECUs.
+   *
+   * Default (Node hosts): the provider calls `ediabas.loadSgbd(filename)`
+   * which reads from the filesystem via `node:fs`. Browser hosts pass a
+   * function that reads bytes from a `FileSystemDirectoryHandle` (or
+   * any other browser source) and hands them to
+   * `ediabas.loadSgbdFromBuffer(bytes, name)` themselves. The provider
+   * resolves the filename via the same `.prg` / `.grp` extension dance
+   * and calls this callback when present, fallback otherwise.
+   */
+  loadSgbd?: (filename: string, ediabas: Ediabas) => Promise<void>;
 }
 
 /**
@@ -165,7 +177,12 @@ export class EdiabasXProvider
       // (e.g. DME → EGS → CAS); only the first call per ECU pays the
       // file-load cost.
       if (this.currentEcu !== ecu) {
-        await this.ediabas.loadSgbd(this.resolveSgbdFile(ecu));
+        const filename = this.resolveSgbdFile(ecu);
+        if (this.providerConfig.loadSgbd) {
+          await this.providerConfig.loadSgbd(filename, this.ediabas);
+        } else {
+          await this.ediabas.loadSgbd(filename);
+        }
         this.currentEcu = ecu;
       }
 

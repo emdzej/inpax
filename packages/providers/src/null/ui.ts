@@ -12,6 +12,9 @@ export class NullUIProvider extends EventEmitter<UIEvents> implements IUIProvide
   clearRect(_row: number, _col: number, _width: number, _height: number): void {}
   setTitle(_title: string): void {}
   setColor(_foreground: number, _background: number): void {}
+  getCurrentColors(): { fg: number; bg: number } {
+    return { fg: 1, bg: 0 };
+  }
 
   // === Menu ===
   setMenuTitle(_title: string): void {}

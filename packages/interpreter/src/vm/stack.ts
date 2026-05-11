@@ -1,4 +1,4 @@
-import { StackEntry, CallFrame, ReturnAddress, ValueType, Value } from '@emdzej/inpax-core';
+import { StackEntry, CallFrame, ReturnAddress, ValueType, Value, FunctionBlock } from '@emdzej/inpax-core';
 
 /**
  * VM Stack - manages value stack and call frames
@@ -92,7 +92,7 @@ export class Stack {
    */
   pushFrame(): void {
     this.callStack.push({
-      returnAddress: { blockId: -1, ip: -1 },
+      returnAddress: { block: null, blockId: -1, ip: -1 },
       savedFrameOffset: this.frameOffset,
       markerPosition: this.values.length,
     });
@@ -134,21 +134,31 @@ export class Stack {
   }
 
   /**
-   * Push return address
+   * Push return address — pins the FunctionBlock reference (not just an
+   * integer ID) so RET resumes in the exact caller block. Storing only
+   * `blockId` mis-routes returns from LINE/CONTROL/ITEM blocks (those
+   * inhabit a per-screen ID space that overlaps with top-level
+   * function IDs).
    */
-  pushReturnAddress(blockId: number, ip: number): void {
+  pushReturnAddress(block: FunctionBlock, ip: number): void {
     if (this.callStack.length === 0) {
       throw new Error('No call frame for return address');
     }
-    this.callStack[this.callStack.length - 1].returnAddress = { blockId, ip };
+    this.callStack[this.callStack.length - 1].returnAddress = {
+      block,
+      blockId: block.header.blockId,
+      ip,
+    };
   }
 
   /**
-   * Pop return address
+   * Pop return address. Returns the halt sentinel `{block: null}` when
+   * the stack is empty — `doReturn` checks for null and stops the VM
+   * loop, the same way an integer sentinel used to.
    */
   popReturnAddress(): ReturnAddress {
     if (this.callStack.length === 0) {
-         return { blockId: -1, ip: -1 };
+         return { block: null, blockId: -1, ip: -1 };
       //throw new Error('Call stack underflow');
     }
     return this.callStack[this.callStack.length - 1].returnAddress;

@@ -194,6 +194,16 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
     this._state.bg = bg;
   }
 
+  /**
+   * Snapshot of the current foreground/background colour codes the
+   * next text-output call will use. Mirrors `setColor`'s storage; the
+   * dispatcher calls this for `ftextout` (which has no colour args
+   * in its BEST2 signature — `(text, row, col, fontsize, fontattr)`).
+   */
+  getCurrentColors(): { fg: number; bg: number } {
+    return { fg: this._state.fg, bg: this._state.bg };
+  }
+
   // === Menu ===
 
   setMenuTitle(title: string): void {

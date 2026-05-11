@@ -14,6 +14,7 @@
 
 import type { InpaInstall } from "./inpa-install.js";
 import type { IpoEntry } from "./ipo-browser.js";
+import { loadConfig, type WebConfig } from "./config.js";
 
 export type AppView = "welcome" | "install" | "browse";
 
@@ -28,6 +29,10 @@ interface AppState {
   selectedIpo: IpoEntry | null;
   /** Most recent error to surface in the UI (banner / toast). */
   error: string | null;
+  /** Connection / interface config, persisted to localStorage. */
+  config: WebConfig;
+  /** Settings modal visibility. */
+  showSettings: boolean;
 }
 
 export const app = $state<AppState>({
@@ -36,4 +41,6 @@ export const app = $state<AppState>({
   ipoFiles: [],
   selectedIpo: null,
   error: null,
+  config: loadConfig(),
+  showSettings: false,
 });
