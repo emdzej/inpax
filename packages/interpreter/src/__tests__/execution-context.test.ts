@@ -25,25 +25,34 @@ describe('ExecutionContext', () => {
       'Cannot assign to constant'
     );
 
-    // Local
+    // Local — simulate a CALL: pushFrame then switch into the callee's frame.
     ctx.pushFrame();
+    ctx.stack.setFrameOffset(ctx.stack.getTopFrameMarker());
     ctx.stack.push(entry(ValueType.Bool, false));
     ctx.setVariable(Scope.Local, 0, entry(ValueType.Bool, true));
     expect(ctx.getVariable(Scope.Local, 0).value).toBe(true);
   });
 
-  it('manages frames via stack and keeps frameOffset in sync', () => {
+  it('records frame marker without disturbing the caller, then switches on CALL', () => {
     const ctx = new ExecutionContext([], []);
 
     ctx.stack.push(entry(ValueType.Int, 1));
     ctx.stack.push(entry(ValueType.Int, 2));
 
+    // FRAME alone: caller's frameOffset stays at 0 — caller still owns
+    // local[0]/local[1] while it builds args for the upcoming CALL.
     ctx.pushFrame();
+    expect(ctx.frameOffset).toBe(0);
+    expect(ctx.stack.getTopFrameMarker()).toBe(2);
+
+    // CALL transfers in: callee's frameOffset = marker.
+    ctx.stack.setFrameOffset(ctx.stack.getTopFrameMarker());
     expect(ctx.frameOffset).toBe(2);
 
     ctx.stack.push(entry(ValueType.Int, 3));
     expect(ctx.stack.size).toBe(3);
 
+    // RET / sys-call cleanup: popFrame restores caller state.
     ctx.popFrame();
     expect(ctx.frameOffset).toBe(0);
     expect(ctx.stack.size).toBe(2);
@@ -54,6 +63,7 @@ describe('ExecutionContext', () => {
 
     ctx.stack.push(entry(ValueType.Int, 99));
     ctx.pushFrame();
+    ctx.stack.setFrameOffset(ctx.stack.getTopFrameMarker());
 
     ctx.stack.push(entry(ValueType.Int, 0));
     const ref = ctx.createRef(Scope.Local, 0);
@@ -68,10 +78,12 @@ describe('ExecutionContext', () => {
     const ctx = new ExecutionContext([], []);
 
     ctx.pushFrame();
+    ctx.stack.setFrameOffset(ctx.stack.getTopFrameMarker());
     ctx.stack.push(entry(ValueType.Int, 1));
     ctx.setVariable(Scope.Local, 0, entry(ValueType.Int, 11));
 
     ctx.pushFrame();
+    ctx.stack.setFrameOffset(ctx.stack.getTopFrameMarker());
     ctx.stack.push(entry(ValueType.Int, 2));
     ctx.setVariable(Scope.Local, 0, entry(ValueType.Int, 22));
 

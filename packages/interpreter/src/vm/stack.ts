@@ -85,18 +85,23 @@ export class Stack {
   }
 
   /**
-   * Push call frame marker
+   * Push call frame marker. Does NOT change frameOffset — the caller is
+   * still executing and needs its own locals between FRAME and CALL.
+   * frameOffset is switched to markerPosition only when a user CALL
+   * actually transfers control into the callee (see VM.opCall).
    */
   pushFrame(): void {
     this.callStack.push({
       returnAddress: { blockId: -1, ip: -1 },
-      frameOffset: this.frameOffset,
+      savedFrameOffset: this.frameOffset,
+      markerPosition: this.values.length,
     });
-    this.frameOffset = this.values.length;
   }
 
   /**
-   * Pop call frame and restore previous
+   * Pop call frame and restore caller's frame state. Truncates the value
+   * stack back to where it was at FRAME time (drops anything the callee
+   * left behind that wasn't consumed via out-params).
    */
   popFrame(): void {
     const frame = this.callStack.pop();
@@ -105,9 +110,27 @@ export class Stack {
       //throw new Error('Call stack underflow');
     }
 
-    // Truncate value stack to frame boundary
-    this.values.length = this.frameOffset;
-    this.frameOffset = frame.frameOffset;
+    this.values.length = frame.markerPosition;
+    this.frameOffset = frame.savedFrameOffset;
+  }
+
+  /**
+   * Get the marker position of the top frame. Used by user CALL to set
+   * the callee's frameOffset (so callee local[0] points to the first
+   * argument pushed after FRAME).
+   */
+  getTopFrameMarker(): number {
+    if (this.callStack.length === 0) {
+      return this.frameOffset;
+    }
+    return this.callStack[this.callStack.length - 1].markerPosition;
+  }
+
+  /**
+   * Set frameOffset directly (used when transferring into a callee).
+   */
+  setFrameOffset(offset: number): void {
+    this.frameOffset = offset;
   }
 
   /**

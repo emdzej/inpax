@@ -11,7 +11,7 @@ import {
     StackEntryFlags,
     Value,
 } from '@emdzej/inpax-core';
-import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
+import type { IInpaRuntime, NativeImportParam } from '@emdzej/inpax-interfaces';
 import { SystemFunctionDispatcher } from '@emdzej/inpax-dispatcher';
 import { createNullRuntime } from '@emdzej/inpax-providers';
 import { getLogger } from '@emdzej/inpax-logger';
@@ -22,6 +22,70 @@ import { ScreenExecutor, type ScreenExecutorConfig } from './screen-executor.js'
 import { StateMachineExecutor, type StateMachineExecutorConfig } from './statemachine-executor.js';
 
 const log = getLogger('vm');
+
+interface ParsedNativeImport {
+    importName: string;
+    signature: string;
+    params: NativeImportParam[];
+}
+
+// Type letters from INPA CALLE signatures. Lowercase = in, uppercase = out.
+// Coverage matches what's seen in real BMW scripts (BMW INPA + the
+// Rectification scripts); unknown letters fall through to `opaque`.
+const TYPE_LETTER_TO_KIND: Record<string, NativeImportParam['type']> = {
+    s: 'string', i: 'int', l: 'long', r: 'real', b: 'byte', c: 'bool',
+};
+
+/**
+ * Parse an INPA CALLE import descriptor like
+ * `kernel32::GetPrivateProfileStringA:c.sssSis%I`. Returns the import
+ * name and an in-order list of typed params (the trailing `%X` is the
+ * C return value, treated as a final out-arg). Returns null if the
+ * descriptor doesn't have the expected `dll::func:sig` shape.
+ */
+function parseNativeImport(raw: string): ParsedNativeImport | null {
+    if (!raw) return null;
+    // Last `:` separates the name from the signature — names like
+    // "kernel32::GetPrivateProfileStringA" contain `::` internally, so
+    // splitting on every `:` would corrupt them.
+    const sigStart = raw.lastIndexOf(':');
+    if (sigStart < 0) return null;
+    const importName = raw.slice(0, sigStart);
+    const signature = raw.slice(sigStart + 1);
+
+    // Expected shape: `<callConv>.<paramLetters>[%<retLetter>]`.
+    const dotIdx = signature.indexOf('.');
+    if (dotIdx < 0) return null;
+    const paramSig = signature.slice(dotIdx + 1);
+    if (!paramSig) return null;
+
+    const params: NativeImportParam[] = [];
+    let i = 0;
+    while (i < paramSig.length) {
+        const ch = paramSig[i];
+        if (ch === '%') {
+            // Return value — single letter follows.
+            const retCh = paramSig[i + 1];
+            if (!retCh) break;
+            params.push({
+                direction: 'out',
+                type: TYPE_LETTER_TO_KIND[retCh.toLowerCase()] ?? 'opaque',
+                isReturn: true,
+            });
+            i += 2;
+            continue;
+        }
+        const direction = ch === ch.toUpperCase() && ch !== ch.toLowerCase() ? 'out' : 'in';
+        params.push({
+            direction,
+            type: TYPE_LETTER_TO_KIND[ch.toLowerCase()] ?? 'opaque',
+            isReturn: false,
+        });
+        i++;
+    }
+
+    return { importName, signature, params };
+}
 
 /**
  * VM State
@@ -162,7 +226,14 @@ export class VM {
             }
 
             const instr = currentBlock.instructions[this.state.ip];
-            await this.executeInstruction(instr, ctx);
+            try {
+                await this.executeInstruction(instr, ctx);
+            } catch (err) {
+                if (err instanceof Error) {
+                    err.message = `${err.message} [in ${currentBlock.header.name}#${currentBlock.header.blockId} @pc=${this.state.ip} op=0x${instr.opcode.toString(16).padStart(2, '0')} op1=0x${instr.operand1.toString(16)} op2=0x${instr.operand2.toString(16)} frameOffset=${ctx.frameOffset} stackLen=${ctx.stack.size}]`;
+                }
+                throw err;
+            }
         }
     }
 
@@ -234,7 +305,7 @@ export class VM {
                 return; // IP handled by call
 
             case Opcode.CALLE:
-                this.opCallE(operand2);
+                this.opCallE(operand2, ctx);
                 break;
 
             case Opcode.RET:
@@ -276,29 +347,50 @@ export class VM {
     }
 
     private opMove(count: number, ctx: ExecutionContext): void {
-        // MOVE: Assign value to reference
-        // Stack: [..., target_ref, value] → [...]
-        for (let i = 0; i < count; i++) {
-            const ref = ctx.stack.pop();
-            const value = ctx.stack.pop();
-            if (ref.refInfo) {
-                ctx.setVariable(ref.refInfo.scope as Scope, ref.refInfo.index, value);
+        // MOVE (FUN_004607d7 case 0x05): peek the top — if it's a bool
+        // copy its value into the condition register — then pop exactly
+        // `operand2` items from the stack. MOVE does NOT do any
+        // assignment; assignment happens on the PUSHR / PUSHREFSTORE
+        // side and the value lives on the stack until MOVE cleans it up.
+        if (ctx.stack.size > 0) {
+            const top = ctx.stack.peek();
+            if (top.type === ValueType.Bool) {
+                this.state.condition = top.value ? 1 : 0;
             }
-            if (value.type === ValueType.Bool) {
-                this.state.condition = value.value ? 1 : 0;
-            }
+        }
+        for (let i = 0; i < count && ctx.stack.size > 0; i++) {
+            ctx.stack.pop();
         }
     }
 
     private opPushR(scope: Scope, index: number, ctx: ExecutionContext): void {
-        const entry = ctx.getVariable(scope, index);
-        const ref = ctx.createRef(scope, index);
-        ctx.stack.push({ ...ref, type: entry.type, flags: StackEntryFlags.ByReference });
+        // PUSHR (FUN_0045f59c): store the current top-of-stack into the
+        // target variable. Does NOT push a ref. Stack stays untouched —
+        // the value remains on top so the subsequent MOVE can pop it.
+        // This is the store side of every INPA assignment:
+        //   LOAD value  →  push value
+        //   PUSHR target → write value into target (stack unchanged)
+        //   MOVE 1      → pop the value
+        if (ctx.stack.size === 0) return;
+        const top = ctx.stack.peek();
+        ctx.setVariable(scope, index, top);
     }
 
     private opPushRefStore(scope: Scope, index: number, ctx: ExecutionContext): void {
-        // PUSHREFSTORE: Push reference for storing value (used by out params)
-        this.opPushRef(scope, index, ctx);
+        // PUSHREFSTORE (FUN_0045f6b3): the variable at (scope, index)
+        // is itself a reference descriptor (passed in as an out-param).
+        // Dereference it once and store top-of-stack into the actual
+        // destination. Like PUSHR, does NOT push anything.
+        if (ctx.stack.size === 0) return;
+        const top = ctx.stack.peek();
+        const refHolder = ctx.getVariable(scope, index);
+        if (refHolder?.refInfo) {
+            ctx.setVariable(
+                refHolder.refInfo.scope as Scope,
+                refHolder.refInfo.index,
+                top
+            );
+        }
     }
 
     private opAlloc(typeMarker: number, ctx: ExecutionContext): void {
@@ -444,10 +536,14 @@ export class VM {
             const func = this.ipo.functions.get(funcId);
             if (!func) throw new Error(`Function not found: ${funcId}`);
 
-            // this.stack.pushReturnAddress(
-            //     this.state.currentBlock!.header.blockId,
-            //     this.state.ip
-            // );
+            // Record where to resume in the caller, then transfer to the
+            // callee. The frame marker pushed by the preceding FRAME
+            // instruction holds markerPosition = where args start; that
+            // becomes the callee's frameOffset so its local[0] reads the
+            // first argument.
+            const caller = this.state.currentBlock!;
+            ctx.stack.pushReturnAddress(caller.header.blockId, this.state.ip);
+            ctx.stack.setFrameOffset(ctx.stack.getTopFrameMarker());
             this.callFunction(func);
         } else {
             // System function call
@@ -469,8 +565,81 @@ export class VM {
         await this.dispatcher.dispatch(funcId, ctx, this);
     }
 
-    private opCallE(index: number): void {
-        throw new Error(`CALLE (external DLL call) not implemented: ${index}`);
+    private opCallE(constIdx: number, ctx: ExecutionContext): void {
+        // External DLL call (CALLE / opcode 0x0D). The constant at
+        // constIdx is the import descriptor — name + signature, e.g.
+        // "kernel32::GetPrivateProfileStringA:c.sssSis%I" or
+        // "api32.DLL::__apiGetConfig:c.lsS%I".
+        //
+        // INPA.exe runs this via FUN_004607d7 case 0xd: push the
+        // descriptor constant, optionally invoke a registered external
+        // handler (PTR_FUN_0048d55c), then popFrame. We do the same,
+        // but route the call through `runtime.nativeImports` when set.
+        const rawSig = String(this.ipo.constants.values[constIdx]?.value ?? '');
+        const parsed = parseNativeImport(rawSig);
+        const provider = this.runtime?.nativeImports;
+
+        if (!provider || !parsed) {
+            if (parsed) {
+                log.debug(
+                    { importName: parsed.importName },
+                    'CALLE: no native import provider, frame discarded'
+                );
+            } else {
+                log.warn({ rawSig }, 'CALLE: could not parse import descriptor, frame discarded');
+            }
+            ctx.popFrame();
+            return;
+        }
+
+        // The args (and out-arg refs and return slot) live on the stack
+        // between the FRAME marker and the current top, in push order.
+        const marker = ctx.stack.getTopFrameMarker();
+        const slotCount = parsed.params.length;
+        const slots: StackEntry[] = [];
+        for (let i = 0; i < slotCount; i++) {
+            slots.push(ctx.stack.get(marker + i));
+        }
+
+        // Gather inputs in declaration order — out-only slots become
+        // undefined so the provider can index by position without doing
+        // its own filtering.
+        const inputs = parsed.params.map((p, i) =>
+            p.direction === 'in' ? slots[i].value : undefined
+        );
+
+        let results: unknown[] = [];
+        try {
+            results = provider.call({
+                importName: parsed.importName,
+                signature: parsed.signature,
+                params: parsed.params,
+                inputs,
+            });
+        } catch (err) {
+            log.error({ err, importName: parsed.importName }, 'CALLE handler threw');
+        }
+
+        // Write out-results back through the matching ref slots. Provider
+        // returns an array in declaration order (undefined / skipped for
+        // in slots); we route each non-undefined value through its slot's
+        // refInfo.
+        for (let i = 0; i < parsed.params.length && i < results.length; i++) {
+            const p = parsed.params[i];
+            if (p.direction !== 'out' && !p.isReturn) continue;
+            const value = results[i];
+            if (value === undefined) continue;
+            const slot = slots[i];
+            if (slot.refInfo) {
+                ctx.setVariable(slot.refInfo.scope as Scope, slot.refInfo.index, {
+                    type: slot.type,
+                    flags: 1,
+                    value: value as Value,
+                });
+            }
+        }
+
+        ctx.popFrame();
     }
 
     private doReturn(ctx: ExecutionContext): void {

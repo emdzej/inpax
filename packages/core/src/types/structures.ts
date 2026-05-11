@@ -171,9 +171,13 @@ export interface ReturnAddress {
 }
 
 /**
- * Call frame marker
+ * Call frame marker. Pushed by the FRAME opcode before arguments are
+ * pushed for the upcoming CALL. `savedFrameOffset` is the caller's
+ * frameOffset to restore on popFrame. `markerPosition` is the stack
+ * length at FRAME time — i.e. where the callee's local[0] starts.
  */
 export interface CallFrame {
     returnAddress: ReturnAddress;
-    frameOffset: number;
+    savedFrameOffset: number;
+    markerPosition: number;
 }
