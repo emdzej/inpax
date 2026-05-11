@@ -12,6 +12,7 @@ import type { IPemProvider } from './pem.js';
 import type { IDtmProvider } from './dtm.js';
 import type { IExternalProvider } from './external.js';
 import type { ISpsProvider } from './sps.js';
+import type { INativeImportProvider } from './native-imports.js';
 
 export interface IInpaRuntime {
   /** Combined UI provider (screen, menu, text, input, messageboxes) */
@@ -40,4 +41,13 @@ export interface IInpaRuntime {
   
   /** PLC interface (optional) */
   sps?: ISpsProvider;
+
+  /**
+   * Handles BEST2 CALLE invocations into Windows-style DLL imports
+   * (GetPrivateProfileStringA, apiGetConfig, etc.). Optional — when
+   * unset, the interpreter logs and pops the frame, leaving out-args
+   * untouched. Browser hosts that have no use for DLL imports leave
+   * this `undefined`.
+   */
+  nativeImports?: INativeImportProvider;
 }

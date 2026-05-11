@@ -1,11 +1,114 @@
 /**
- * Run/Execute command with TUI
+ * Run / execute command — drives an IPO bytecode file through the
+ * INPA interpreter against a chosen EDIABAS backend.
+ *
+ * The bytecode itself doesn't care which backend it talks to; the
+ * choice lives in this CLI surface and feeds an `IEdiabasProvider`
+ * into the runtime. Three options:
+ *
+ *   --ediabas-config <path>  load full EdiabasX config from JSON
+ *   --sgbd <path>            point at an ECU directory (real ECU)
+ *   --mock                   in-process mock (no real ECU)
+ *   (default)                EdiabasX simulation in the cwd
  */
 import { Command } from 'commander';
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, basename } from 'node:path';
+import { resolve, basename, join } from 'node:path';
+import { homedir } from 'node:os';
 import chalk from 'chalk';
-import { MockEdiabasProvider } from '../../../mock-provider/dist/mock-ediabas.js';
+import { MockEdiabasProvider } from '@emdzej/inpax-mock-provider';
+import { EdiabasXProvider, Inp1Adapter } from '@emdzej/inpax-ediabasx-provider';
+import type { IEdiabasProvider } from '@emdzej/inpax-interfaces';
+import { NodeNativeImportProvider } from '../native-imports/index.js';
+
+/**
+ * Shape of `~/.config/ediabasx/config.json` — same one the ediabasx CLI
+ * writes via `inpax-ediabasx configure`. Re-reading it here means the
+ * user keeps a single source of truth for cable / transport settings;
+ * inpax just needs the ecuPath (which comes from --sgbd or the script's
+ * directory layout) on top of that.
+ */
+interface EdiabasxCliConfig {
+    interface: string;
+    options?: Record<string, unknown>;
+}
+
+/**
+ * Walk the conventional ediabasx default-config locations and return the
+ * first existing path. Returns null when nothing matches — the caller
+ * decides the fallback.
+ *
+ * Search order:
+ *   1. EDIABASX_CONFIG env var (absolute path)
+ *   2. cwd: ./ediabasx.config.json
+ *   3. user config dir: $XDG_CONFIG_HOME/ediabasx/config.json
+ *      (or ~/.config/ediabasx/config.json) — same location every other
+ *      ediabasx tool uses, so one config drives all consumers.
+ */
+function findDefaultEdiabasConfig(): string | null {
+    const fromEnv = process.env.EDIABASX_CONFIG;
+    if (fromEnv && existsSync(fromEnv)) return resolve(fromEnv);
+
+    const cwdCandidate = resolve(process.cwd(), 'ediabasx.config.json');
+    if (existsSync(cwdCandidate)) return cwdCandidate;
+
+    const xdg = process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
+    const userCandidate = join(xdg, 'ediabasx', 'config.json');
+    if (existsSync(userCandidate)) return userCandidate;
+
+    return null;
+}
+
+function readEdiabasxCliConfig(path: string): EdiabasxCliConfig {
+    const raw = readFileSync(path, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.interface !== 'string') {
+        throw new Error(
+            `Invalid ediabasx config at ${path}: missing required "interface" string field`
+        );
+    }
+    return {
+        interface: parsed.interface,
+        options: parsed.options && typeof parsed.options === 'object' ? parsed.options : {},
+    };
+}
+
+/**
+ * INPA convention: the EDIABAS Ecu directory lives at
+ * `<inpa-root>/EDIABAS/Ecu`, while scripts live in
+ * `<inpa-root>/EC-APPS/INPA/CFGDAT` (or SGDAT). Walk up from the IPO and
+ * try that layout. Falls back to the IPO's directory when the
+ * convention doesn't match — most users will pass `--sgbd` for clarity.
+ */
+function deriveEcuPath(ipoPath: string): string {
+    const ipoDir = resolve(ipoPath, '..');
+    const inpaRoot = resolve(ipoDir, '..', '..', '..');
+    const conventional = join(inpaRoot, 'EDIABAS', 'Ecu');
+    if (existsSync(conventional)) return conventional;
+    return ipoDir;
+}
+
+/**
+ * Walk up from the IPO file to the conventional INPA install root —
+ * the dir that contains both `EDIABAS/` and `EC-APPS/`. Used by the
+ * native-import handler to translate Windows-relative paths like
+ * `..\CFGDAT\INPA.INI` into host paths.
+ */
+function deriveInpaRoot(ipoPath: string): string | undefined {
+    const candidate = resolve(ipoPath, '..', '..', '..', '..');
+    return existsSync(join(candidate, 'EDIABAS')) ? candidate : undefined;
+}
+
+interface RunOptions {
+    function: string;
+    debug?: boolean;
+    trace?: boolean;
+    headless?: boolean;
+    sgbd?: string;
+    ediabasConfig?: string;
+    mock?: boolean;
+    tick?: string;
+}
 
 export const runCommand = new Command('run')
     .description('Execute IPO bytecode or IPS script file')
@@ -14,9 +117,11 @@ export const runCommand = new Command('run')
     .option('-d, --debug', 'Enable debug mode')
     .option('--trace', 'Trace VM execution')
     .option('--headless', 'Use headless CLI provider instead of TUI')
-    .option('--sgbd <path>', 'Path to SGBD files')
+    .option('--sgbd <path>', 'Path to SGBD (.prg/.grp) files for the live ECU')
+    .option('--ediabas-config <path>', 'Path to an ediabas.config.json (overrides --sgbd)')
+    .option('--mock', 'Use the in-process mock provider instead of EdiabasX (for development)')
     .option('--tick <ms>', 'Tick interval in milliseconds', '16')
-    .action(async (file, options) => {
+    .action(async (file, options: RunOptions) => {
         try {
             const filePath = resolve(file);
 
@@ -59,6 +164,143 @@ export const runCommand = new Command('run')
     });
 
 /**
+ * Pick an EDIABAS provider based on the CLI flags, log what we chose,
+ * and `init()` it. Returns the provider so the caller can dispose it
+ * on shutdown. Failure to initialise is fatal — without an EDIABAS
+ * backend, anything that talks to an ECU (most INPA scripts) breaks
+ * immediately, so it's better to bail here than midway through
+ * `inpainit()`.
+ */
+interface ResolvedEdiabas {
+    provider: IEdiabasProvider;
+    /** Snapshot of the ediabasx config used to build the provider —
+     *  surfaced to native-imports for `__apiGetConfig` lookups. */
+    configSnapshot: {
+        ecuPath: string;
+        interfaceName: string;
+        iniPath: string;
+    };
+}
+
+async function resolveEdiabasProvider(
+    options: RunOptions,
+    ipoPath: string
+): Promise<ResolvedEdiabas> {
+    let provider: IEdiabasProvider;
+    let summary: string;
+    let interfaceName = '';
+    let iniPath = '';
+    let resolvedEcuPath = '';
+
+    if (options.mock) {
+        provider = new MockEdiabasProvider();
+        summary = 'mock provider (no real ECU)';
+        resolvedEcuPath = '';
+        interfaceName = 'simulation';
+    } else {
+        // --sgbd is now strictly an ecuPath override — the transport always
+        // comes from the ediabasx config (explicit --ediabas-config wins
+        // over the auto-discovered file). The old "--sgbd alone" branch
+        // forced simulation:false without a transport, which is exactly
+        // what produces "Communication interface is not configured" from
+        // EdiabasX's BEST2 VM.
+        const configPath =
+            (options.ediabasConfig && resolve(options.ediabasConfig)) ||
+            findDefaultEdiabasConfig();
+        const ecuPath = options.sgbd ? resolve(options.sgbd) : deriveEcuPath(ipoPath);
+        resolvedEcuPath = ecuPath;
+
+        if (configPath) {
+            provider = await buildProviderFromCliConfig(configPath, ecuPath);
+            iniPath = configPath;
+            try {
+                interfaceName = readEdiabasxCliConfig(configPath).interface;
+            } catch {
+                interfaceName = '';
+            }
+            const tag = options.ediabasConfig ? configPath : `${configPath} (auto-discovered)`;
+            summary = `EdiabasX via ${tag} · ecuPath=${ecuPath}`;
+        } else {
+            // No config anywhere — fall back to in-memory simulation rooted
+            // at the chosen ecuPath. Scripts that touch a real ECU will
+            // still fail; the summary makes it obvious why.
+            provider = new EdiabasXProvider({
+                config: {
+                    ecuPath,
+                    simulation: true,
+                },
+                autoConnect: true,
+            });
+            interfaceName = 'simulation';
+            summary = `EdiabasX simulation · ecuPath=${ecuPath} — no ediabasx config found (looked for ~/.config/ediabasx/config.json, ./ediabasx.config.json, $EDIABASX_CONFIG), pass --ediabas-config or --mock`;
+        }
+    }
+
+    // Always announce the chosen provider so config issues aren't silent.
+    // The original gating behind --debug made it too easy to miss why an
+    // INPA script couldn't reach the ECU.
+    console.log(chalk.gray(`EDIABAS provider: ${summary}`));
+
+    // Wire provider events so connection issues / job errors surface
+    // in the console rather than vanishing silently. The mock provider
+    // is a `silent` event emitter so this only fires on the EdiabasX
+    // path; safe to attach unconditionally.
+    provider.on('job:error', ({ message }) => {
+        console.error(chalk.red(`[ediabas] job error: ${message}`));
+    });
+    provider.on('connection:lost', () => {
+        console.error(chalk.yellow('[ediabas] connection lost'));
+    });
+
+    await provider.init();
+    return {
+        provider,
+        configSnapshot: {
+            ecuPath: resolvedEcuPath,
+            interfaceName,
+            iniPath,
+        },
+    };
+}
+
+/**
+ * Read the ediabasx CLI config shape (`{ interface, options }`), build
+ * the transport via `createInterface`, and instantiate Ediabas. The
+ * EdiabasXProvider just wraps the resulting Ediabas instance — this
+ * mirrors what `ediabasx run` does, so users keep one config file.
+ */
+async function buildProviderFromCliConfig(
+    configPath: string,
+    ecuPath: string
+): Promise<IEdiabasProvider> {
+    const cliCfg = readEdiabasxCliConfig(configPath);
+    const isSimulation = cliCfg.interface === 'simulation';
+
+    let transport: unknown = undefined;
+    if (!isSimulation) {
+        const { createInterface } = await import('@emdzej/ediabasx-interfaces');
+        // ediabasx CLI's loadConfig validates `options` as a plain object;
+        // its actual shape is interface-specific (port/baudRate/host/...).
+        // Cast at the boundary — createInterface narrows per interface.
+        transport = createInterface(
+            cliCfg.interface,
+            (cliCfg.options ?? {}) as Parameters<typeof createInterface>[1]
+        );
+    }
+
+    return new EdiabasXProvider({
+        config: {
+            ecuPath,
+            simulation: isSimulation,
+            // EdiabasConfig accepts `transport` for live mode — same field
+            // ediabasx CLI's run command uses.
+            ...(transport ? { transport } : {}),
+        } as never,
+        autoConnect: true,
+    });
+}
+
+/**
  * Run with full TUI interface
  */
 async function runWithTui(filePath: string, scriptName: string, options: RunOptions) {
@@ -75,23 +317,37 @@ async function runWithTui(filePath: string, scriptName: string, options: RunOpti
         console.log(chalk.gray(`Parsed IPO: ${ipo.functions.size} functions, ${ipo.screens.size} screens, ${ipo.stateMachines.size} state machines`));
     }
 
-    // Create TUI provider as runtime
     const provider = new TuiProvider();
+    const { provider: ediabasProvider, configSnapshot: ediabasConfigSnap } =
+        await resolveEdiabasProvider(options, filePath);
+    // Many BMW scripts mix INPA + INP1 result calls against the same
+    // EDIABAS job. The INP1 surface is just a thin re-shape of the
+    // same backend state, so wrap the same provider instance.
+    const inp1Provider = new Inp1Adapter(ediabasProvider);
+    // CALLE handler — currently routes `GetPrivateProfileStringA` to
+    // the INI parser so script-level config (INPA.INI keys for F-key
+    // bindings, screen title, contact info) actually populates.
+    const nativeImports = new NodeNativeImportProvider({
+        inpaRoot: deriveInpaRoot(filePath),
+        ediabasConfig: ediabasConfigSnap,
+    });
 
-    const ediabasProvider = new MockEdiabasProvider();
-
-    // Create VM with runtime
+    // Create VM with runtime. Null providers for surfaces not yet
+    // wired (print, pem, dtm, external, sps, simulation) — scripts
+    // that touch them throw with a clear "provider not available"
+    // error from the dispatcher rather than crashing silently here.
     const vm = new VM(ipo, {
         runtime: {
             ui: provider,
-            ediabas: ediabasProvider, // TODO: Implement EDIABAS provider
+            ediabas: ediabasProvider,
             simulation: null as any,
             print: null as any,
             pem: null as any,
             dtm: null as any,
             external: null as any,
             sps: null as any,
-            inp1: null as any,
+            inp1: inp1Provider,
+            nativeImports,
         },
         debug: options.debug || options.trace,
     });
@@ -117,14 +373,24 @@ async function runWithTui(filePath: string, scriptName: string, options: RunOpti
         }
     });
 
-    // Handle exit
-    const cleanup = () => {
+    // Handle exit. Tear the EDIABAS link down before letting the
+    // process drop — without this, an active serial port or DoIP
+    // socket can leak and block the next run.
+    let cleaned = false;
+    const cleanup = async () => {
+        if (cleaned) return;
+        cleaned = true;
         scheduler.stop();
+        try {
+            await ediabasProvider.end();
+        } catch {
+            /* ignore */
+        }
         process.exit(0);
     };
 
     // Scheduler events
-    scheduler.on('stopped', cleanup);
+    scheduler.on('stopped', () => { void cleanup(); });
     scheduler.on('error', (err: Error) => {
         console.error(chalk.red(`Runtime error: ${err.message}`));
         if (options.debug) {
@@ -135,7 +401,7 @@ async function runWithTui(filePath: string, scriptName: string, options: RunOpti
     // Render TUI
     const { waitUntilExit } = renderTui(provider, {
         title: scriptName,
-        onQuit: cleanup,
+        onQuit: () => { void cleanup(); },
     });
 
     try {
@@ -157,7 +423,7 @@ async function runWithTui(filePath: string, scriptName: string, options: RunOpti
         if (options.debug) {
             console.error((error as Error).stack);
         }
-        cleanup();
+        await cleanup();
     }
 }
 
@@ -180,21 +446,28 @@ async function runHeadless(filePath: string, scriptName: string, options: RunOpt
 
     console.log(chalk.gray(`Parsed: ${ipo.functions.size} functions, ${ipo.screens.size} screens, ${ipo.stateMachines.size} state machines`));
 
-    // Create CLI provider as runtime
     const provider = new CliProvider();
+    const { provider: ediabasProvider, configSnapshot: ediabasConfigSnap } =
+        await resolveEdiabasProvider(options, filePath);
+    const inp1Provider = new Inp1Adapter(ediabasProvider);
+    const nativeImports = new NodeNativeImportProvider({
+        inpaRoot: deriveInpaRoot(filePath),
+        ediabasConfig: ediabasConfigSnap,
+    });
 
     // Create VM with runtime
     const vm = new VM(ipo, {
         runtime: {
             ui: provider,
-            ediabas: null as any,
+            ediabas: ediabasProvider,
             simulation: null as any,
             print: null as any,
             pem: null as any,
             dtm: null as any,
             external: null as any,
             sps: null as any,
-            inp1: null as any,
+            inp1: inp1Provider,
+            nativeImports,
         },
         debug: options.debug || options.trace,
     });
@@ -208,10 +481,23 @@ async function runHeadless(filePath: string, scriptName: string, options: RunOpt
 
     provider.setTitle(`INPA - ${scriptName}`);
 
+    let cleaned = false;
+    const cleanup = async (exitCode = 0): Promise<void> => {
+        if (cleaned) return;
+        cleaned = true;
+        scheduler.stop();
+        try {
+            await ediabasProvider.end();
+        } catch {
+            /* ignore */
+        }
+        process.exit(exitCode);
+    };
+
     // Scheduler events
     scheduler.on('stopped', () => {
         console.log(chalk.gray('\nExecution stopped.'));
-        process.exit(0);
+        void cleanup(0);
     });
 
     scheduler.on('error', (err: Error) => {
@@ -234,10 +520,11 @@ async function runHeadless(filePath: string, scriptName: string, options: RunOpt
         // In headless mode, run for a limited time or until exit() is called
         console.log(chalk.yellow('Running... (Ctrl+C to stop)'));
 
-        // Handle Ctrl+C
+        // Handle Ctrl+C — tear EDIABAS down cleanly so the cable's
+        // session ends and the OS releases the serial / socket.
         process.on('SIGINT', () => {
             console.log(chalk.gray('\nInterrupted.'));
-            scheduler.stop();
+            void cleanup(0);
         });
 
     } catch (error) {
@@ -245,7 +532,7 @@ async function runHeadless(filePath: string, scriptName: string, options: RunOpt
         if (options.debug) {
             console.error((error as Error).stack);
         }
-        process.exit(1);
+        await cleanup(1);
     }
 }
 
@@ -262,13 +549,4 @@ function findMenuItemHandler(ipo: any, itemNum: number): any {
         }
     }
     return null;
-}
-
-interface RunOptions {
-    function: string;
-    debug?: boolean;
-    trace?: boolean;
-    headless?: boolean;
-    sgbd?: string;
-    tick?: string;
 }

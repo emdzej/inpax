@@ -16,6 +16,11 @@ export type { IPemProvider } from './pem.js';
 export type { IDtmProvider } from './dtm.js';
 export type { IExternalProvider } from './external.js';
 export type { ISpsProvider } from './sps.js';
+export type {
+  INativeImportProvider,
+  NativeImportCall,
+  NativeImportParam,
+} from './native-imports.js';
 
 // Runtime
 export type { IInpaRuntime } from './runtime.js';
