@@ -20,11 +20,19 @@
    * wide as it is tall). DPR scaling for crisp retina glyphs.
    */
 
-  import type { ScreenBuffer } from "@emdzej/inpax-tui-provider";
-  import { classicInpaTheme } from "../lib/theme";
+  import type { ScreenBuffer, TuiProvider } from "@emdzej/inpax-tui-provider";
+  import { classicInpaTheme, paletteColor } from "../lib/theme";
 
   type Props = {
     screen: ScreenBuffer;
+    /**
+     * Provider snapshot — used for the graphical overlays the cell
+     * grid can't represent: variable-size text from `fTextOut`, the
+     * analog-bar gauge from `analogout`, and the LED indicator from
+     * `digitalout`. Optional so the canvas still works in test /
+     * preview contexts that only render the screen buffer.
+     */
+    ui?: TuiProvider;
     /**
      * Optional frame-ready subscription — when supplied, paints fire
      * on the runtime's `cycle:complete` boundary (one paint per full
@@ -39,7 +47,7 @@
      */
     onFrameReady?: (cb: () => void) => () => void;
   };
-  const { screen, onFrameReady }: Props = $props();
+  const { screen, ui, onFrameReady }: Props = $props();
 
   const theme = classicInpaTheme;
 
@@ -174,11 +182,211 @@
       }
     }
 
+    // Graphical overlays — analog gauges, digital LEDs, sized text.
+    // These read from the TuiProvider's typed-primitive arrays so we
+    // can render them as real graphics (not character cells). Each
+    // pass also fills its target region with the theme background
+    // first to hide the small cell-grid text the provider also wrote
+    // there (so we don't double-render the formatted numeric value
+    // behind the gauge bar, the `●`/`○` LED glyph behind the proper
+    // indicator, etc).
+    if (ui) {
+      drawAnalogGauges(offCtx, cell);
+      drawDigitalLEDs(offCtx, cell);
+      drawSizedTexts(offCtx, cell);
+    }
+
     // Atomic present: single drawImage from back buffer to visible
     // canvas. Identity transform so backing pixels map 1:1 — the DPR
     // scale was already baked into the back buffer's draws.
     visCtx.setTransform(1, 0, 0, 1, 0, 0);
     visCtx.drawImage(backBuffer, 0, 0);
+  }
+
+  // ============ Graphical overlay helpers ============
+
+  /**
+   * Width of the analog bar in cells. Original INPA renders these as
+   * a fixed-width gauge that takes most of the row. We approximate at
+   * ~40 cells wide; if (col + GAUGE_WIDTH) overflows the screen the
+   * bar clips at the right edge.
+   */
+  const GAUGE_WIDTH_CELLS = 40;
+
+  /** Trailing space reserved for the formatted numeric value to the
+   * right of the gauge bar. */
+  const GAUGE_VALUE_CELLS = 8;
+
+  function drawAnalogGauges(ctx: CanvasRenderingContext2D, cell: { w: number; h: number }): void {
+    if (!ui) return;
+    const values = ui.getAnalogValues();
+    if (values.length === 0) return;
+
+    for (const v of values) {
+      const x0 = v.col * cell.w;
+      const y0 = v.row * cell.h;
+      const totalCells = Math.min(GAUGE_WIDTH_CELLS, screen.width - v.col);
+      const barCells = Math.max(2, totalCells - GAUGE_VALUE_CELLS);
+      const barW = barCells * cell.w;
+      const barH = Math.max(6, cell.h - 4);
+      const barY = y0 + Math.floor((cell.h - barH) / 2);
+
+      // Hide whatever cell-grid text the provider wrote for this slot.
+      ctx.fillStyle = theme.background;
+      ctx.fillRect(x0, y0, totalCells * cell.w, cell.h);
+
+      // Zone backdrop: red invalid bookends, green valid mid. Each
+      // zone is mapped from the value range (`min..max`) into the bar
+      // pixel range.
+      const span = v.max - v.min;
+      if (span > 0) {
+        const px = (val: number) => x0 + Math.round(((val - v.min) / span) * barW);
+
+        // min .. minValid (low invalid)
+        const xMinValid = px(v.minValid);
+        if (xMinValid > x0) {
+          ctx.fillStyle = paletteColor(4 /* red */, "#ff0000");
+          ctx.fillRect(x0, barY, xMinValid - x0, barH);
+        }
+        // minValid .. maxValid (valid)
+        const xMaxValid = px(v.maxValid);
+        if (xMaxValid > xMinValid) {
+          ctx.fillStyle = paletteColor(10 /* green */, "#00ff00");
+          ctx.fillRect(xMinValid, barY, xMaxValid - xMinValid, barH);
+        }
+        // maxValid .. max (high invalid)
+        const xMax = x0 + barW;
+        if (xMax > xMaxValid) {
+          ctx.fillStyle = paletteColor(4 /* red */, "#ff0000");
+          ctx.fillRect(xMaxValid, barY, xMax - xMaxValid, barH);
+        }
+
+        // Needle / fill: clamp the value into the bar range, then
+        // paint a black bar from x0 to the value's pixel position.
+        // This is what makes the gauge look like a horizontal bar
+        // graph — the black extent shows the current value level
+        // against the zone-coloured backdrop.
+        const clamped = Math.min(Math.max(v.value, v.min), v.max);
+        const xValue = px(clamped);
+        ctx.fillStyle = paletteColor(1 /* black */, "#000000");
+        ctx.fillRect(x0, barY, xValue - x0, barH);
+      }
+
+      // Outline so the bar reads even when fully red or fully green.
+      ctx.strokeStyle = paletteColor(1 /* black */, "#000000");
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x0 + 0.5, barY + 0.5, barW - 1, barH - 1);
+
+      // Numeric value to the right of the bar, in the script's
+      // current fg colour. We reuse the cell font here — sizing the
+      // value text to match the cell row keeps it aligned with the
+      // surrounding row labels (Battery / Ignition rows etc.).
+      const formatted = formatAnalogValue(v.value, v.format);
+      ctx.fillStyle = paletteColor(1 /* default text colour */, "#000000");
+      ctx.font = `${Math.max(8, cell.h - 2)}px ${theme.font.family}`;
+      ctx.textBaseline = "top";
+      ctx.fillText(formatted, x0 + barW + Math.floor(cell.w / 2), y0 + 1);
+    }
+  }
+
+  function drawDigitalLEDs(ctx: CanvasRenderingContext2D, cell: { w: number; h: number }): void {
+    if (!ui) return;
+    const values = ui.getDigitalValues();
+    if (values.length === 0) return;
+
+    for (const v of values) {
+      const x0 = v.col * cell.w;
+      const y0 = v.row * cell.h;
+      const label = v.value ? v.trueText : v.falseText;
+      // Indicator footprint: one cell for the LED + the label width.
+      const indicatorCells = 1;
+      const labelCells = label.length + 1;
+      const totalCells = indicatorCells + labelCells;
+
+      // Hide the cell-grid `●/○` glyph + label the provider already
+      // wrote so we don't double-draw.
+      ctx.fillStyle = theme.background;
+      ctx.fillRect(x0, y0, totalCells * cell.w, cell.h);
+
+      // LED disc — green when on, dim red when off; matches the
+      // green/red convention real INPA uses (and ediabasx's xignit
+      // semantics — see SerialInterface.ts ignitionVoltage getter).
+      const radius = Math.floor(Math.min(cell.w, cell.h) / 2) - 1;
+      const cx = x0 + cell.w / 2;
+      const cy = y0 + cell.h / 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = v.value
+        ? paletteColor(10 /* green */, "#00ff00")
+        : paletteColor(5 /* dark red */, "#800000");
+      ctx.fill();
+      ctx.strokeStyle = paletteColor(1 /* black */, "#000000");
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Label to the right of the disc, in the row's existing text
+      // colour. Empty labels (the UTILITY case where the script writes
+      // its own "on"/"off" via ftextout) leave the slot blank — the
+      // ftextout text still renders via the regular text pass.
+      if (label) {
+        ctx.fillStyle = paletteColor(1, "#000000");
+        ctx.font = `${Math.max(8, cell.h - 2)}px ${theme.font.family}`;
+        ctx.textBaseline = "top";
+        ctx.fillText(label, x0 + cell.w + Math.floor(cell.w / 4), y0 + 1);
+      }
+    }
+  }
+
+  /**
+   * Render `fTextOut` entries whose `fontSize > 0` at the requested
+   * size, on top of the small cell-grid text the buffer already holds.
+   * Falls back silently when no entries carry a font size — leaves the
+   * default text alone.
+   *
+   * INPA's `fontSize` is documented as 0..7. We don't yet know the
+   * exact pt-mapping the original used; for now treat each step as a
+   * multiplier over the cell-height font size.
+   */
+  function drawSizedTexts(ctx: CanvasRenderingContext2D, cell: { w: number; h: number }): void {
+    if (!ui) return;
+    const lines = ui.getTextLines();
+    for (const line of lines) {
+      const size = line.fontSize ?? 0;
+      if (size <= 0) continue;
+      const baseFontPx = Math.max(8, cell.h - 2);
+      const fontPx = Math.round(baseFontPx * (1 + size * 0.25));
+      const x = line.col * cell.w;
+      const y = line.row * cell.h;
+
+      // Wipe the cell-grid glyph for the area this sized text will
+      // occupy so the small font doesn't bleed through.
+      const approxW = line.text.length * cell.w;
+      ctx.fillStyle = theme.background;
+      ctx.fillRect(x, y, approxW, cell.h);
+
+      ctx.fillStyle = paletteColor(line.fg, "#000000");
+      ctx.font = `${fontPx}px ${theme.font.family}`;
+      ctx.textBaseline = "top";
+      ctx.fillText(line.text, x, y);
+    }
+  }
+
+  /**
+   * Mirror of `TuiProvider`'s internal `formatAnalogValue`. Inlined to
+   * keep the canvas free of cross-package imports for one helper —
+   * the TuiProvider doesn't export it. If this is wrong, the analog
+   * gauge will show the wrong number but everything else still works.
+   */
+  function formatAnalogValue(value: number, format: string): string {
+    if (!format) return value.toString();
+    const regex = /%(?:(\d+)\.)?(\d+)?[dfg]/;
+    const match = format.match(regex);
+    if (!match) return format;
+    const decimals = match[2] ? parseInt(match[2], 10) : 0;
+    const formatted = format.endsWith("d")
+      ? Math.round(value).toString()
+      : value.toFixed(decimals);
+    return format.replace(regex, formatted);
   }
 
   // Paint coalescing: cycle:complete from the runtime is the only

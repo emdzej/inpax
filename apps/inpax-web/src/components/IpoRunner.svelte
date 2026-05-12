@@ -173,7 +173,7 @@
              Error states keep the dark zinc-themed bg so their
              dark-on-dark text stays readable. -->
         <div class="relative h-full w-full" style="background: {classicInpaTheme.background};">
-          <ScreenCanvas screen={runtime.screen} onFrameReady={runtime.onFrameReady} />
+          <ScreenCanvas screen={runtime.screen} ui={runtime.ui} onFrameReady={runtime.onFrameReady} />
           <!-- UserBoxOverlay sits on top of the canvas so scripts'
                `userboxopen`/`userboxftextout` progress dialogs (e.g.
                "Fehlerspeicher lesen") become visible. -->
