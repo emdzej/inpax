@@ -155,7 +155,7 @@ If you find this project useful, consider [buying me a coffee](https://buymeacof
 
 ## License
 
-MIT
+[PolyForm Noncommercial 1.0.0](./LICENSE) — free for noncommercial use (personal projects, research, education, hobby diagnostics on your own car). Commercial use requires a separate licence — open an issue if you need one.
 
 ## Disclaimer
 
