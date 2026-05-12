@@ -21,7 +21,7 @@ export const compileCommand = new Command('compile')
       console.log(`Output: ${outputFile}`);
       console.log();
 
-      // TODO: Integrate with @emdzej/inpax-compiler
+      // TODO: Integrate with @emdzej/inpax-compiler-core
       console.log(chalk.yellow('Compiler integration pending'));
       console.log('The compiler module will be called here.');
       

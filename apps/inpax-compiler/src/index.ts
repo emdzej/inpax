@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve as resolvePath } from 'node:path';
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { compile } from '@emdzej/inpax-compiler';
+import { compile } from '@emdzej/inpax-compiler-core';
 
 interface CompileFlags {
   output?: string;
@@ -14,9 +14,9 @@ interface CompileFlags {
 const program = new Command();
 
 program
-  .name('inpax-compile')
+  .name('inpax-compiler')
   .description('Compile INPA IPS source files into IPO bytecode')
-  .version('0.0.0');
+  .version('0.1.0');
 
 program
   .argument('<file>', 'IPS source file')

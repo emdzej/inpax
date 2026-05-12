@@ -6,9 +6,9 @@ Snapshot for resuming work later. Last touched after stages 2a–2g + B1 + B2.
 
 | Layer | Path |
 |---|---|
-| Library | `packages/compiler/` |
-| CLI | `apps/inpax-compile/` (commander; `inpax-compile <file.ips> -I <dir> -o <file.ipo>`) |
-| Tests | `packages/compiler/src/__tests__/{roundtrip,runtime}.test.ts` + `packages/compiler/__tests__/fixtures/*.ips` |
+| Library | `packages/compiler-core/` |
+| CLI | `apps/inpax-compiler/` (commander; `inpax-compiler <file.ips> -I <dir> -o <file.ipo>`) |
+| Tests | `packages/compiler-core/src/__tests__/{roundtrip,runtime}.test.ts` + `packages/compiler-core/__tests__/fixtures/*.ips` |
 | Verifier | reuses workspace `@emdzej/inpax-parser` + `@emdzej/inpax-dis` + `@emdzej/inpax-interpreter` (devDeps only) |
 
 Pipeline: `preprocess → tokenize → parse → analyze → codegen → writeIpo`.
@@ -16,10 +16,10 @@ Pipeline: `preprocess → tokenize → parse → analyze → codegen → writeIp
 ## Run / verify
 
 ```bash
+pnpm --filter @emdzej/inpax-compiler-core build
 pnpm --filter @emdzej/inpax-compiler build
-pnpm --filter @emdzej/inpax-compile build
-pnpm exec vitest run packages/compiler        # 26 tests, all green
-inpax-compile -I ~/Downloads/inpa/EC-APPS/INPA/SGDAT ~/Downloads/inpa/EC-APPS/INPA/CFGDAT/startus.ips -o /tmp/startus.ipo
+pnpm exec vitest run packages/compiler-core   # 26 tests, all green
+inpax-compiler -I ~/Downloads/inpa/EC-APPS/INPA/SGDAT ~/Downloads/inpa/EC-APPS/INPA/CFGDAT/startus.ips -o /tmp/startus.ipo
 ```
 
 Real-world smoke: `startus.ips` (BMW Rectification entry point) compiles to a 12 786-byte IPO that parses and disassembles cleanly (19 functions, 67 globals, 593 constants, 2 screens, 1 menu, 5 import descriptors).
@@ -84,7 +84,7 @@ These come from the interpreter and are visible when running our compiled IPOs:
 - **`screen-executor.test.ts` has 8 failing tests (pre-existing, unrelated to our work)** — they call `this.vm.getGlobals()` / `getConstants()` which don't exist on `VM`. Not introduced by anything we did; just noise on full test runs.
 - **`LOGTABLE` (0x10) is a stub** in `opLogTable` (`packages/interpreter/src/vm/interpreter.ts`) — logs a warning and pushes 0. Our compiler emits the table correctly but it won't lookup at runtime until the interpreter implements it.
 
-## Files modified outside `packages/compiler/`
+## Files modified outside `packages/compiler-core/`
 
 Only **one** interpreter touch — `packages/interpreter/src/vm/interpreter.ts` `opLoadInOutRef`, fixing the inout-arg ref-to-ref bug. Inline comment in the source explains.
 
@@ -100,13 +100,13 @@ Two candidates:
 
 ## Repo entry points (for next time)
 
-- Compiler library: `packages/compiler/src/index.ts` (the `compile(source, options)` export)
-- CLI: `apps/inpax-compile/src/index.ts`
-- Codegen: `packages/compiler/src/codegen/codegen.ts`
-- Writer: `packages/compiler/src/writer/writer.ts`
-- Semantic / symbols: `packages/compiler/src/semantic/symbol-table.ts`
-- Tests: `packages/compiler/src/__tests__/`
-- Fixtures: `packages/compiler/__tests__/fixtures/`
+- Compiler library: `packages/compiler-core/src/index.ts` (the `compile(source, options)` export)
+- CLI: `apps/inpax-compiler/src/index.ts`
+- Codegen: `packages/compiler-core/src/codegen/codegen.ts`
+- Writer: `packages/compiler-core/src/writer/writer.ts`
+- Semantic / symbols: `packages/compiler-core/src/semantic/symbol-table.ts`
+- Tests: `packages/compiler-core/src/__tests__/`
+- Fixtures: `packages/compiler-core/__tests__/fixtures/`
 - Format spec we cross-reference: `docs/ipo-file-structure.md`, `docs/opcode-reference.md`
 - Reference disasms (canonical bytecode patterns): `disasm/*.txt`
 - Real `.ipo` samples used for grounding: `~/Downloads/inpa/EC-APPS/NFS/SGDAT/*.ipo` (ABGAS.IPO, EHC_2.IPO, ASE_SAVE.IPO especially)

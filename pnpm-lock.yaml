@@ -88,11 +88,11 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
-  apps/inpax-compile:
+  apps/inpax-compiler:
     dependencies:
-      '@emdzej/inpax-compiler':
+      '@emdzej/inpax-compiler-core':
         specifier: workspace:*
-        version: link:../../packages/compiler
+        version: link:../../packages/compiler-core
       '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -233,7 +233,7 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
-  packages/compiler:
+  packages/compiler-core:
     dependencies:
       '@emdzej/inpax-core':
         specifier: workspace:*

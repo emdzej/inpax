@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-web",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Browser SPA for INPAX — pick an INPA install root, browse IPO scripts, run them against a live ECU via Web Serial. Pure client-side; no server.",
   "private": true,
   "type": "module",

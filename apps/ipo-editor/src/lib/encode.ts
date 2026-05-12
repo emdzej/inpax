@@ -8,7 +8,7 @@
  * value contents — so only the *payload* needs re-emission.
  *
  * Layout per constant (matches the writer in
- * `packages/compiler/src/writer/writer.ts` and the parser in
+ * `packages/compiler-core/src/writer/writer.ts` and the parser in
  * `packages/parser/src/parser/ipo-parser.ts`):
  *
  *   01 <u8>          Bool

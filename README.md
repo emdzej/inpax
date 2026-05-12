@@ -35,7 +35,7 @@ pnpm cli run script.ipo
 pnpm cli run script.ipo --headless
 
 # IPS compiler
-pnpm --filter @emdzej/inpax-compile dev -- compile script.ips -o script.ipo
+pnpm --filter @emdzej/inpax-compiler dev -- compile script.ips -o script.ipo
 
 # IPO constant editor (TUI)
 pnpm --filter @emdzej/inpax-ipo-editor dev -- script.ipo
@@ -52,7 +52,7 @@ pnpm --filter @emdzej/inpax-web dev
 │ Apps & CLIs                                                       │
 │   apps/cli            terminal TUI runner — disasm / info / run   │
 │   apps/inpax-web      browser SPA — canvas + Web Serial           │
-│   apps/inpax-compile  IPS → IPO bytecode compiler CLI             │
+│   apps/inpax-compiler IPS → IPO bytecode compiler CLI             │
 │   apps/ipo-editor     ink TUI for editing constants in .ipo files │
 ├──────────────────────────────────────────────────────────────────┤
 │ Dispatcher (packages/dispatcher) — routes ~250 system functions  │
@@ -63,7 +63,7 @@ pnpm --filter @emdzej/inpax-web dev
 │   • screen executor — ALLOC / INIT / LINE phases, cycle:complete │
 │   • state-machine executor                                       │
 ├──────────────────────────────────────────────────────────────────┤
-│ Parser (packages/parser)        Compiler (packages/compiler)     │
+│ Parser (packages/parser)        Compiler (packages/compiler-core)│
 │ Disassembler (packages/disassembler)                             │
 ├──────────────────────────────────────────────────────────────────┤
 │ Providers — TuiProvider, EdiabasXProvider, BrowserExternalProvider│
@@ -81,7 +81,7 @@ pnpm --filter @emdzej/inpax-web dev
 |---------|-------------|
 | [@emdzej/inpax-cli](./apps/cli) | CLI: disassemble, info, run with TUI / headless |
 | [@emdzej/inpax-web](./apps/inpax-web) | Browser SPA — canvas runtime + Web Serial transport |
-| [@emdzej/inpax-compile](./apps/inpax-compile) | IPS source → IPO bytecode compiler CLI |
+| [@emdzej/inpax-compiler](./apps/inpax-compiler) | IPS source → IPO bytecode compiler CLI |
 | [@emdzej/inpax-ipo-editor](./apps/ipo-editor) | TUI for editing constants in compiled `.ipo` files |
 
 ### Runtime libraries
@@ -94,7 +94,7 @@ pnpm --filter @emdzej/inpax-web dev
 | [@emdzej/inpax-disassembler](./packages/disassembler) | IPO → assembly |
 | [@emdzej/inpax-interpreter](./packages/interpreter) | VM, schedulers, screen/state-machine executors |
 | [@emdzej/inpax-dispatcher](./packages/dispatcher) | System-function dispatcher |
-| [@emdzej/inpax-compiler](./packages/compiler) | IPS → IPO compilation pipeline (lexer/parser/semantic/codegen/writer) |
+| [@emdzej/inpax-compiler-core](./packages/compiler-core) | IPS → IPO compilation pipeline (lexer/parser/semantic/codegen/writer) |
 | [@emdzej/inpax-ini-parser](./packages/ini-parser) | INPA `.ini` config file parser |
 | [@emdzej/inpax-logger](./packages/logger) | Shared structured logger |
 

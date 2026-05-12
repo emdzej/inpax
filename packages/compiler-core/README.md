@@ -1,6 +1,6 @@
-# @emdzej/inpax-compiler
+# @emdzej/inpax-compiler-core
 
-IPS source code compiler for INPAX (Work in Progress).
+IPS source code compiler library for INPAX (Work in Progress). The CLI front-end lives in `apps/inpax-compiler/`.
 
 ## Status
 
@@ -9,7 +9,7 @@ IPS source code compiler for INPAX (Work in Progress).
 ## Planned Usage
 
 ```typescript
-import { compile } from '@emdzej/inpax-compiler';
+import { compile } from '@emdzej/inpax-compiler-core';
 import { readFileSync, writeFileSync } from 'fs';
 
 const source = readFileSync('script.ips', 'utf-8');
