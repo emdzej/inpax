@@ -173,7 +173,7 @@
       </header>
 
       {#if loadError}
-        <div class="m-4 rounded border border-red-700 bg-red-950/40 p-3 text-sm text-red-300">
+        <div class="m-4 rounded border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-800 dark:text-red-300">
           {loadError}
         </div>
       {:else if !tree}

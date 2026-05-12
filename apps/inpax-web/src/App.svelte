@@ -49,14 +49,24 @@
         {app.install.root.name || "INPA install"}
       </span>
 
+      <!-- Light/dark status badge. In light mode we want a soft tinted
+           pill (light bg + dark accent text), in dark mode we keep the
+           original dark-bg / light-text look. Tailwind `dark:` variants
+           handle both with one class binding per state. -->
       <span
         class="ml-auto rounded px-2 py-0.5 text-xs font-medium"
-        class:bg-green-900={connection.phase === "connected"}
-        class:text-green-200={connection.phase === "connected"}
-        class:bg-amber-900={connection.phase === "connecting"}
-        class:text-amber-200={connection.phase === "connecting"}
-        class:bg-red-900={connection.phase === "error"}
-        class:text-red-200={connection.phase === "error"}
+        class:bg-green-100={connection.phase === "connected"}
+        class:text-green-800={connection.phase === "connected"}
+        class:dark:bg-green-900={connection.phase === "connected"}
+        class:dark:text-green-200={connection.phase === "connected"}
+        class:bg-amber-100={connection.phase === "connecting"}
+        class:text-amber-800={connection.phase === "connecting"}
+        class:dark:bg-amber-900={connection.phase === "connecting"}
+        class:dark:text-amber-200={connection.phase === "connecting"}
+        class:bg-red-100={connection.phase === "error"}
+        class:text-red-800={connection.phase === "error"}
+        class:dark:bg-red-900={connection.phase === "error"}
+        class:dark:text-red-200={connection.phase === "error"}
         class:bg-elevated={connection.phase === "idle" || connection.phase === "disconnected"}
         class:text-muted={connection.phase === "idle" || connection.phase === "disconnected"}
       >

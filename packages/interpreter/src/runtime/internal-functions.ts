@@ -309,7 +309,17 @@ export class InternalFunctions {
   // ============ Control ============
 
   private exit(): void {
+    // Stop the VM (scheduler + screen / state-machine executors) and
+    // signal the host so it can dispose the runtime handle and return
+    // to its idle "pick a script" state. Real INPA exits the entire
+    // process; for inpax-web the script just unloads.
     this.vm.stop();
+    try {
+      this.vm.getRuntime().ui.emit('script:exit');
+    } catch (err) {
+      // Don't let a flaky listener crash the exit path.
+      log.warn({ err }, 'script:exit listener threw');
+    }
   }
 
   private delay(ctx: ExecutionContext): void {

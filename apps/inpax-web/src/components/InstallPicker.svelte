@@ -124,7 +124,7 @@
   </div>
 
   {#if !supported}
-    <div class="max-w-md rounded border border-red-600/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+    <div class="max-w-md rounded border border-red-300 dark:border-red-600/40 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-800 dark:text-red-300">
       <strong class="font-semibold">Unsupported browser.</strong>
       INPAX needs the File System Access API and Web Serial — both Chromium-only.
       Use Chrome, Edge, or Opera.
@@ -166,13 +166,13 @@
   {/if}
 
   {#if app.error}
-    <div class="max-w-md rounded border border-red-600/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+    <div class="max-w-md rounded border border-red-300 dark:border-red-600/40 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-800 dark:text-red-300">
       {app.error}
     </div>
   {/if}
 
   {#if app.install && !isCompleteInstall(app.install)}
-    <div class="max-w-md rounded border border-yellow-600/40 bg-yellow-950/40 px-4 py-3 text-sm text-yellow-200">
+    <div class="max-w-md rounded border border-yellow-300 dark:border-yellow-600/40 bg-yellow-50 dark:bg-yellow-950/40 px-4 py-3 text-sm text-yellow-800 dark:text-yellow-200">
       <strong class="font-semibold">Partial INPA install.</strong>
       Found:
       <ul class="mt-1 list-inside list-disc">

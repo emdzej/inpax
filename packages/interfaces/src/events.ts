@@ -95,6 +95,15 @@ export interface UIEvents {
    * (for diagnostics / breadcrumbs).
    */
   'script:switch': (event: { ipo: string; iniFile: string }) => void;
+  /**
+   * Fired by the `exit` / `exitwindows` system functions. The VM has
+   * been stopped by the time this fires; hosts listen on
+   * `runtime.ui` and tear the runtime down (dispose the handle,
+   * clear the selected IPO so the UI returns to its idle "pick a
+   * script" state). No payload — semantics match real INPA's
+   * "script exited cleanly".
+   */
+  'script:exit': () => void;
 }
 
 export interface StateMachineEvents {

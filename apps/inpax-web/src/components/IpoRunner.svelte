@@ -75,6 +75,23 @@
     };
   });
 
+  // Wire `exit()` / `exitwindows()` → clear the selection so the
+  // lifecycle effect below disposes the runtime and the UI falls back
+  // to the "Pick a script from the sidebar" idle state. Real INPA on
+  // Windows terminates the process; for inpax-web we just unload the
+  // script — the user stays in the app and can pick another.
+  $effect(() => {
+    if (!runtime) return;
+    const ui = runtime.ui;
+    const handler = () => {
+      app.selectedIpo = null;
+    };
+    ui.on("script:exit", handler);
+    return () => {
+      ui.off("script:exit", handler);
+    };
+  });
+
   // Drive the runtime lifecycle from `app.selectedIpo` alone — the
   // moment the user picks a script, mount the runtime. The script's
   // own `INPAapiInit` will then drive the cable open (via the
@@ -156,7 +173,7 @@
         </div>
       {:else if error}
         <div class="flex h-full items-center justify-center">
-          <div class="max-w-xl rounded border border-red-600/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+          <div class="max-w-xl rounded border border-red-300 dark:border-red-600/40 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-800 dark:text-red-300">
             {error}
           </div>
         </div>

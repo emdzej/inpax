@@ -167,7 +167,7 @@
               {/each}
             </div>
             {#if app.config.interface === "webserial" && !isWebSerialSupported()}
-              <div class="rounded border border-amber-700 bg-amber-950 p-3 text-xs text-amber-200">
+              <div class="rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-xs text-amber-800 dark:text-amber-200">
                 Your browser doesn't expose <code>navigator.serial</code>. Chrome, Edge, or
                 Opera on a desktop OS is required.
               </div>
@@ -282,12 +282,18 @@
             <div class="flex items-center gap-3">
               <span
                 class="rounded px-2 py-0.5 text-xs font-medium"
-                class:bg-green-900={connection.phase === "connected"}
-                class:text-green-200={connection.phase === "connected"}
-                class:bg-amber-900={connection.phase === "connecting"}
-                class:text-amber-200={connection.phase === "connecting"}
-                class:bg-red-900={connection.phase === "error"}
-                class:text-red-200={connection.phase === "error"}
+                class:bg-green-100={connection.phase === "connected"}
+                class:text-green-800={connection.phase === "connected"}
+                class:dark:bg-green-900={connection.phase === "connected"}
+                class:dark:text-green-200={connection.phase === "connected"}
+                class:bg-amber-100={connection.phase === "connecting"}
+                class:text-amber-800={connection.phase === "connecting"}
+                class:dark:bg-amber-900={connection.phase === "connecting"}
+                class:dark:text-amber-200={connection.phase === "connecting"}
+                class:bg-red-100={connection.phase === "error"}
+                class:text-red-800={connection.phase === "error"}
+                class:dark:bg-red-900={connection.phase === "error"}
+                class:dark:text-red-200={connection.phase === "error"}
                 class:bg-elevated={connection.phase === "idle" || connection.phase === "disconnected"}
                 class:text-muted={connection.phase === "idle" || connection.phase === "disconnected"}
               >
@@ -313,7 +319,7 @@
               {/if}
             </div>
             {#if connection.errorMessage}
-              <p class="rounded border border-red-700 bg-red-950/40 p-2 text-xs text-red-300">
+              <p class="rounded border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-2 text-xs text-red-800 dark:text-red-300">
                 {connection.errorMessage}
               </p>
             {/if}
