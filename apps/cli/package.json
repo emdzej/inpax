@@ -20,7 +20,7 @@
     "@emdzej/inpax-tui-provider": "workspace:*",
     "@emdzej/inpax-cli-provider": "workspace:*",
     "@emdzej/inpax-ediabasx-provider": "workspace:*",
-    "@emdzej/ediabasx-interfaces": "^0.1.1",
+    "@emdzej/ediabasx-interfaces": "^0.1.3",
     "@emdzej/inpax-interfaces": "workspace:*",
     "@emdzej/inpax-mock-provider": "workspace:*",
     "@emdzej/inpax-ini-parser": "workspace:*",
