@@ -36,7 +36,9 @@
   "pnpm": {
     "overrides": {
       "@emdzej/ediabasx-ediabas": "link:../ediabasx/packages/ediabas",
-      "@emdzej/ediabasx-interfaces": "link:../ediabasx/packages/interfaces"
+      "@emdzej/ediabasx-interfaces": "link:../ediabasx/packages/interfaces",
+      "@emdzej/ediabasx-interface-base": "link:../ediabasx/packages/interface-base",
+      "@emdzej/ediabasx-interface-serial": "link:../ediabasx/packages/interface-serial"
     }
   }
 }

@@ -100,9 +100,14 @@ export async function connect(): Promise<void> {
       const port = await serial.requestPort();
       serialPort = port;
       const webTransport = new WebSerialTransport(port);
-      // K+DCAN smart cables present as FTDI VCPs but Web Serial doesn't
-      // expose the bitbang escape the adapter probe uses on Node, so
-      // disable it — the cable still works as a passthrough.
+      // Run the K+DCAN adapter probe over Web Serial. `pollAdapterInfo`
+      // is pure byte-level I/O (purge / write telegram / read echo +
+      // response) — no FTDI bitbang or DTR/RTS twiddling — so it works
+      // identically over `WebSerialTransport`. When it succeeds we get
+      // the cable's adapterType / version / serial / voltage /
+      // ignitionStatus, which `xignit` / `xbatt` need to surface the
+      // real Klemme 15 state to scripts. Passthrough FTDI cables
+      // gracefully fall back via the probe's echo-only detection.
       const iface = new SerialInterface({
         port: "webserial",
         baudRate: config.serial?.baudRate ?? 115200,
@@ -110,7 +115,7 @@ export async function connect(): Promise<void> {
         parity: (config.serial?.parity ?? "none") as "none" | "even" | "odd",
         stopBits: (config.serial?.stopBits ?? 1) as 1 | 2,
         timeoutMs: config.serial?.timeoutMs ?? 5000,
-        probeAdapterOnConnect: false,
+        probeAdapterOnConnect: true,
         transport: webTransport,
       });
       activeTransport = iface as unknown as EdiabasConfig["transport"];
