@@ -1,0 +1,94 @@
+name: Deploy inpax-web to GitHub Pages
+
+# Manual-trigger only — same pattern as the sibling ediabasx workflow.
+# Click "Run workflow" in the Actions tab to publish main to
+# inpax.bimmerz.app.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Local dev has inpax and ediabasx as sibling directories, and
+      # `inpax/package.json` pins `@emdzej/ediabasx-*` packages to
+      # `link:../ediabasx/packages/...` via `pnpm.overrides`. We have to
+      # reproduce that layout in CI, otherwise `pnpm install` falls
+      # back to the npm registry and the build runs against published
+      # 0.1.x of those packages — exactly the silent-staleness trap
+      # that caused the ignition-status bug earlier (see commit 71bcde2).
+      #
+      # Strategy: check both repos out into named subfolders under the
+      # runner's workspace, then `cd inpax` and let pnpm resolve the
+      # links relative to that.
+      - name: Checkout inpax
+        uses: actions/checkout@v4
+        with:
+          path: inpax
+
+      - name: Checkout ediabasx (sibling for workspace overrides)
+        uses: actions/checkout@v4
+        with:
+          repository: emdzej/ediabasx
+          ref: main
+          path: ediabasx
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: inpax/pnpm-lock.yaml
+
+      # Build the linked ediabasx packages first. `pnpm install` doesn't
+      # run build scripts of workspace packages, so the `dist/` folders
+      # the inpax-web bundle imports from (via `pnpm.overrides`) would
+      # otherwise be missing. The full workspace build is a few seconds
+      # of CI time and avoids the trap of guessing which packages
+      # inpax-web transitively pulls; turbo caches subsequent runs.
+      - name: Install ediabasx deps
+        working-directory: ediabasx
+        run: pnpm install --frozen-lockfile
+
+      - name: Build ediabasx linked packages
+        working-directory: ediabasx
+        run: pnpm build
+
+      - name: Install inpax deps
+        working-directory: inpax
+        run: pnpm install --frozen-lockfile
+
+      - name: Build inpax-web
+        working-directory: inpax
+        run: pnpm --filter @emdzej/inpax-web... build
+
+      - name: Add CNAME
+        run: echo "inpax.bimmerz.app" > inpax/apps/inpax-web/dist/CNAME
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: inpax/apps/inpax-web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
