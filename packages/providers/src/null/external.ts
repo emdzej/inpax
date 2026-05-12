@@ -10,4 +10,5 @@ export class NullExternalProvider implements IExternalProvider {
   callWin(_cmdLine: string): void {}
   viewOpen(_fileName: string, _title: string): void {}
   viewClose(): void {}
+  writeFile(_fileName: string, _content: string): void {}
 }

@@ -63,4 +63,8 @@ export class NullEdiabasProvider
     _postInfoFile: string,
     _jobName: string
   ): void {}
+
+  getFsModeConfig(): { mode: number; fileMode: string; preInfoFile: string; postInfoFile: string; jobName: string } {
+    return { mode: 0, fileMode: '', preInfoFile: '', postInfoFile: '', jobName: 'FS_LESEN' };
+  }
 }

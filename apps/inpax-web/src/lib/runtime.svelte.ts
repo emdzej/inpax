@@ -158,32 +158,14 @@ export async function startInpaRuntime(
   //    touch those system functions get a quiet no-op instead of a
   //    TypeError from a `null` provider reference. `external` is the
   //    real `BrowserExternalProvider` because INPA scripts use it to
-  //    show fault-store reports (viewopen) — see the `fs:complete`
-  //    listener below that turns each fault read into a virtual file.
+  //    show fault-store reports (viewopen). The dispatcher's
+  //    `INPAapiFsLesen` handler (in @emdzej/inpax-dispatcher) runs the
+  //    job, formats the result sets via the canonical INPA template,
+  //    and writes the report through `external.writeFile`. The
+  //    subsequent `viewopen("na_fs.tmp", …)` reads that virtual file
+  //    back via `external.viewOpen` and the `ViewerDialog` component
+  //    renders it as a modal.
   const externalProvider = new BrowserExternalProvider();
-
-  // Format the fault-store result sets into a text file each time a
-  // script calls INPAapiFsLesen, then expose it under the filename the
-  // script passed in. That makes the subsequent `viewopen("na_fs.tmp",
-  // …)` show the formatted faults. Original INPA writes a file via
-  // its own formatter; we don't, so this listener is our equivalent.
-  ediabasProvider.on("fs:complete", ({ fileName, faultCount }) => {
-    const lines: string[] = [];
-    lines.push(`Fault store read complete — ${faultCount} fault(s)`);
-    lines.push("");
-    const total = ediabasProvider.resultSets();
-    for (let i = 1; i <= total; i++) {
-      lines.push(`[Set ${i}]`);
-      const entries = ediabasProvider.resultSetEntries(i);
-      if (entries) {
-        for (const [name, result] of entries) {
-          lines.push(`  ${name}: ${formatResultValue(result.value)}`);
-        }
-      }
-      lines.push("");
-    }
-    externalProvider.writeFile(fileName, lines.join("\n"));
-  });
   // Tick interval — temporary throttle to 1000 ms so the log stream is
   // legible while we diagnose why inpainit appears to re-execute.
   // Affects both the main scheduler (state machine + F-key handlers)
@@ -317,24 +299,6 @@ export async function startInpaRuntime(
       }
     },
   };
-}
-
-/**
- * Render an `EdiabasJobResult.value` for the human-readable fault
- * report. Binary fields (`F_HEX_CODE` etc.) are real bytes, not text,
- * so we render them as a space-separated hex dump. Text fields (BMW
- * uses cp1252 — German diacritics like ä/ö/ü) are decoded as
- * windows-1252 to avoid the � replacement characters UTF-8 produces.
- */
-function formatResultValue(value: unknown): string {
-  if (value instanceof Uint8Array) {
-    return Array.from(value, (b) => b.toString(16).padStart(2, "0")).join(" ");
-  }
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return String(value);
-  if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
-  if (value === null || value === undefined) return "";
-  return String(value);
 }
 
 /**

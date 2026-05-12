@@ -409,6 +409,16 @@ export class EdiabasXProvider
     };
   }
 
+  getFsModeConfig(): {
+    mode: number;
+    fileMode: string;
+    preInfoFile: string;
+    postInfoFile: string;
+    jobName: string;
+  } {
+    return { ...this.fsModeConfig };
+  }
+
   // === Helpers ===
 
   /**

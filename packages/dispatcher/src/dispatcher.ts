@@ -4,7 +4,8 @@
  */
 
 import { SystemFunction, SystemFunctionMap, type StackEntry, type Scope, ValueType } from '@emdzej/inpax-core';
-import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
+import type { IInpaRuntime, IEdiabasProvider, IExternalProvider } from '@emdzej/inpax-interfaces';
+import { formatFsLesenReport } from './format-fs.js';
 
 /** Set of async function IDs */
 const ASYNC_FUNCTIONS = new Set<number>([
@@ -549,9 +550,9 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
             case SystemFunction.INPAapiCheckJobStatus:
                 return finalize(ediabas.checkJobStatus(inputs[0] as string));
             case SystemFunction.INPAapiFsLesen:
-                return finalize(ediabas.fsLesen(inputs[0] as string, inputs[1] as string));
+                return finalize(this.runFsLesen(ediabas, external, inputs[0] as string, inputs[1] as string, "FsLesen"));
             case SystemFunction.INPAapiFsLesen2:
-                return finalize(ediabas.fsLesen2(inputs[0] as string, inputs[1] as string));
+                return finalize(this.runFsLesen(ediabas, external, inputs[0] as string, inputs[1] as string, "FsLesen2"));
             case SystemFunction.INPAapiFsMode:
                 return finalize(ediabas.fsMode(
                     inputs[0] as number, inputs[1] as string,
@@ -712,5 +713,50 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
                 }
                 throw new Error(`Unknown system function: 0x${funcId.toString(16)}`);
         }
+    }
+
+    /**
+     * Run an EDIABAS fault-storage job and write a canonical INPA-style
+     * report to the file the script passed in. Mirrors what INPA.exe's
+     * `INPAapiFsLesen` (FUN_00408ab8) / `INPAapiFsLesen2` (FUN_0040a275)
+     * do end-to-end: run job → format result sets per `INPAapiFsMode`
+     * bits → write to disk. The host's external provider provides the
+     * `writeFile` sink (real fs on Node, in-memory map in the browser).
+     *
+     * The `viewopen` call the script makes immediately after FsLesen
+     * then reads that same file back through the external provider —
+     * no `fs:complete` listener glue required.
+     */
+    private async runFsLesen(
+        ediabas: IEdiabasProvider,
+        external: IExternalProvider,
+        ecu: string,
+        fileName: string,
+        variant: "FsLesen" | "FsLesen2"
+    ): Promise<void> {
+        if (variant === "FsLesen2") {
+            await ediabas.fsLesen2(ecu, fileName);
+        } else {
+            await ediabas.fsLesen(ecu, fileName);
+        }
+
+        const cfg = ediabas.getFsModeConfig();
+        const body = formatFsLesenReport(
+            {
+                resultSets: () => ediabas.resultSets(),
+                resultInt: (name, set) => ediabas.resultInt(name, set),
+                resultText: (name, set, fmt) => ediabas.resultText(name, set, fmt),
+                hasResult: (name, set) => ediabas.hasResult(name, set),
+            },
+            { mode: cfg.mode, variant }
+        );
+
+        // The script's `INPAapiFsMode(mode, fileMode, preInfoFile,
+        // postInfoFile, jobName)` lets the SGBD prepend/append static
+        // text files around the fault block. We don't ship a way to
+        // read those (different file abstraction), so for now we just
+        // emit the formatted fault list — matches what real INPA does
+        // when no pre/post files are configured.
+        await external.writeFile(fileName, body);
     }
 }

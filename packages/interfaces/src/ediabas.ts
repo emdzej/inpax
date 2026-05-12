@@ -107,4 +107,19 @@ export interface IEdiabasProvider extends EventEmitter<EdiabasEvents> {
     postInfoFile: string,
     jobName: string
   ): void;
+
+  /**
+   * Read the currently-configured fault-storage mode (the bitmask
+   * the script set via `INPAapiFsMode`) and associated file hooks.
+   * Used by the dispatcher's INPAapiFsLesen handler to drive the
+   * canonical INPA report formatter: the same mode bits that control
+   * INPA.exe's formatter pick which fields appear in the output.
+   */
+  getFsModeConfig(): {
+    mode: number;
+    fileMode: string;
+    preInfoFile: string;
+    postInfoFile: string;
+    jobName: string;
+  };
 }

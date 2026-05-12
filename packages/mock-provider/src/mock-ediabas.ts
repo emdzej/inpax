@@ -202,4 +202,8 @@ export class MockEdiabasProvider extends EventEmitter<EdiabasEvents> implements 
   fsMode(_mode: number, _fileMode: string, _preInfo: string, _postInfo: string, _jobName: string): void {
     // No-op
   }
+
+  getFsModeConfig(): { mode: number; fileMode: string; preInfoFile: string; postInfoFile: string; jobName: string } {
+    return { mode: 0, fileMode: '', preInfoFile: '', postInfoFile: '', jobName: 'FS_LESEN' };
+  }
 }
