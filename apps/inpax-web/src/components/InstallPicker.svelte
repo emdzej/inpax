@@ -7,6 +7,7 @@
     isFileSystemAccessSupported,
   } from "../lib/inpa-install";
   import { listIpoFiles } from "../lib/ipo-browser";
+  import { settings, isStartupIpo } from "../lib/settings.svelte";
   import {
     saveInstallHandle,
     loadInstallHandle,
@@ -65,6 +66,15 @@
     if (install.sgdat) ipoFiles.push(...(await listIpoFiles(install.sgdat, "SGDAT")));
     if (install.cfgdat) ipoFiles.push(...(await listIpoFiles(install.cfgdat, "CFGDAT")));
     app.ipoFiles = ipoFiles;
+
+    // Auto-mount the user's pinned startup IPO, if the install has it.
+    // Match is case-insensitive and ignores the `.ipo` extension, so
+    // `Ms43_sp2.IPO` pinned earlier still resolves against an install
+    // that exposes it as `ms43_sp2.ipo` (or any other casing).
+    if (settings.startupIpo) {
+      const found = ipoFiles.find((e) => isStartupIpo(e.name));
+      if (found) app.selectedIpo = found;
+    }
 
     app.view = "browse";
     if (!options.skipSave) {
