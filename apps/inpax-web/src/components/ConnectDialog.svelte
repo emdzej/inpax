@@ -101,7 +101,7 @@
         <p class="mt-1 text-xs text-faint">
           {isErrorDialog
             ? "The script's INPAapiInit couldn't open the link."
-            : "The script is initialising the diagnostic link."}
+            : "The script is initialising the diagnostic link. Browser security blocks an automatic connection — Web Serial requires a user gesture, so you'll need to click Connect to open the port yourself."}
         </p>
       </header>
 
@@ -167,12 +167,6 @@
           {#if connection.errorMessage}
             <p class="rounded border border-red-700 bg-red-950/40 p-2 text-xs text-red-300">
               {connection.errorMessage}
-            </p>
-          {/if}
-          {#if app.config.interface === "webserial"}
-            <p class="text-xs text-faint">
-              Clicking <span class="text-muted">Connect</span> opens the browser's port
-              picker — this counts as the user gesture Web Serial needs.
             </p>
           {/if}
         </section>
