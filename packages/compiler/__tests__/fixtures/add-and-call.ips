@@ -1,0 +1,10 @@
+foo(in: int v) {
+  int x;
+  x = v;
+}
+
+inpainit() {
+  foo(1 + 2);
+}
+
+inpaexit() {}

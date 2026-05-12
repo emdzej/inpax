@@ -1,0 +1,8 @@
+// Runtime smoke: assign a literal to a global.
+int answer;
+
+inpainit() {
+  answer = 42;
+}
+
+inpaexit() {}

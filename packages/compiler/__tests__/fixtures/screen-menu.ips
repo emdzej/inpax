@@ -1,0 +1,34 @@
+SCREEN s_main() {
+  text(0, 0, "Hello");
+
+  LINE("Voltage", "VOLT") {
+    text(1, 0, "U =");
+    CONTROL {
+      text(1, 20, "?");
+    }
+  }
+
+  LINE("Status", "STAT") {
+    text(2, 0, "S =");
+  }
+}
+
+MENU m_main() {
+  INIT {
+    setmenutitle("Main");
+  }
+  ITEM(1, "Show") {
+    setscreen(s_main, TRUE);
+  }
+  ITEM(10, "Exit") {
+    exit();
+  }
+}
+
+inpainit() {
+  settitle("Demo");
+  setmenu(m_main);
+  setscreen(s_main, TRUE);
+}
+
+inpaexit() {}

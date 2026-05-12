@@ -1,0 +1,12 @@
+// Runtime smoke: out-parameter writes back to a caller-supplied global.
+int target;
+
+set(out: int x) {
+  x = 99;
+}
+
+inpainit() {
+  set(target);
+}
+
+inpaexit() {}

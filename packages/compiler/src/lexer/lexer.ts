@@ -1,285 +1,294 @@
-import { Token, TokenType, KEYWORDS } from './tokens.js';
+import { KEYWORDS, Token, TokenKind } from './tokens.js';
 
-/**
- * Lexer for INPA IPS source files (C-like syntax)
- */
-export class Lexer {
-  private source: string;
-  private pos: number = 0;
-  private line: number = 1;
-  private column: number = 1;
-
-  constructor(source: string) {
-    this.source = source;
+export class LexError extends Error {
+  constructor(
+    message: string,
+    public readonly line: number,
+    public readonly column: number,
+  ) {
+    super(`${line}:${column}: ${message}`);
+    this.name = 'LexError';
   }
+}
 
-  /**
-   * Tokenize entire source
-   */
+const HEX = /^[0-9a-fA-F]$/;
+const BIN_PATTERN = /^[01X]$/i;
+
+export class Lexer {
+  private pos = 0;
+  private line = 1;
+  private col = 1;
+
+  constructor(private readonly src: string) {}
+
   tokenize(): Token[] {
     const tokens: Token[] = [];
-    
-    while (!this.isAtEnd()) {
-      this.skipWhitespaceAndComments();
-      if (this.isAtEnd()) break;
-      tokens.push(this.nextToken());
+    while (!this.eof()) {
+      this.skipTrivia();
+      if (this.eof()) break;
+      tokens.push(this.next());
     }
-    
-    tokens.push(this.makeToken(TokenType.EOF, ''));
+    tokens.push({ kind: 'EOF', text: '', line: this.line, column: this.col });
     return tokens;
   }
 
-  /**
-   * Get next token
-   */
-  private nextToken(): Token {
-    const ch = this.peek();
-
-    // String
-    if (ch === '"') {
-      return this.readString();
+  private next(): Token {
+    const c = this.peek();
+    if (c === '"') return this.readString();
+    if (c === '0' && (this.peek(1) === 'y' || this.peek(1) === 'Y')) {
+      return this.readBitPattern();
     }
-
-    // Number
-    if (this.isDigit(ch)) {
-      return this.readNumber();
-    }
-
-    // Identifier or keyword
-    if (this.isAlpha(ch) || ch === '_') {
-      return this.readIdentifier();
-    }
-
-    // Operators and delimiters
+    if (this.isDigit(c)) return this.readNumber();
+    if (this.isIdentStart(c)) return this.readIdent();
+    if (c === '#') return this.readPragmaOrInclude();
     return this.readOperator();
   }
 
-  /**
-   * Skip whitespace and comments
-   */
-  private skipWhitespaceAndComments(): void {
-    while (!this.isAtEnd()) {
+  private readString(): Token {
+    const startLine = this.line;
+    const startCol = this.col;
+    this.advance(); // "
+    let raw = '';
+    let value = '';
+    while (!this.eof() && this.peek() !== '"') {
       const ch = this.peek();
-      
-      if (ch === ' ' || ch === '\t' || ch === '\r') {
+      if (ch === '\\') {
+        raw += ch;
         this.advance();
-      } else if (ch === '\n') {
+        const esc = this.peek();
+        raw += esc;
         this.advance();
-        this.line++;
-        this.column = 1;
-      } else if (ch === '/' && this.peekNext() === '/') {
-        // Line comment
-        while (!this.isAtEnd() && this.peek() !== '\n') {
+        switch (esc) {
+          case 'n': value += '\n'; break;
+          case 'r': value += '\r'; break;
+          case 't': value += '\t'; break;
+          case '\\': value += '\\'; break;
+          case '"': value += '"'; break;
+          case '0': value += '\0'; break;
+          default: value += esc;
+        }
+        continue;
+      }
+      if (ch === '\n') {
+        throw new LexError('unterminated string literal', startLine, startCol);
+      }
+      raw += ch;
+      value += ch;
+      this.advance();
+    }
+    if (this.eof()) {
+      throw new LexError('unterminated string literal', startLine, startCol);
+    }
+    this.advance(); // closing "
+    return { kind: 'STRING', text: `"${raw}"`, line: startLine, column: startCol, string: value };
+  }
+
+  private readBitPattern(): Token {
+    const startLine = this.line;
+    const startCol = this.col;
+    this.advance(); // 0
+    this.advance(); // y
+    let bits = '';
+    while (!this.eof() && BIN_PATTERN.test(this.peek())) {
+      bits += this.peek();
+      this.advance();
+    }
+    if (bits.length === 0) {
+      throw new LexError('expected bit pattern after `0y`', startLine, startCol);
+    }
+    let value = 0;
+    let mask = 0;
+    for (const b of bits) {
+      value <<= 1;
+      mask <<= 1;
+      if (b === '1') {
+        value |= 1;
+        mask |= 1;
+      } else if (b === '0') {
+        mask |= 1;
+      }
+      // 'X' / 'x' -> don't-care: leave both bits 0
+    }
+    return {
+      kind: 'BITPATTERN',
+      text: `0y${bits}`,
+      line: startLine,
+      column: startCol,
+      pattern: { value: value >>> 0, mask: mask >>> 0, width: bits.length },
+    };
+  }
+
+  private readNumber(): Token {
+    const startLine = this.line;
+    const startCol = this.col;
+    let text = '';
+    let isReal = false;
+    if (this.peek() === '0' && (this.peek(1) === 'x' || this.peek(1) === 'X')) {
+      text += this.peek();
+      this.advance();
+      text += this.peek();
+      this.advance();
+      while (!this.eof() && HEX.test(this.peek())) {
+        text += this.peek();
+        this.advance();
+      }
+      return {
+        kind: 'INT',
+        text,
+        line: startLine,
+        column: startCol,
+        numeric: parseInt(text.slice(2), 16),
+      };
+    }
+    while (!this.eof() && this.isDigit(this.peek())) {
+      text += this.peek();
+      this.advance();
+    }
+    if (this.peek() === '.' && this.isDigit(this.peek(1))) {
+      isReal = true;
+      text += '.';
+      this.advance();
+      while (!this.eof() && this.isDigit(this.peek())) {
+        text += this.peek();
+        this.advance();
+      }
+    }
+    if (this.peek() === 'e' || this.peek() === 'E') {
+      isReal = true;
+      text += this.peek();
+      this.advance();
+      if (this.peek() === '+' || this.peek() === '-') {
+        text += this.peek();
+        this.advance();
+      }
+      while (!this.eof() && this.isDigit(this.peek())) {
+        text += this.peek();
+        this.advance();
+      }
+    }
+    const numeric = isReal ? parseFloat(text) : parseInt(text, 10);
+    return {
+      kind: isReal ? 'REAL' : 'INT',
+      text,
+      line: startLine,
+      column: startCol,
+      numeric,
+    };
+  }
+
+  private readIdent(): Token {
+    const startLine = this.line;
+    const startCol = this.col;
+    let text = '';
+    while (!this.eof() && this.isIdentPart(this.peek())) {
+      text += this.peek();
+      this.advance();
+    }
+    // Case-sensitive keyword lookup — see tokens.ts for the rationale.
+    const keyword = KEYWORDS[text];
+    return {
+      kind: keyword ?? 'IDENT',
+      text,
+      line: startLine,
+      column: startCol,
+    };
+  }
+
+  private readPragmaOrInclude(): Token {
+    // Preprocessor lines are eaten before the lexer normally runs (the
+    // preprocessor pre-strips them). If one slips through, emit it as an
+    // identifier-like token so the parser can produce a helpful error.
+    const startLine = this.line;
+    const startCol = this.col;
+    let text = '';
+    while (!this.eof() && this.peek() !== '\n') {
+      text += this.peek();
+      this.advance();
+    }
+    return { kind: 'IDENT', text, line: startLine, column: startCol };
+  }
+
+  private readOperator(): Token {
+    const startLine = this.line;
+    const startCol = this.col;
+    const c = this.peek();
+    const n = this.peek(1);
+    const mk = (kind: TokenKind, len: number, text: string): Token => {
+      for (let i = 0; i < len; i++) this.advance();
+      return { kind, text, line: startLine, column: startCol };
+    };
+    switch (c) {
+      case '+': return n === '+' ? mk('PLUSPLUS', 2, '++') : mk('PLUS', 1, '+');
+      case '-': return n === '-' ? mk('MINUSMINUS', 2, '--') : mk('MINUS', 1, '-');
+      case '*': return mk('STAR', 1, '*');
+      case '/': return mk('SLASH', 1, '/');
+      case '%': return mk('PERCENT', 1, '%');
+      case '=': return n === '=' ? mk('EQ', 2, '==') : mk('ASSIGN', 1, '=');
+      case '!': return n === '=' ? mk('NE', 2, '!=') : mk('BANG', 1, '!');
+      case '<': return n === '=' ? mk('LE', 2, '<=') : mk('LT', 1, '<');
+      case '>': return n === '=' ? mk('GE', 2, '>=') : mk('GT', 1, '>');
+      case '&': return n === '&' ? mk('AMPAMP', 2, '&&') : mk('AMP', 1, '&');
+      case '|': return n === '|' ? mk('PIPEPIPE', 2, '||') : mk('PIPE', 1, '|');
+      case '^': return n === '^' ? mk('CARETCARET', 2, '^^') : mk('CARET', 1, '^');
+      case '(': return mk('LPAREN', 1, '(');
+      case ')': return mk('RPAREN', 1, ')');
+      case '{': return mk('LBRACE', 1, '{');
+      case '}': return mk('RBRACE', 1, '}');
+      case '[': return mk('LBRACKET', 1, '[');
+      case ']': return mk('RBRACKET', 1, ']');
+      case ',': return mk('COMMA', 1, ',');
+      case ':': return mk('COLON', 1, ':');
+      case ';': return mk('SEMI', 1, ';');
+      case '.': return mk('DOT', 1, '.');
+    }
+    throw new LexError(`unexpected character '${c}'`, startLine, startCol);
+  }
+
+  private skipTrivia(): void {
+    while (!this.eof()) {
+      const c = this.peek();
+      if (c === ' ' || c === '\t' || c === '\r') {
+        this.advance();
+      } else if (c === '\n') {
+        this.advance();
+      } else if (c === '/' && this.peek(1) === '/') {
+        while (!this.eof() && this.peek() !== '\n') this.advance();
+      } else if (c === '/' && this.peek(1) === '*') {
+        this.advance(); this.advance();
+        while (!this.eof() && !(this.peek() === '*' && this.peek(1) === '/')) {
           this.advance();
         }
-      } else if (ch === '/' && this.peekNext() === '*') {
-        // Block comment
-        this.advance(); // /
-        this.advance(); // *
-        while (!this.isAtEnd() && !(this.peek() === '*' && this.peekNext() === '/')) {
-          if (this.peek() === '\n') {
-            this.line++;
-            this.column = 1;
-          }
-          this.advance();
-        }
-        if (!this.isAtEnd()) {
-          this.advance(); // *
-          this.advance(); // /
-        }
+        if (!this.eof()) { this.advance(); this.advance(); }
       } else {
         break;
       }
     }
   }
 
-  /**
-   * Read string literal
-   */
-  private readString(): Token {
-    this.advance(); // Skip opening quote
-    
-    let value = '';
-    while (!this.isAtEnd() && this.peek() !== '"') {
-      if (this.peek() === '\\') {
-        this.advance();
-        const escaped = this.advance();
-        switch (escaped) {
-          case 'n': value += '\n'; break;
-          case 'r': value += '\r'; break;
-          case 't': value += '\t'; break;
-          case '"': value += '"'; break;
-          case '\\': value += '\\'; break;
-          default: value += escaped;
-        }
-      } else if (this.peek() === '\n') {
-        throw new Error(`Unterminated string at line ${this.line}`);
-      } else {
-        value += this.advance();
-      }
-    }
-    
-    if (this.isAtEnd()) {
-      throw new Error(`Unterminated string at line ${this.line}`);
-    }
-    
-    this.advance(); // Skip closing quote
-    return this.makeToken(TokenType.STRING, value);
-  }
-
-  /**
-   * Read number (integer or real)
-   */
-  private readNumber(): Token {
-    let value = '';
-    
-    // Check for hex
-    if (this.peek() === '0' && (this.peekNext() === 'x' || this.peekNext() === 'X')) {
-      value += this.advance(); // 0
-      value += this.advance(); // x
-      while (this.isHexDigit(this.peek())) {
-        value += this.advance();
-      }
-      return this.makeToken(TokenType.INTEGER, value);
-    }
-    
-    while (this.isDigit(this.peek())) {
-      value += this.advance();
-    }
-    
-    // Check for decimal
-    if (this.peek() === '.' && this.isDigit(this.peekNext())) {
-      value += this.advance(); // .
-      while (this.isDigit(this.peek())) {
-        value += this.advance();
-      }
-      return this.makeToken(TokenType.REAL, value);
-    }
-    
-    return this.makeToken(TokenType.INTEGER, value);
-  }
-
-  /**
-   * Read identifier or keyword
-   */
-  private readIdentifier(): Token {
-    let value = '';
-    
-    while (this.isAlphaNumeric(this.peek()) || this.peek() === '_') {
-      value += this.advance();
-    }
-    
-    const lower = value.toLowerCase();
-    const keywordType = KEYWORDS[lower];
-    
-    if (keywordType) {
-      return this.makeToken(keywordType, lower);
-    }
-    
-    return this.makeToken(TokenType.IDENTIFIER, value);
-  }
-
-  /**
-   * Read operator or delimiter
-   */
-  private readOperator(): Token {
-    const ch = this.advance();
-    
-    switch (ch) {
-      case '+':
-        if (this.peek() === '+') { this.advance(); return this.makeToken(TokenType.PLUSPLUS, '++'); }
-        return this.makeToken(TokenType.PLUS, ch);
-      case '-':
-        if (this.peek() === '-') { this.advance(); return this.makeToken(TokenType.MINUSMINUS, '--'); }
-        return this.makeToken(TokenType.MINUS, ch);
-      case '*': return this.makeToken(TokenType.STAR, ch);
-      case '/': return this.makeToken(TokenType.SLASH, ch);
-      case '%': return this.makeToken(TokenType.PERCENT, ch);
-      case '&':
-        if (this.peek() === '&') { this.advance(); return this.makeToken(TokenType.LAND, '&&'); }
-        return this.makeToken(TokenType.BAND, ch);
-      case '|':
-        if (this.peek() === '|') { this.advance(); return this.makeToken(TokenType.LOR, '||'); }
-        return this.makeToken(TokenType.BOR, ch);
-      case '^': return this.makeToken(TokenType.BXOR, ch);
-      case '(': return this.makeToken(TokenType.LPAREN, ch);
-      case ')': return this.makeToken(TokenType.RPAREN, ch);
-      case '{': return this.makeToken(TokenType.LBRACE, ch);
-      case '}': return this.makeToken(TokenType.RBRACE, ch);
-      case '[': return this.makeToken(TokenType.LBRACKET, ch);
-      case ']': return this.makeToken(TokenType.RBRACKET, ch);
-      case ',': return this.makeToken(TokenType.COMMA, ch);
-      case ':': return this.makeToken(TokenType.COLON, ch);
-      case ';': return this.makeToken(TokenType.SEMICOLON, ch);
-      case '.': return this.makeToken(TokenType.DOT, ch);
-      case '#': return this.makeToken(TokenType.HASH, ch);
-      
-      case '=':
-        if (this.peek() === '=') { this.advance(); return this.makeToken(TokenType.EQ, '=='); }
-        return this.makeToken(TokenType.ASSIGN, ch);
-      
-      case '!':
-        if (this.peek() === '=') { this.advance(); return this.makeToken(TokenType.NE, '!='); }
-        return this.makeToken(TokenType.LNOT, ch);
-      
-      case '<':
-        if (this.peek() === '=') { this.advance(); return this.makeToken(TokenType.LE, '<='); }
-        return this.makeToken(TokenType.LT, ch);
-      
-      case '>':
-        if (this.peek() === '=') { this.advance(); return this.makeToken(TokenType.GE, '>='); }
-        return this.makeToken(TokenType.GT, ch);
-      
-      default:
-        throw new Error(`Unexpected character '${ch}' at line ${this.line}, column ${this.column}`);
-    }
-  }
-
-  // ============ Helper methods ============
-
-  private peek(): string {
-    if (this.isAtEnd()) return '\0';
-    return this.source[this.pos];
-  }
-
-  private peekNext(): string {
-    if (this.pos + 1 >= this.source.length) return '\0';
-    return this.source[this.pos + 1];
+  private peek(offset = 0): string {
+    return this.src[this.pos + offset] ?? '';
   }
 
   private advance(): string {
-    const ch = this.source[this.pos++];
-    this.column++;
+    const ch = this.src[this.pos++];
+    if (ch === '\n') { this.line++; this.col = 1; } else { this.col++; }
     return ch;
   }
 
-  private isAtEnd(): boolean {
-    return this.pos >= this.source.length;
+  private eof(): boolean {
+    return this.pos >= this.src.length;
   }
 
-  private isDigit(ch: string): boolean {
-    return ch >= '0' && ch <= '9';
+  private isDigit(c: string): boolean {
+    return c >= '0' && c <= '9';
   }
 
-  private isHexDigit(ch: string): boolean {
-    return this.isDigit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
+  private isIdentStart(c: string): boolean {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c === '_';
   }
 
-  private isAlpha(ch: string): boolean {
-    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
-  }
-
-  private isAlphaNumeric(ch: string): boolean {
-    return this.isAlpha(ch) || this.isDigit(ch);
-  }
-
-  private makeToken(type: TokenType, value: string): Token {
-    return {
-      type,
-      value,
-      line: this.line,
-      column: this.column - value.length,
-    };
+  private isIdentPart(c: string): boolean {
+    return this.isIdentStart(c) || this.isDigit(c);
   }
 }
 

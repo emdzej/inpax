@@ -1,0 +1,30 @@
+{
+  "name": "@emdzej/inpax-ipo-editor",
+  "version": "0.0.0",
+  "description": "Terminal UI for editing constants in compiled INPA .ipo files",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ipo-editor": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@emdzej/inpax-core": "workspace:*",
+    "@emdzej/inpax-parser": "workspace:*",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "iconv-lite": "^0.6.3",
+    "ink": "^5.1.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "typescript": "^5.7.0"
+  }
+}

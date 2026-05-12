@@ -363,7 +363,9 @@ async function runWithTui(filePath: string, scriptName: string, options: RunOpti
     // Connect menu events to scheduler
     provider.on('menu:select', ({ itemNum }) => {
         // Find menu item handler in IPO
-        const menuItem = findMenuItemHandler(ipo, itemNum);
+        const menuHandle = provider.state.menuHandle;
+        if (menuHandle === null) return;
+        const menuItem = findMenuItemHandler(ipo, menuHandle, itemNum);
         if (menuItem) {
             scheduler.queueMenuAction(itemNum, async () => {
                 await vm.executeBlock(menuItem);
@@ -537,16 +539,13 @@ async function runHeadless(filePath: string, scriptName: string, options: RunOpt
 }
 
 /**
- * Find menu item handler function block by item number
+ * Find the handler block for an F-key in the active menu. The F-key
+ * slot lives in `header.flags` (1..10 = F1..F10, 11..20 = Shift+F1..
+ * Shift+F10), not in the array index.
  */
-function findMenuItemHandler(ipo: any, itemNum: number): any {
-    // Menu items are stored in menus, each with items that have handlers
-    for (const menu of ipo.menus.values()) {
-        for (const item of menu.items) {
-            if (item.itemNum === itemNum && item.func) {
-                return item.func;
-            }
-        }
-    }
-    return null;
+function findMenuItemHandler(ipo: any, menuHandle: number, itemNum: number): any {
+    const menu = ipo.menus.get(menuHandle);
+    if (!menu) return null;
+    const item = menu.items.find((m: any) => m.header.flags === itemNum);
+    return item?.func ?? null;
 }

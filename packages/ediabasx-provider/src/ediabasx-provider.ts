@@ -51,6 +51,20 @@ export interface EdiabasXProviderConfig {
    * and calls this callback when present, fallback otherwise.
    */
   loadSgbd?: (filename: string, ediabas: Ediabas) => Promise<void>;
+  /**
+   * Pull the current comm transport on `init()`. Browser hosts hand
+   * us a callback that reads the user's most recently established
+   * Web Serial / simulation transport from their UI state — the
+   * transport isn't known at runtime construction (the user picks
+   * the cable after the IPO mounts, via the script-driven
+   * `ensureConnected` flow), so we can't bake it into the `instance`
+   * passed in.
+   *
+   * Called once per `init()`. Return `null` if no transport is
+   * ready; the provider will still proceed to `connect()` and let
+   * the resulting error surface as a `job:error`.
+   */
+  getTransport?: () => EdiabasConfig['transport'] | null;
 }
 
 /**
@@ -127,6 +141,17 @@ export class EdiabasXProvider
           ecuPath: '',
           simulation: true,
         });
+      }
+
+      // Pull the latest transport from the host before connecting.
+      // Browser hosts only know the transport AFTER the user clicks
+      // Connect in the settings panel; that happens during the
+      // script-driven `ensureConnected` flow, which fires BEFORE
+      // this `init()`. The callback returns the freshly-built
+      // transport (or null if the user skipped).
+      const transportFromHost = this.providerConfig.getTransport?.() ?? null;
+      if (transportFromHost) {
+        this.ediabas.setTransport(transportFromHost);
       }
 
       if (this.providerConfig.autoConnect !== false) {
@@ -249,6 +274,21 @@ export class EdiabasXProvider
 
   resultSets(): number {
     return this.lastResults.length;
+  }
+
+  /**
+   * Return an iterable of `[name, EdiabasJobResult]` for every field
+   * in the given 1-based result set, or `null` if the index is out of
+   * range. Hosts get the raw value (with type) so they can render
+   * Uint8Array fields as hex, numbers with their original precision,
+   * etc. — needed for fault-store reports where the `value` of fields
+   * like `F_HEX_CODE` is binary, not text, and `coerceText`'s UTF-8
+   * fallback would produce mojibake.
+   */
+  resultSetEntries(set: number): Iterable<[string, EdiabasJobResult]> | null {
+    const setIndex = set - 1;
+    if (setIndex < 0 || setIndex >= this.lastResults.length) return null;
+    return this.lastResults[setIndex].results.entries();
   }
 
   resultText(name: string, set: number, format: string): string {

@@ -263,6 +263,67 @@ export interface IUIProvider extends EventEmitter<UIEvents> {
    * Show info box (waits for user)
    */
   infoBox(title: string, text: string): Promise<void>;
+
+  /**
+   * After `ediabas.init()` failed during `INPAapiInit`, ask the user
+   * what to do. Three outcomes:
+   *
+   *   - `"retry"` — loop back, re-show the connect dialog, try again
+   *   - `"continue"` — abandon the connection attempt; the script
+   *     keeps running but subsequent jobs will surface `job:error`
+   *   - `"stop"` — abort the script (the dispatcher throws, the VM
+   *     halts at the failing INPAapiInit instruction)
+   *
+   * `message` is the underlying error text (e.g.
+   * `"Communication interface is not configured"`) so the dialog can
+   * show it. Hosts that can't render an interactive choice should
+   * resolve with `"continue"` so scripts don't hang.
+   */
+  confirmConnectError(message: string): Promise<"retry" | "continue" | "stop">;
+
+  /**
+   * Drive the host's "make sure we have an open EDIABAS connection"
+   * flow and resolve when it's done. Invoked by the dispatcher's
+   * `INPAapiInit` so the script's connection setup is host-driven
+   * instead of the host being forced to gate the runtime mount on a
+   * Connect button.
+   *
+   * The host is expected to:
+   *
+   *   1. Check whether a connection is already live (config in
+   *      storage + transport open) — if so, resolve immediately.
+   *   2. Otherwise, show whatever settings / connect UI it has
+   *      (web: `ConfigPanel`; CLI: a prompt or just use the
+   *      previously-discovered config) and wait for the user to
+   *      finish.
+   *   3. Resolve regardless of outcome — connection success vs the
+   *      user cancelling is surfaced through subsequent
+   *      `ediabas.init()` / `INPAapiJob` errors, not here. The
+   *      dispatcher loops on init() failure with its own retry /
+   *      continue / stop dialog.
+   *
+   * `Promise<void>` — no value, just a settling signal.
+   */
+  ensureConnected(): Promise<void>;
+
+  /**
+   * Show the script-select picker for the given INI filename
+   * (e.g. `"E46.ENG"`) and wait for the user to pick an IPO or cancel.
+   *
+   * INPA's `scriptselect` builds a tree from the INI's section names
+   * (`[ROOT]`, `[ROOT_MOTOR]`, `[ROOT_GETRIEBE]` → ROOT > Engine /
+   * Transmission). Each section has a `DESCRIPTION=` line for the
+   * tree label and `ENTRY=<ipo>,<text>,<extra>` lines for the
+   * concrete IPO scripts in that group. When the user confirms an
+   * entry, the host should swap the running IPO to `<ipo>.IPO`
+   * (resolved against the install's SGDAT directory).
+   *
+   * The TUI provider does NOT read the INI file itself — file IO is
+   * host-specific (Node fs vs File System Access API). The promise
+   * resolves with the picked IPO basename, or `null` if the user
+   * cancelled.
+   */
+  scriptSelect(iniFile: string): Promise<string | null>;
   
   /**
    * Open persistent user box

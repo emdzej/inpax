@@ -1,10 +1,22 @@
 <script lang="ts">
   import { app } from "./lib/state.svelte";
   import { connection } from "./lib/connection.svelte";
+  import { clearInstallHandle } from "./lib/install-storage";
   import InstallPicker from "./components/InstallPicker.svelte";
   import IpoSidebar from "./components/IpoSidebar.svelte";
   import IpoRunner from "./components/IpoRunner.svelte";
   import ConfigPanel from "./components/ConfigPanel.svelte";
+
+  async function changeFolder(): Promise<void> {
+    // Drop the persisted handle so the picker comes back clean next
+    // time (no "Continue with last folder" affordance for a folder
+    // the user just walked away from).
+    await clearInstallHandle();
+    app.view = "welcome";
+    app.install = null;
+    app.ipoFiles = [];
+    app.selectedIpo = null;
+  }
 </script>
 
 <div class="flex h-full flex-col">
@@ -40,12 +52,7 @@
       <button
         type="button"
         class="text-xs text-zinc-500 hover:text-zinc-300"
-        onclick={() => {
-          app.view = "welcome";
-          app.install = null;
-          app.ipoFiles = [];
-          app.selectedIpo = null;
-        }}
+        onclick={() => void changeFolder()}
       >
         Change folder
       </button>

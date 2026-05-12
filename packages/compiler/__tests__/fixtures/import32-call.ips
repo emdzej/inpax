@@ -1,0 +1,22 @@
+import32 "C" lib "kernel32::GetPrivateProfileStringA" GetIniString(
+  in:  string Section,
+  in:  string Key,
+  in:  string Default,
+  out: string Buffer,
+  in:  int    BufSize,
+  in:  string FileName,
+  returns: int ReturnedSize);
+
+import32 "C" lib "kernel32" OpenFile(
+  in:    string  FileName,
+  inout: structure ReOpenBuff,
+  in:    int     Style,
+  returns: int ReturnedValue);
+
+inpainit() {
+  string buff;
+  int    size;
+  GetIniString("Section", "Key", "Default", buff, 80, "config.ini", size);
+}
+
+inpaexit() {}

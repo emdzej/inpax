@@ -4,16 +4,28 @@ import type { ScreenBlock, LineBlock, FunctionBlock } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
 
-// Mock VM
-const createMockVM = () => ({
+// Mock VM. The real `ScreenExecutor.executeBlock` calls
+// `vm.execute(block, ctx)` (NOT `vm.executeBlock`) — `executeBlock`
+// on the VM is the entry point for menu/state-machine dispatch,
+// which is unrelated to screen ticks. Mocking `execute` makes the
+// executor's tick succeed; the asserts read it back as the spy.
+// `createExecutionContext` on the executor pulls `getGlobals()` /
+// `getConstants()` so we hand back empty arrays for those.
+// `getRuntime` is needed for `executeInitPhase` → `ui.blankScreen()`.
+const createMockVM = (runtime: IInpaRuntime) => ({
+  execute: vi.fn().mockResolvedValue(undefined),
   executeBlock: vi.fn().mockResolvedValue(undefined),
   getScreenExecutor: vi.fn().mockReturnValue(null),
+  getGlobals: vi.fn().mockReturnValue([]),
+  getConstants: vi.fn().mockReturnValue([]),
+  getRuntime: vi.fn().mockReturnValue(runtime),
 } as unknown as VM);
 
 // Mock runtime with UI provider
-const createMockRuntime = () => ({
+const createMockRuntime = (): IInpaRuntime => ({
   ui: {
     setScreen: vi.fn(),
+    blankScreen: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
     emit: vi.fn(),
@@ -56,8 +68,8 @@ describe('ScreenExecutor', () => {
   
   beforeEach(() => {
     vi.useFakeTimers();
-    vm = createMockVM();
     runtime = createMockRuntime();
+    vm = createMockVM(runtime);
   });
   
   afterEach(() => {
@@ -124,9 +136,11 @@ describe('ScreenExecutor', () => {
       
       // Advance past init phase
       await vi.advanceTimersByTimeAsync(50);
-      
-      expect(vm.executeBlock).toHaveBeenCalledWith(screen.allocFunc);
-      expect(vm.executeBlock).toHaveBeenCalledWith(screen.initFunc);
+
+      // The executor dispatches through `vm.execute(block, ctx)` —
+      // assert on the block arg, ignore the context.
+      expect(vm.execute).toHaveBeenCalledWith(screen.allocFunc, expect.anything());
+      expect(vm.execute).toHaveBeenCalledWith(screen.initFunc, expect.anything());
       expect(phaseHandler).toHaveBeenCalledWith('line');
     });
 

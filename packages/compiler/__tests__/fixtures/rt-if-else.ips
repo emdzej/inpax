@@ -1,0 +1,14 @@
+// Runtime smoke: take both branches of an if/else depending on input.
+int input;
+int output;
+
+inpainit() {
+  input  = 5;
+  if (input > 3) {
+    output = 100;
+  } else {
+    output = 200;
+  }
+}
+
+inpaexit() {}

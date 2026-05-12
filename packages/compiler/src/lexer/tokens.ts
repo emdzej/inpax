@@ -1,133 +1,121 @@
 /**
- * Token types for INPA IPS language (C-like syntax)
+ * Token taxonomy for the IPS language.
+ *
+ * The lexer is deliberately permissive: keywords are matched
+ * case-insensitively (so `SCREEN` and `screen` are equivalent — INPACOMP
+ * accepts both), and the parser later decides which contexts demand the
+ * upper-case spelling.
  */
-export enum TokenType {
-  // Literals
-  INTEGER = 'INTEGER',
-  REAL = 'REAL',
-  STRING = 'STRING',
-  IDENTIFIER = 'IDENTIFIER',
 
-  // Keywords - Types
-  BOOL = 'BOOL',
-  BYTE = 'BYTE',
-  INT = 'INT',
-  LONG = 'LONG',
-  REAL_TYPE = 'REAL_TYPE',
-  STRING_TYPE = 'STRING_TYPE',
+export type TokenKind =
+  // literals
+  | 'INT' | 'REAL' | 'STRING' | 'IDENT' | 'BITPATTERN'
+  // type keywords
+  | 'BOOL_T' | 'BYTE_T' | 'INT_T' | 'LONG_T' | 'REAL_T' | 'STRING_T'
+  | 'STRUCTURE_T'
+  // control flow
+  | 'IF' | 'ELSE' | 'WHILE' | 'FOR' | 'RETURN' | 'BREAK' | 'CONTINUE'
+  // UI / language blocks
+  | 'SCREEN' | 'MENU' | 'LINE' | 'ITEM' | 'INIT'
+  | 'STATEMACHINE' | 'LOGTABLE' | 'CONTROL' | 'OTHER'
+  // imports
+  | 'IMPORT' | 'IMPORT32' | 'LIB' | 'EXTERN'
+  // directions
+  | 'IN' | 'OUT' | 'INOUT' | 'RETURNS'
+  // constants
+  | 'TRUE' | 'FALSE'
+  // logical word operators
+  | 'AND_KW' | 'OR_KW' | 'NOT_KW'
+  // operators
+  | 'PLUS' | 'MINUS' | 'STAR' | 'SLASH' | 'PERCENT'
+  | 'ASSIGN' | 'EQ' | 'NE' | 'LT' | 'LE' | 'GT' | 'GE'
+  | 'AMP' | 'PIPE' | 'CARET' | 'AMPAMP' | 'PIPEPIPE' | 'CARETCARET'
+  | 'BANG' | 'PLUSPLUS' | 'MINUSMINUS'
+  // delimiters
+  | 'LPAREN' | 'RPAREN' | 'LBRACE' | 'RBRACE' | 'LBRACKET' | 'RBRACKET'
+  | 'COMMA' | 'COLON' | 'SEMI' | 'DOT'
+  // misc
+  | 'EOF';
 
-  // Keywords - Control Flow
-  IF = 'IF',
-  ELSE = 'ELSE',
-  WHILE = 'WHILE',
-  FOR = 'FOR',
-  RETURN = 'RETURN',
-  BREAK = 'BREAK',
-  CONTINUE = 'CONTINUE',
-
-  // Keywords - UI Blocks
-  SCREEN = 'SCREEN',
-  MENU = 'MENU',
-  LINE = 'LINE',
-  ITEM = 'ITEM',
-  INIT = 'INIT',
-
-  // Keywords - Logical
-  AND = 'AND',
-  OR = 'OR',
-  NOT = 'NOT',
-  TRUE = 'TRUE',
-  FALSE = 'FALSE',
-
-  // Operators
-  PLUS = 'PLUS',           // +
-  MINUS = 'MINUS',         // -
-  STAR = 'STAR',           // *
-  SLASH = 'SLASH',         // /
-  PERCENT = 'PERCENT',     // %
-  ASSIGN = 'ASSIGN',       // =
-  EQ = 'EQ',               // ==
-  NE = 'NE',               // !=
-  LT = 'LT',               // <
-  LE = 'LE',               // <=
-  GT = 'GT',               // >
-  GE = 'GE',               // >=
-  BAND = 'BAND',           // &
-  BOR = 'BOR',             // |
-  BXOR = 'BXOR',           // ^
-  LAND = 'LAND',           // &&
-  LOR = 'LOR',             // ||
-  LNOT = 'LNOT',           // !
-  PLUSPLUS = 'PLUSPLUS',   // ++
-  MINUSMINUS = 'MINUSMINUS', // --
-
-  // Delimiters
-  LPAREN = 'LPAREN',       // (
-  RPAREN = 'RPAREN',       // )
-  LBRACE = 'LBRACE',       // {
-  RBRACE = 'RBRACE',       // }
-  LBRACKET = 'LBRACKET',   // [
-  RBRACKET = 'RBRACKET',   // ]
-  COMMA = 'COMMA',         // ,
-  COLON = 'COLON',         // :
-  SEMICOLON = 'SEMICOLON', // ;
-  DOT = 'DOT',             // .
-
-  // Preprocessor
-  HASH = 'HASH',           // #
-  PRAGMA = 'PRAGMA',
-  INCLUDE = 'INCLUDE',
-
-  // Special
-  EOF = 'EOF',
-}
-
-/**
- * Token with position info
- */
 export interface Token {
-  type: TokenType;
-  value: string;
-  line: number;
-  column: number;
+  readonly kind: TokenKind;
+  readonly text: string;
+  readonly line: number;
+  readonly column: number;
+  /** Used for numeric literals. */
+  readonly numeric?: number;
+  /** Used for string literals (after escape processing). */
+  readonly string?: string;
+  /** Used for `0y` bit patterns (mask, value). */
+  readonly pattern?: { value: number; mask: number; width: number };
 }
 
 /**
- * Keywords map (case-insensitive)
+ * Identifier-to-keyword map. Lookup is **case-sensitive** — INPA keeps
+ * type names lower-case (`int`, `string`) so that capitalised
+ * identifiers (`String`, `Section`) are free for use as variable /
+ * parameter names. Block-flavoured keywords (`SCREEN`, `MENU`, …) are
+ * conventionally upper-case in real BMW scripts so we recognise them
+ * in that form only.
+ *
+ * Where BMW code uses both cases (booleans, word operators) we list
+ * each spelling explicitly. Adding a new case-variant here is cheaper
+ * than reintroducing the case-insensitive lookup, which previously
+ * caused parameter names like `String` to be lexed as `STRING_T`.
  */
-export const KEYWORDS: Record<string, TokenType> = {
-  // Types
-  'bool': TokenType.BOOL,
-  'byte': TokenType.BYTE,
-  'int': TokenType.INT,
-  'long': TokenType.LONG,
-  'real': TokenType.REAL_TYPE,
-  'string': TokenType.STRING_TYPE,
+export const KEYWORDS: Record<string, TokenKind> = {
+  // types — lowercase only
+  bool: 'BOOL_T',
+  byte: 'BYTE_T',
+  int: 'INT_T',
+  long: 'LONG_T',
+  real: 'REAL_T',
+  string: 'STRING_T',
+  // Opaque struct pointer used in Win32 import32 signatures
+  // (e.g. `inout: structure ReOpenBuff` in startus.ips). Treated as
+  // a generic handle by the AST for now.
+  structure: 'STRUCTURE_T',
 
-  // Control flow
-  'if': TokenType.IF,
-  'else': TokenType.ELSE,
-  'while': TokenType.WHILE,
-  'for': TokenType.FOR,
-  'return': TokenType.RETURN,
-  'break': TokenType.BREAK,
-  'continue': TokenType.CONTINUE,
+  // control flow — lowercase only
+  if: 'IF',
+  else: 'ELSE',
+  while: 'WHILE',
+  for: 'FOR',
+  return: 'RETURN',
+  break: 'BREAK',
+  continue: 'CONTINUE',
 
-  // UI blocks
-  'screen': TokenType.SCREEN,
-  'menu': TokenType.MENU,
-  'line': TokenType.LINE,
-  'item': TokenType.ITEM,
-  'init': TokenType.INIT,
+  // block / UI keywords — uppercase only (BMW convention)
+  SCREEN: 'SCREEN',
+  MENU: 'MENU',
+  LINE: 'LINE',
+  ITEM: 'ITEM',
+  INIT: 'INIT',
+  STATEMACHINE: 'STATEMACHINE',
+  LOGTABLE: 'LOGTABLE',
+  CONTROL: 'CONTROL',
+  OTHER: 'OTHER',
 
-  // Logical
-  'and': TokenType.AND,
-  'or': TokenType.OR,
-  'not': TokenType.NOT,
-  'true': TokenType.TRUE,
-  'false': TokenType.FALSE,
+  // imports
+  import: 'IMPORT',
+  import32: 'IMPORT32',
+  lib: 'LIB',
+  extern: 'EXTERN',
 
-  // Preprocessor (after #)
-  'pragma': TokenType.PRAGMA,
-  'include': TokenType.INCLUDE,
+  // directions
+  in: 'IN',
+  out: 'OUT',
+  inout: 'INOUT',
+  returns: 'RETURNS',
+
+  // booleans — both cases (BMW scripts mix `TRUE` and `true`).
+  TRUE: 'TRUE',
+  FALSE: 'FALSE',
+  true: 'TRUE',
+  false: 'FALSE',
+
+  // word-form logical operators — every common case variant.
+  and: 'AND_KW', AND: 'AND_KW', And: 'AND_KW',
+  or: 'OR_KW',  OR: 'OR_KW',  Or: 'OR_KW',
+  not: 'NOT_KW', NOT: 'NOT_KW', Not: 'NOT_KW',
 };

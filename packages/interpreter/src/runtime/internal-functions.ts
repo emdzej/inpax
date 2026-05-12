@@ -78,7 +78,7 @@ export class InternalFunctions {
 
     // Job Control (stubs)
     this.handlers.set(SystemFunction.setjobstatus, () => this.stub('setjobstatus'));
-    this.handlers.set(SystemFunction.scriptselect, () => this.stub('scriptselect'));
+    this.handlers.set(SystemFunction.scriptselect, (ctx) => this.scriptselect(ctx));
     this.handlers.set(SystemFunction.scriptchange, () => this.stub('scriptchange'));
     this.handlers.set(SystemFunction.select, () => this.stub('select'));
     this.handlers.set(SystemFunction.deselect, () => this.stub('deselect'));
@@ -116,6 +116,39 @@ export class InternalFunctions {
 
   private stub(name: string): void {
     log.warn({ name }, 'stub function not implemented');
+  }
+
+  // ============ Script Control ============
+
+  /**
+   * `scriptselect(iniFile)` — INPA's "switch to another script" entry
+   * point. The script passes a filename like `"E46.ENG"` (built from
+   * a configured F-key binding + language suffix); the host shows a
+   * picker driven by that INI's section tree + entries, the user
+   * confirms an IPO, and the host swaps the currently-running script.
+   *
+   * Fire-and-forget by design: we kick off `ui.scriptSelect()` (which
+   * returns a Promise resolving to the chosen IPO basename or null
+   * for cancel) and let the calling bytecode continue. If the user
+   * confirms, the host's `script:switch` listener tears down the
+   * runtime and replaces it, so the continuing instructions become
+   * moot. If the user cancels, nothing happens and the script keeps
+   * going. Either way, the caller doesn't see a return value — the
+   * BEST2 signature has none.
+   */
+  private scriptselect(ctx: ExecutionContext): void {
+    const iniFile = ctx.popString();
+    const ui = this.vm.getRuntime().ui;
+    void ui
+      .scriptSelect(iniFile)
+      .then((ipo) => {
+        if (ipo) {
+          ui.emit('script:switch', { ipo, iniFile });
+        }
+      })
+      .catch((err: unknown) => {
+        log.error({ err, iniFile }, 'scriptselect failed');
+      });
   }
 
   // ============ Timer ============

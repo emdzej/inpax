@@ -1,0 +1,12 @@
+// Runtime smoke: ALU ADD/SUB/MUL and store into globals.
+int sum;
+int diff;
+int product;
+
+inpainit() {
+  sum     = 10 + 7;
+  diff    = 20 - 3;
+  product = 6 * 9;
+}
+
+inpaexit() {}

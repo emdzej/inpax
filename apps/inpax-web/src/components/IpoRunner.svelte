@@ -13,12 +13,16 @@
    */
 
   import { app } from "../lib/state.svelte";
-  import { connection, getActiveTransport, connect } from "../lib/connection.svelte";
+  import { getActiveTransport } from "../lib/connection.svelte";
   import { startInpaRuntime, type RuntimeHandle } from "../lib/runtime.svelte";
   import { classicInpaTheme } from "../lib/theme";
   import ScreenCanvas from "./ScreenCanvas.svelte";
   import FKeyBar from "./FKeyBar.svelte";
   import DialogOverlay from "./DialogOverlay.svelte";
+  import ScriptSelectDialog from "./ScriptSelectDialog.svelte";
+  import ConnectDialog from "./ConnectDialog.svelte";
+  import UserBoxOverlay from "./UserBoxOverlay.svelte";
+  import ViewerDialog from "./ViewerDialog.svelte";
 
   let runtime = $state<RuntimeHandle | null>(null);
   let title = $state("");
@@ -42,20 +46,46 @@
     return ui.onStateChange(refresh);
   });
 
-  // Drive the runtime lifecycle from `app.selectedIpo` AND the
-  // connection phase — the runtime is started only once a transport
-  // is active, and torn down if the user disconnects mid-script.
+  // Wire up the `scriptselect` → swap-IPO flow. The interpreter's
+  // scriptselect handler fires `script:switch` on the ui once the
+  // user picks an IPO in the dialog; resolve that to one of our
+  // `app.ipoFiles` entries (case-insensitive, with or without the
+  // `.IPO` extension) and update `app.selectedIpo` — the runtime
+  // lifecycle effect below picks up the change and rebuilds.
+  $effect(() => {
+    if (!runtime) return;
+    const ui = runtime.ui;
+    const handler = ({ ipo, iniFile }: { ipo: string; iniFile: string }) => {
+      const wanted = ipo.toLowerCase().replace(/\.ipo$/, "");
+      const found = app.ipoFiles.find(
+        (e) => e.name.toLowerCase().replace(/\.ipo$/, "") === wanted
+      );
+      if (!found) {
+        // Surface the missing-file case so the user knows the script
+        // tried to switch to something we couldn't resolve.
+        error = `scriptselect: IPO "${ipo}" not found in SGDAT/CFGDAT (from ${iniFile})`;
+        return;
+      }
+      app.selectedIpo = found;
+    };
+    ui.on("script:switch", handler);
+    return () => {
+      ui.off("script:switch", handler);
+    };
+  });
+
+  // Drive the runtime lifecycle from `app.selectedIpo` alone — the
+  // moment the user picks a script, mount the runtime. The script's
+  // own `INPAapiInit` will then drive the cable open (via the
+  // dispatcher → `ui.ensureConnected()` flow); we no longer gate on
+  // `connection.phase` here. `getTransport` is a callback the
+  // EdiabasXProvider pulls at `init()` time, so a still-null
+  // transport at IPO-mount time is fine — by the time `INPAapiInit`
+  // fires, the user will have clicked Connect inside the modal.
   $effect(() => {
     const ipo = app.selectedIpo;
-    void connection.phase; // re-run when phase changes
-    const active = getActiveTransport();
 
     if (!ipo || !app.install) {
-      runtime?.dispose();
-      runtime = null;
-      return;
-    }
-    if (!active) {
       runtime?.dispose();
       runtime = null;
       return;
@@ -69,8 +99,7 @@
     startInpaRuntime({
       install: app.install,
       ipo,
-      transport: active.transport,
-      simulation: active.simulation,
+      getTransport: () => getActiveTransport()?.transport ?? null,
       timeoutMs: app.config.serial?.timeoutMs ?? 5000,
     })
       .then((handle) => {
@@ -91,6 +120,14 @@
     return () => {
       cancelled = true;
       if (started) void started.dispose();
+      // Null the reactive `runtime` reference too. Otherwise it keeps
+      // pointing at the just-disposed handle until the new one
+      // resolves; child components (`FKeyBar`, `ScreenCanvas`, the
+      // dialog overlays) read `runtime.ui` and won't notice the swap
+      // until `runtime` is reassigned to the new handle. The brief
+      // `null` state forces them to unmount and re-mount fresh
+      // against the new TuiProvider.
+      runtime = null;
     };
   });
 </script>
@@ -112,49 +149,7 @@
     </header>
 
     <section class="relative flex-1 overflow-hidden p-2">
-      {#if connection.phase !== "connected"}
-        <!-- No live transport — prompt the user to connect. Web Serial
-             port pick MUST run inside this user-gesture click, so the
-             button calls connect() directly here.
-             Gating on `connection.phase` rather than
-             `getActiveTransport()` makes this reactive — phase is
-             `$state`, the transport ref isn't (it'd need a Proxy that
-             breaks the interface's `this` binding). -->
-        <div class="flex h-full flex-col items-center justify-center gap-4 text-sm">
-          <div class="max-w-md text-center text-zinc-400">
-            <p class="mb-2 text-zinc-200">Not connected to an EDIABAS interface.</p>
-            <p class="text-xs text-zinc-500">
-              {app.config.interface === "webserial"
-                ? "Connect to pick your K+DCAN / K-line cable via the browser's port picker."
-                : app.config.interface === "simulation"
-                  ? "Start the simulation interface — no hardware needed."
-                  : `Interface "${app.config.interface}" needs to be wired up first.`}
-            </p>
-          </div>
-          <div class="flex gap-2">
-            <button
-              type="button"
-              class="rounded bg-accent px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-accent-muted disabled:opacity-50"
-              disabled={connection.phase === "connecting"}
-              onclick={() => void connect()}
-            >
-              {connection.phase === "connecting" ? "Connecting…" : "Connect"}
-            </button>
-            <button
-              type="button"
-              class="rounded border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:border-zinc-500"
-              onclick={() => (app.showSettings = true)}
-            >
-              Settings…
-            </button>
-          </div>
-          {#if connection.errorMessage}
-            <p class="max-w-md rounded border border-red-700 bg-red-950/40 px-3 py-2 text-xs text-red-300">
-              {connection.errorMessage}
-            </p>
-          {/if}
-        </div>
-      {:else if loading}
+      {#if loading}
         <div class="flex h-full items-center justify-center">
           <p class="text-sm text-zinc-500">Starting runtime…</p>
         </div>
@@ -177,17 +172,35 @@
              applied while a runtime is live; the Connect / Loading /
              Error states keep the dark zinc-themed bg so their
              dark-on-dark text stays readable. -->
-        <div class="h-full w-full" style="background: {classicInpaTheme.background};">
+        <div class="relative h-full w-full" style="background: {classicInpaTheme.background};">
           <ScreenCanvas screen={runtime.screen} onFrameReady={runtime.onFrameReady} />
+          <!-- UserBoxOverlay sits on top of the canvas so scripts'
+               `userboxopen`/`userboxftextout` progress dialogs (e.g.
+               "Fehlerspeicher lesen") become visible. -->
+          <UserBoxOverlay ui={runtime.ui} />
         </div>
       {/if}
     </section>
 
     {#if runtime}
-      <footer class="border-t border-zinc-800">
-        <FKeyBar ui={runtime.ui} />
-      </footer>
-      <DialogOverlay ui={runtime.ui} />
+      <!-- `{#key runtime}` forces every child to fully remount when
+           the runtime handle is swapped (IPO change via scriptselect).
+           Without it Svelte 5 sees the same `<FKeyBar>` block before
+           and after the swap and just patches the `ui` prop in place —
+           any internal `$state` the component already snapshotted from
+           the OLD provider (menu items, title, etc.) sticks around.
+           With it, the children unmount + mount fresh against the new
+           `runtime.ui`, picking up the new provider's empty state and
+           then populating from its `setitem` calls. -->
+      {#key runtime}
+        <footer class="border-t border-zinc-800">
+          <FKeyBar ui={runtime.ui} />
+        </footer>
+        <DialogOverlay ui={runtime.ui} />
+        <ScriptSelectDialog ui={runtime.ui} />
+        <ConnectDialog ui={runtime.ui} />
+        <ViewerDialog external={runtime.external} />
+      {/key}
     {/if}
   {/if}
 </main>

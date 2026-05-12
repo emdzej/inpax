@@ -13,7 +13,15 @@
 import { parseIpo } from "@emdzej/inpax-parser";
 import { VM, MainScheduler } from "@emdzej/inpax-interpreter";
 import { TuiProvider, type ScreenBuffer } from "@emdzej/inpax-tui-provider";
+import {
+  NullSimulationProvider,
+  NullPrintProvider,
+  NullPemProvider,
+  NullDtmProvider,
+  NullSpsProvider,
+} from "@emdzej/inpax-providers/null";
 import { EdiabasXProvider, Inp1Adapter } from "@emdzej/inpax-ediabasx-provider";
+import { BrowserExternalProvider } from "./browser-external.svelte.js";
 import { Ediabas, type EdiabasConfig } from "@emdzej/ediabasx-ediabas";
 import { BrowserNativeImportProvider } from "./native-imports.js";
 import { makeBrowserSgbdResolver } from "./sgbd-loader.js";
@@ -24,15 +32,19 @@ export interface RuntimeOptions {
   install: InpaInstall;
   ipo: IpoEntry;
   /**
-   * Comm transport for the Ediabas instance. Built by the caller —
-   * `SimulationInterface` for offline, `SerialInterface` over a
-   * `WebSerialTransport` for live ECU. Whatever shape it has, it's
-   * passed through to `Ediabas`'s `transport` config field, which
-   * does the duck-type check on `connect()`.
+   * Callback that returns the current comm transport whenever the
+   * provider needs one (i.e. on `INPAapiInit`). The script drives
+   * the connection lifecycle: when `INPAapiInit` fires, the
+   * dispatcher first awaits `ui.ensureConnected()` (which opens the
+   * settings/connect modal and waits for the user); only then does
+   * the provider's `init()` run and pull the now-ready transport.
+   *
+   * The caller (typically `connection.svelte.ts.getActiveTransport`)
+   * may return `null` when no cable has been opened yet; the
+   * provider lets the subsequent `connect()` fail naturally and the
+   * dispatcher's loop turns it into a job:error / retry dialog.
    */
-  transport: EdiabasConfig["transport"];
-  /** True for the simulation interface — used to skip cable I/O. */
-  simulation?: boolean;
+  getTransport: () => EdiabasConfig["transport"] | null;
   /** Default per-request timeout in ms. Passed to `Ediabas`. */
   timeoutMs?: number;
 }
@@ -40,6 +52,11 @@ export interface RuntimeOptions {
 export interface RuntimeHandle {
   /** Live UI state — Svelte components $effect against the underlying TuiProvider. */
   ui: TuiProvider;
+  /**
+   * Browser-side `external` provider. Exposes `.viewer` $state for
+   * `ViewerDialog.svelte` to render the modal that backs `viewopen`.
+   */
+  external: BrowserExternalProvider;
   /** Buffer the canvas reads each frame. */
   screen: ScreenBuffer;
   /** Stop the scheduler + tear down providers. Idempotent. */
@@ -86,50 +103,6 @@ export async function startInpaRuntime(
   const ipoBytes = new Uint8Array(await ipoFile.arrayBuffer());
   const ipo = parseIpo(ipoBytes);
 
-  // Dump parsed structure so we can verify line.func actually points
-  // at the right bytecode. The "LINE 0 runs inpainit" symptom means
-  // the parser may be putting the wrong instruction list into the
-  // screen's line[0].func — log the first few opcodes to compare
-  // against the CLI disasm.
-  console.info("[inpax-web/runtime] parsed IPO structure", {
-    functions: Array.from(ipo.functions.entries()).map(([id, fn]) => ({
-      id,
-      name: fn.header.name,
-      instrCount: fn.instructions.length,
-      firstOpcodes: fn.instructions.slice(0, 4).map((i) => `0x${i.opcode.toString(16).padStart(2, "0")}`),
-    })),
-    menus: Array.from(ipo.menus.entries()).map(([id, m]) => ({
-      id,
-      name: m.header.name,
-      hasFunc: !!m.func,
-      funcInstrCount: m.func?.instructions.length ?? 0,
-      // Every 4th instruction starting from offset 12 (F2 setitem) so
-      // we can verify what's at the spots the error references. Each
-      // F-key in the init block is exactly 10 instructions long.
-      firstInstrs: m.func?.instructions.slice(0, 32).map((ins, idx) =>
-        `${idx}:0x${ins.opcode.toString(16)}/0x${ins.operand1.toString(16)}/0x${ins.operand2.toString(16)}`
-      ) ?? [],
-      lastInstr: m.func ? `0x${m.func.instructions[m.func.instructions.length - 1].opcode.toString(16)}` : null,
-      itemCount: m.items.length,
-    })),
-    screens: Array.from(ipo.screens.entries()).map(([id, sc]) => ({
-      id,
-      name: sc.header.name,
-      hasAlloc: !!sc.allocFunc,
-      allocInstrs: sc.allocFunc?.instructions.length ?? 0,
-      hasInit: !!sc.initFunc,
-      initInstrs: sc.initFunc?.instructions.length ?? 0,
-      initFirstOpcodes: sc.initFunc?.instructions.slice(0, 4).map((i) => `0x${i.opcode.toString(16).padStart(2, "0")}`),
-      lineCount: sc.lines.length,
-      lineDetails: sc.lines.map((l) => ({
-        name: l.header.name,
-        blockId: l.header.blockId,
-        instrCount: l.func?.instructions.length ?? 0,
-        firstOpcodes: l.func?.instructions.slice(0, 4).map((i) => `0x${i.opcode.toString(16).padStart(2, "0")}`) ?? [],
-      })),
-    })),
-  });
-
   // 2. UI provider — feeds the ScreenBuffer that the canvas component
   //    paints from. TuiProvider also tracks menu items, input dialogs,
   //    title, digital indicators, etc.
@@ -141,20 +114,25 @@ export async function startInpaRuntime(
   //    initial `loadSgbd` and the post-IDENTIFIKATION `.grp → .prg`
   //    swap route through it, so neither path touches `node:fs` /
   //    `node:path` (which Vite externalises into broken stubs).
+  // No transport at construction — the script's `INPAapiInit` drives
+  // the cable open, via `ui.ensureConnected()` → user opens settings
+  // → user clicks Connect (Web Serial port pick happens inside that
+  // user gesture) → `connection.svelte.ts` builds the transport →
+  // provider's `init()` pulls it via `getTransport`. Pre-binding the
+  // transport here would require the user to click Connect BEFORE
+  // picking an IPO, which is the old gate flow we removed.
   const ediabas = new Ediabas({
     ecuPath: "", // browser path; resolver below reads from the dir handle
-    transport: options.transport,
-    simulation: options.simulation ?? false,
+    simulation: false,
     timeout: options.timeoutMs ?? 5000,
     loadSgbdResolver: makeBrowserSgbdResolver(options.install.ecu),
   });
   const ediabasProvider = new EdiabasXProvider({
     instance: ediabas,
-    // Defer the cable `connect()` — the caller already opened the
-    // transport on the user's gesture, so we don't need EdiabasXProvider
-    // to call it a second time. `init()` below is still required to
-    // wire the provider's internal state.
-    autoConnect: false,
+    // autoConnect=true (default): the dispatcher's `INPAapiInit` now
+    // calls `provider.init()` which will `ediabas.connect()` once the
+    // transport callback returns something.
+    getTransport: options.getTransport,
   });
 
   // 4. INP1 surface — thin adapter over the same EDIABAS state, so
@@ -169,33 +147,60 @@ export async function startInpaRuntime(
     install: options.install,
     ediabasConfig: {
       ecuPath: options.install.ecu.name,
-      interfaceName: options.simulation ? "simulation" : "serial",
+      interfaceName: "serial",
       iniPath: "",
     },
   });
   await nativeImports.prefetchIniFiles();
 
-  // 6. VM. The not-yet-wired surfaces (print/pem/dtm/external/sps/
-  //    simulation) stay null — most INPA scripts don't touch them; the
-  //    dispatcher throws "provider not available" with a clear name if
-  //    they do.
+  // 6. VM. Browser-side has no real hardware for simulation / print /
+  //    pem / dtm / sps yet — wire the null providers so scripts that
+  //    touch those system functions get a quiet no-op instead of a
+  //    TypeError from a `null` provider reference. `external` is the
+  //    real `BrowserExternalProvider` because INPA scripts use it to
+  //    show fault-store reports (viewopen) — see the `fs:complete`
+  //    listener below that turns each fault read into a virtual file.
+  const externalProvider = new BrowserExternalProvider();
+
+  // Format the fault-store result sets into a text file each time a
+  // script calls INPAapiFsLesen, then expose it under the filename the
+  // script passed in. That makes the subsequent `viewopen("na_fs.tmp",
+  // …)` show the formatted faults. Original INPA writes a file via
+  // its own formatter; we don't, so this listener is our equivalent.
+  ediabasProvider.on("fs:complete", ({ fileName, faultCount }) => {
+    const lines: string[] = [];
+    lines.push(`Fault store read complete — ${faultCount} fault(s)`);
+    lines.push("");
+    const total = ediabasProvider.resultSets();
+    for (let i = 1; i <= total; i++) {
+      lines.push(`[Set ${i}]`);
+      const entries = ediabasProvider.resultSetEntries(i);
+      if (entries) {
+        for (const [name, result] of entries) {
+          lines.push(`  ${name}: ${formatResultValue(result.value)}`);
+        }
+      }
+      lines.push("");
+    }
+    externalProvider.writeFile(fileName, lines.join("\n"));
+  });
   // Tick interval — temporary throttle to 1000 ms so the log stream is
   // legible while we diagnose why inpainit appears to re-execute.
   // Affects both the main scheduler (state machine + F-key handlers)
   // and the screen executor (LINE block iteration). Bump back to 16
   // (~60 fps) once we're done debugging.
-  const TICK_MS = 1000;
+  const TICK_MS = 500;
   const vm = new VM(ipo, {
     runtime: {
       ui,
       ediabas: ediabasProvider,
       inp1: inp1Provider,
-      simulation: null as any,
-      print: null as any,
-      pem: null as any,
-      dtm: null as any,
-      external: null as any,
-      sps: null as any,
+      simulation: new NullSimulationProvider(),
+      print: new NullPrintProvider(),
+      pem: new NullPemProvider(),
+      dtm: new NullDtmProvider(),
+      external: externalProvider,
+      sps: new NullSpsProvider(),
       nativeImports,
     },
     debug: false,
@@ -210,42 +215,35 @@ export async function startInpaRuntime(
   // Wire menu events from TUI provider → scheduler so F-key clicks
   // queue menu item handlers without blocking the main scheduler loop.
   ui.on("menu:select", ({ itemNum }) => {
-    const handler = findMenuItemHandler(ipo, itemNum);
+    const menuHandle = ui.state.menuHandle;
+    if (menuHandle === null) return;
+    const handler = findMenuItemHandler(ipo, menuHandle, itemNum);
     if (handler) {
       scheduler.queueMenuAction(itemNum, async () => {
-        await vm.executeBlock(handler);
+        console.info(`[menu:select] running handler for F${itemNum}`);
+        try {
+          await vm.executeBlock(handler);
+          console.info(`[menu:select] handler for F${itemNum} done`);
+        } catch (err) {
+          console.error(`[menu:select] handler for F${itemNum} threw:`, err);
+        }
       });
     }
   });
 
-  // Initialise the provider (event wiring, internal state). The
-  // underlying `Ediabas` instance is left in its constructed-but-
-  // unconnected state; the caller already opened the transport and
-  // `executeJob`'s first run does the BMW INITIALISIERUNG handshake.
-  await ediabasProvider.init();
+  // Don't initialise the provider here — the script's `INPAapiInit`
+  // now drives that path through `ui.ensureConnected()` →
+  // `provider.init()`. Calling it twice would `ediabas.connect()`
+  // before the transport callback has anything to return.
 
   scheduler.start();
 
   // Run __inpa_startup__ → inpainit() asynchronously. Errors are
   // surfaced through the provider's job:error event; we don't await
   // here because the VM's run loop is open-ended.
-  //
-  // The start / end markers make it possible to tell at a glance
-  // whether `inpainit()` is running once (expected — `__inpa_startup__`
-  // calls it once and returns) or being re-entered (unexpected — would
-  // mean some external code is calling vm.run() multiple times). On
-  // most BMW INPA scripts inpainit makes 40+ GetPrivateProfileStringA
-  // calls reading per-F-key bindings, which can look like a loop in
-  // the log volume but is actually a single linear init pass.
-  console.info("[inpax-web/runtime] vm.run() start — __inpa_startup__");
-  void vm
-    .run()
-    .then(() => {
-      console.info("[inpax-web/runtime] vm.run() returned — __inpa_startup__ + inpainit() complete");
-    })
-    .catch((err: unknown) => {
-      console.error("[inpax-web/runtime] VM error:", err);
-    });
+  void vm.run().catch((err: unknown) => {
+    console.error("[inpax-web/runtime] VM error:", err);
+  });
 
   // Frame-ready fan-out — see `RuntimeHandle.onFrameReady`. Triggers:
   //   - Pre-screen / setup phase: every TuiProvider `state:changed`
@@ -269,63 +267,38 @@ export async function startInpaRuntime(
 
   let offStateChange: (() => void) | null = ui.onStateChange(dispatchFrame);
 
-  // ScreenExecutor is created when the script enters its first SCREEN
-  // block — not at VM start — so we poll on every `tick:complete` until
-  // it appears, then wire up the cycle trigger and drop state:changed.
-  let cycleAttached = false;
-  let cycleCount = 0;
+  // The active ScreenExecutor changes whenever the script calls
+  // `setscreen` — both during inpainit's setup and every time an
+  // F-key handler swaps screens. Each new executor is a fresh
+  // EventEmitter, so we have to (un)subscribe `cycle:complete` on
+  // each swap. Polling `tick:complete` is the cheapest signal that
+  // tells us "the VM just observed the screen executor field" —
+  // we compare against `attachedScreen` to detect a swap.
+  let attachedScreen: ReturnType<VM["getScreenExecutor"]> = null;
+  let offCycle: (() => void) | null = null;
+  const onCycle = () => {
+    if (offStateChange) {
+      offStateChange();
+      offStateChange = null;
+    }
+    dispatchFrame();
+  };
   scheduler.on("tick:complete", () => {
-    if (cycleAttached) return;
     const screenExec = vm.getScreenExecutor();
-    if (!screenExec) return;
-    cycleAttached = true;
-    console.info("[inpax-web/runtime] ScreenExecutor attached — switching paint trigger to cycle:complete");
-    screenExec.on("cycle:complete", () => {
-      cycleCount++;
-      // Log every cycle. While diagnosing the inpainit-rerun bug this
-      // ran at 60 fps and we had to sample; at TICK_MS=1000 every
-      // cycle is cheap to log and "did cycles stop?" is easier to
-      // answer with a continuous stream. Tighten when the tick rate
-      // is restored to 16 ms.
-      console.info(`[inpax-web/runtime] screen cycle:complete #${cycleCount}`);
-      if (offStateChange) {
-        offStateChange();
-        offStateChange = null;
-      }
-      dispatchFrame();
-    });
-    screenExec.on("phase:changed", (phase: string) => {
-      console.info(`[inpax-web/runtime] screen phase → ${phase}`);
-    });
-    screenExec.on("line:start", (idx: number, line: { header: { name: string; blockId: number } }) => {
-      if (cycleCount <= 2) {
-        console.info(`[inpax-web/runtime] screen line:start idx=${idx}`, {
-          name: line.header.name,
-          blockId: line.header.blockId,
-        });
-      }
-    });
-    screenExec.on("line:complete", (idx: number) => {
-      if (cycleCount <= 2) {
-        console.info(`[inpax-web/runtime] screen line:complete idx=${idx} (first-cycle sample)`);
-      }
-    });
-  });
-
-
-  // Also log VM-level setscreen calls so we can see when the script
-  // switches between s_info / s_main etc.
-  ui.on("screen:ready", () => {
-    console.info("[inpax-web/runtime] ui:screen:ready", {
-      handle: ui.state.screenHandle,
-      cyclic: ui.state.screenCyclic,
-      title: ui.state.title,
-    });
+    if (screenExec === attachedScreen) return;
+    offCycle?.();
+    offCycle = null;
+    attachedScreen = screenExec;
+    if (screenExec) {
+      screenExec.on("cycle:complete", onCycle);
+      offCycle = () => screenExec.off("cycle:complete", onCycle);
+    }
   });
 
   let disposed = false;
   return {
     ui,
+    external: externalProvider,
     screen,
     isRunning: () => !disposed && scheduler.isRunning(),
     onFrameReady: (cb) => {
@@ -347,25 +320,38 @@ export async function startInpaRuntime(
 }
 
 /**
- * Mirror of inpax CLI's findMenuItemHandler — walks the IPO's
- * menus → items list, finds the bound function block by F-key
- * number. Returns null for unbound numbers (we just log it).
- *
- * The `itemNum` field isn't a typed property of `MenuItemBlock`;
- * the parser doesn't set it explicitly. The same untyped lookup
- * lives in `packages/cli/src/commands/run.ts`. A proper fix is
- * outside the scope of the web scaffold — for now we replicate
- * the CLI's behaviour with a cast so the two surfaces agree.
+ * Render an `EdiabasJobResult.value` for the human-readable fault
+ * report. Binary fields (`F_HEX_CODE` etc.) are real bytes, not text,
+ * so we render them as a space-separated hex dump. Text fields (BMW
+ * uses cp1252 — German diacritics like ä/ö/ü) are decoded as
+ * windows-1252 to avoid the � replacement characters UTF-8 produces.
+ */
+function formatResultValue(value: unknown): string {
+  if (value instanceof Uint8Array) {
+    return Array.from(value, (b) => b.toString(16).padStart(2, "0")).join(" ");
+  }
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
+  if (value === null || value === undefined) return "";
+  return String(value);
+}
+
+/**
+ * Find the function block for an F-key inside the currently active
+ * menu. Each `MenuItemBlock` stores its slot in `header.flags`
+ * (F1=1 .. F10=10, Shift+F1=11 .. Shift+F10=20). The slot is NOT the
+ * array index — MS43.IPO m_main, for example, declares item index 8
+ * with flags=18 ("Gesamt" on Shift+F8), so an index-based lookup
+ * routes the click to the wrong handler.
  */
 function findMenuItemHandler(
   ipo: ReturnType<typeof parseIpo>,
+  menuHandle: number,
   itemNum: number
 ): Parameters<VM["executeBlock"]>[0] | null {
-  for (const menu of ipo.menus.values()) {
-    type LooseItem = { itemNum?: number; func?: Parameters<VM["executeBlock"]>[0] };
-    for (const item of menu.items as unknown as LooseItem[]) {
-      if (item.itemNum === itemNum && item.func) return item.func;
-    }
-  }
-  return null;
+  const menu = ipo.menus.get(menuHandle);
+  if (!menu) return null;
+  const item = menu.items.find((m) => m.header.flags === itemNum);
+  return item?.func ?? null;
 }

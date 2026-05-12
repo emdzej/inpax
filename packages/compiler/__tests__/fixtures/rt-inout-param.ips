@@ -1,0 +1,15 @@
+// Runtime smoke: inout-parameter reads then writes a global through a ref.
+int counter;
+
+bump(inout: int n) {
+  n = n + 1;
+}
+
+inpainit() {
+  counter = 10;
+  bump(counter);
+  bump(counter);
+  bump(counter);
+}
+
+inpaexit() {}

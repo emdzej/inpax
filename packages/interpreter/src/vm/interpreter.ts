@@ -238,10 +238,22 @@ export class VM {
     }
 
     /**
-     * Execute a function block with a new isolated execution context
+     * Execute a function block with a fresh execution context — own
+     * call stack, own value stack, own `state.currentBlock` / `state.ip`
+     * — but sharing the supplied `globals` array (or this VM's own
+     * if none is passed). Used by `executeBlock` to run a menu /
+     * F-key handler without corrupting whatever the main VM is
+     * doing on its own state, while still letting that handler read
+     * and write the globals inpainit set up.
      */
-    async executeIsolated(block: FunctionBlock): Promise<void> {
-        const ctx = new ExecutionContext(this.initGlobals(), this.ipo.constants.values);
+    async executeIsolated(
+        block: FunctionBlock,
+        sharedGlobals?: StackEntry[]
+    ): Promise<void> {
+        const ctx = new ExecutionContext(
+            sharedGlobals ?? this.globals,
+            this.ipo.constants.values
+        );
         await this.execute(block, ctx);
     }
 
@@ -343,7 +355,33 @@ export class VM {
     }
 
     private opLoadInOutRef(scope: Scope, index: number, ctx: ExecutionContext): void {
-        this.opPushRef(scope, index, ctx);
+        // LOADINOUTREF (0x03) implements the read side of `inout:` (and
+        // by extension `out:` when the callee reads before writing).
+        // The caller pushed a ref-descriptor with PUSHREF (0x02), which
+        // ends up sitting in local[index] when the callee's frame is
+        // established. To get an actual VALUE on the stack — what the
+        // ALU then operates on — we must follow that descriptor once.
+        //
+        // The previous implementation deferred to `opPushRef`, which
+        // creates a fresh ref pointing at local[index] itself. That
+        // produces a ref-to-ref whose `.value` is `null`, so a bytecode
+        // sequence emitted by INPACOMP for `n + 1` (see
+        // disasm/mj-concat.txt:21 — `03 02 00 00 ; LOADINOUTREF`)
+        // collapsed to `null + 1 = 1` and silently corrupted every
+        // inout-arg arithmetic op.
+        const slot = ctx.getVariable(scope, index);
+        if (slot.refInfo) {
+            const target = ctx.getVariable(
+                slot.refInfo.scope as Scope,
+                slot.refInfo.index
+            );
+            ctx.stack.push({ ...target, flags: 1 });
+        } else {
+            // Defensive: slot isn't actually a ref (caller forgot to
+            // PUSHREF, or this opcode was emitted for a non-inout
+            // local). Fall back to a plain by-value load.
+            ctx.stack.push({ ...slot, flags: 1 });
+        }
     }
 
     private opMove(count: number, ctx: ExecutionContext): void {
@@ -772,21 +810,32 @@ export class VM {
     // ============ Screen Execution API ============
 
     /**
-     * Execute a function block (used by ScreenExecutor)
-     * Runs the block to completion and returns
+     * Execute a function block on this VM as if it were a fresh top
+     * call — sharing `this.globals` (so the block sees inpainit's
+     * writes), `this.runtime` (one set of providers, one cable),
+     * and the same `state.currentBlock` / `state.ip`. Used by menu /
+     * F-key handlers and by the host's "load a new program in place"
+     * flow.
+     *
+     * Caller is responsible for ensuring nothing else is mid-flight
+     * on this VM — typically by stopping the screen executor before
+     * dispatching the handler. INPA itself is single-script: its
+     * dispatcher pauses the OnIdle screen loop while a menu item
+     * runs and lets the handler re-establish the screen via
+     * `setscreen`. We mirror that.
      */
     async executeBlock(block: FunctionBlock): Promise<void> {
-        const subVm = new VM(this.ipo, this.config);
-        await subVm.executeIsolated(block);
+        await this.executeIsolated(block, this.globals);
     }
 
     /**
      * Execute a function block with a provided execution context
-     * (used by StateMachineExecutor to preserve context across states)
+     * (used by StateMachineExecutor to preserve context across states).
+     * The supplied context is assumed to already carry the right
+     * globals.
      */
     async executeBlockWithContext(block: FunctionBlock, ctx: ExecutionContext): Promise<void> {
-        const subVm = new VM(this.ipo, this.config);
-        await subVm.execute(block, ctx);
+        await this.execute(block, ctx);
     }
 
     async setMenu(menuHandle: number): Promise<void> {
@@ -794,15 +843,21 @@ export class VM {
         if (!menu) {
             throw new Error(`Menu not found: ${menuHandle}`);
         }
-        // Run the menu's INIT block — that's where every `setitem(itemNum,
-        // text, enabled)` call lives. Without this the menu is registered
-        // on the VM but the F-key bar stays empty: the script's only path
-        // for binding F-keys to handlers is the init block executing
-        // `setitem` against the script's globals (which inpainit already
-        // populated). The block's RET behaves like any other block end —
-        // doReturn pops the halt sentinel and execute() returns.
+        // Two flavours of menu definition coexist:
+        //   1. Static — every entry is a `MenuItemBlock` with the F-key
+        //      slot in `header.flags` and the label in `header.arg1`.
+        //      The INIT block typically only calls `setmenutitle`
+        //      (e.g. MS430.IPO m_main).
+        //   2. Dynamic — INIT calls `setitem(itemNum, text, enabled)`
+        //      against script globals (e.g. startus.ipo m_main).
+        // Many real menus mix the two: static labels for fixed entries
+        // (Info / End / Exit), `setitem` for the localized slots.
         //
-        // CRITICAL: defer the actual bytecode execution past the current
+        // Order: clear the provider's menu state, then pre-register
+        // static entries, then run INIT so `setitem` calls inside INIT
+        // overwrite the statics as needed.
+        //
+        // CRITICAL: defer the bytecode execution past the current
         // microtask. `setMenu` is invoked from a `setmenu` system-call
         // inside an `await` chain, so `this.state.currentBlock` /
         // `this.state.ip` are still owned by the *caller's* execute()
@@ -810,16 +865,25 @@ export class VM {
         // would overwrite those fields, and when the outer loop resumes
         // it would re-enter the menu's bytecode (or worse, a garbage
         // mix) instead of finishing `__inpa_startup__`. The setTimeout
-        // hop puts the menu init on a fresh task — `vm.run()` is done
+        // hop puts everything on a fresh task — `vm.run()` is done
         // by then, `state` is idle, and the menu can have it.
-        if (menu.func) {
-            const menuFunc = menu.func;
-            setTimeout(() => {
-                this.execute(menuFunc, this.createExecutionContext()).catch((err: unknown) => {
-                    log.error({ err }, 'menu init block failed');
-                });
-            }, 0);
-        }
+        const ui = this.runtime.ui;
+        const menuFunc = menu.func;
+        const staticItems = menu.items;
+        setTimeout(() => {
+            ui.setMenu(menuHandle);
+            for (const item of staticItems) {
+                if (item.header.arg1) {
+                    ui.setItem(item.header.flags, item.header.arg1, true);
+                }
+            }
+            if (menuFunc) {
+                this.execute(menuFunc, this.createExecutionContext())
+                    .catch((err: unknown) => {
+                        log.error({ err }, 'menu init block failed');
+                    });
+            }
+        }, 0);
     }
 
     /**

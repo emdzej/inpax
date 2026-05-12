@@ -1,0 +1,25 @@
+// Trivial state machine — exercises the 0x03 + 0x25 block layout.
+STATEMACHINE sm_demo()
+{
+  INIT {
+    settitle("Demo");
+  }
+
+  start {
+    text(0, 0, "start");
+  }
+
+  running {
+    text(0, 0, "running");
+  }
+
+  done {
+    text(0, 0, "done");
+  }
+}
+
+inpainit() {
+  setstatemachine(sm_demo);
+}
+
+inpaexit() {}

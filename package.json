@@ -13,7 +13,10 @@
     "cli": "node packages/cli/dist/index.js",
     "cli:debug": "node --inspect-brk packages/cli/dist/index.js",
     "interpreter": "node packages/interpreter/dist/cli.js",
-    "disassembler": "node packages/disassembler/dist/cli.js"
+    "disassembler": "node packages/disassembler/dist/cli.js",
+    "compile": "node apps/inpax-compile/dist/index.js",
+    "compile:debug": "node --inspect-brk apps/inpax-compile/dist/index.js",
+    "editor": "node apps/ipo-editor/dist/index.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

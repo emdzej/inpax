@@ -201,11 +201,23 @@ export class MainScheduler extends EventEmitter<MainSchedulerEvents> {
     this.emit('tick:start');
 
     try {
-      // 1. F-key handlers (highest priority)
+      // 1. F-key handlers (highest priority). INPA's dispatcher is
+      // single-script: the OnIdle screen-refresh loop is paused
+      // while a menu item runs, and the handler re-establishes the
+      // screen via `setscreen` (which creates a fresh screen
+      // executor). We mirror that — stopping the active screen
+      // executor before the handler runs prevents its in-flight
+      // tick from racing the handler over the shared VM state
+      // (`state.currentBlock` / `state.ip`).
       if (this.pendingMenuAction) {
         const action = this.pendingMenuAction;
         this.pendingMenuAction = null;
-        
+
+        const previousScreen = this.vm.getScreenExecutor();
+        if (previousScreen?.isRunning()) {
+          previousScreen.stop();
+        }
+
         this.log(`Executing menu action: F${action.itemNum}`);
         await action.handler();
       }

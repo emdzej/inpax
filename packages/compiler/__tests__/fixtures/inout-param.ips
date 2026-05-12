@@ -1,0 +1,11 @@
+bump(inout: int n) {
+  n = n + 1;
+}
+
+inpainit() {
+  int counter;
+  counter = 10;
+  bump(counter);
+}
+
+inpaexit() {}

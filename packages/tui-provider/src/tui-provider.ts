@@ -50,7 +50,22 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
 
   constructor() {
     super();
-    this._state = { ...initialTuiState, userBoxes: new Map() };
+    // CRUCIAL: a plain spread of `initialTuiState` shares its mutable
+    // collections — `menuItems`, `textLines`, etc. — across every
+    // TuiProvider instance. Each new IPO mount would then accumulate
+    // F-key bindings on the same array, so the bar kept showing the
+    // previous script's items on top of new ones (and `setitem`'s
+    // `findIndex` matched by `itemNum` would update the wrong slot).
+    // Build fresh collections per instance.
+    this._state = {
+      ...initialTuiState,
+      menuItems: [],
+      textLines: [],
+      analogValues: [],
+      digitalValues: [],
+      hexDumps: [],
+      userBoxes: new Map(),
+    };
     this.screenBuffer = new ScreenBuffer();
   }
 
@@ -143,7 +158,18 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
   /** Cancel current input dialog */
   cancelInput(): void {
     if (this._state.inputResolve) {
-      this._state.inputResolve(this._state.inputDialog?.type === 'number' ? 0 : '');
+      // Cancellation value depends on dialog shape:
+      //   - number: 0      (script expects a number)
+      //   - scriptselect: null (script's caller branches on null vs picked IPO)
+      //   - connect-error: 'continue' (cancelling the error dialog =
+      //     proceed with whatever broken state we're in; matches the
+      //     "X" / Escape gesture's natural meaning)
+      //   - everything else: '' (string)
+      let cancelValue: unknown = '';
+      if (this._state.inputDialog?.type === 'number') cancelValue = 0;
+      else if (this._state.inputDialog?.type === 'scriptselect') cancelValue = null;
+      else if (this._state.inputDialog?.type === 'connect-error') cancelValue = 'continue';
+      this._state.inputResolve(cancelValue);
       this._state.inputResolve = null;
     }
     this._state.inputDialog = null;
@@ -388,6 +414,88 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
 
   async infoBox(title: string, text: string): Promise<void> {
     return this.messageBox(title, text);
+  }
+
+  /**
+   * Drive the host's connect flow. Sets a `connect`-shaped
+   * inputDialog so the host's settings panel can auto-open. Resolves
+   * when the host calls `submitInput()` (typically once the cable
+   * has been opened, but the host gets to define "done"). Cancel is
+   * treated as "user chose to proceed without a fresh connection";
+   * the dispatcher's `INPAapiInit` loop catches subsequent
+   * `ediabas.init()` failures separately.
+   */
+  async ensureConnected(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this._state.inputDialog = {
+        type: 'connect',
+        title: 'EDIABAS connection',
+        text: '',
+        value: '',
+      };
+      this._state.inputResolve = () => resolve();
+      this.update();
+    });
+  }
+
+  /**
+   * Surface a connection error and ask the user how to proceed.
+   * `submitInput` resolves with the chosen string outcome; the
+   * dispatcher's INPAapiInit loop interprets that.
+   */
+  async confirmConnectError(
+    message: string
+  ): Promise<'retry' | 'continue' | 'stop'> {
+    return new Promise<'retry' | 'continue' | 'stop'>((resolve) => {
+      this._state.inputDialog = {
+        type: 'connect-error',
+        title: 'EDIABAS connection failed',
+        text: message,
+        value: '',
+      };
+      this._state.inputResolve = (value) => {
+        const choice = value === 'retry' || value === 'stop' ? value : 'continue';
+        resolve(choice);
+      };
+      this.update();
+    });
+  }
+
+  /**
+   * Show the script-select picker. The TUI provider itself doesn't
+   * read the .ENG/.GER INI — it just hangs an `inputDialog` of type
+   * `scriptselect` carrying the requested filename, and waits. The
+   * host-side dialog component is expected to:
+   *
+   *   1. Read the INI file from its own filesystem surface
+   *      (Node `fs` for CLI, `FileSystemDirectoryHandle` for web).
+   *   2. Parse it (sections → tree, `ENTRY=` → leaf items).
+   *   3. Render the tree + entries.
+   *   4. On confirm, call `ui.submitInput(<picked-ipo-basename>)`.
+   *   5. On cancel, call `ui.cancelInput()`.
+   *
+   * `submitInput` / `cancelInput` reuse the existing input-dialog
+   * resolve mechanism — same plumbing as `messageBox` / `inputText`,
+   * just with a richer payload.
+   */
+  async scriptSelect(iniFile: string): Promise<string | null> {
+    return new Promise<string | null>((resolve) => {
+      this._state.inputDialog = {
+        type: 'scriptselect',
+        title: 'Select script',
+        text: iniFile,
+        value: '',
+        scriptSelectFile: iniFile,
+      };
+      this._state.inputResolve = (value) => {
+        if (value === null || value === undefined) {
+          resolve(null);
+        } else {
+          resolve(String(value));
+        }
+      };
+      this.update();
+    });
   }
 
   userBoxOpen(boxNum: number, row: number, col: number, height: number, width: number, title: string, _text: string): void {

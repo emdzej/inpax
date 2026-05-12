@@ -1,2 +1,2 @@
 export * from './tokens.js';
-export * from './lexer.js';
+export { Lexer, LexError, tokenize } from './lexer.js';

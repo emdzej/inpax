@@ -62,3 +62,12 @@ export const classicInpaTheme: InpaTheme = {
   background: "#ffffff",
   cellPadding: { x: 0, y: 0 },
 };
+
+/**
+ * Resolve an INPA palette index (0..15) to a CSS colour. Out-of-range
+ * indices fall back to the supplied default so callers don't have to
+ * guard themselves.
+ */
+export function paletteColor(index: number, fallback: string): string {
+  return classicInpaTheme.palette[index] ?? fallback;
+}

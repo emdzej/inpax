@@ -1,0 +1,8 @@
+#pragma winedit
+#include "inc/util.h"
+
+inpainit() {
+  from_header_counter = 1;
+}
+
+inpaexit() {}

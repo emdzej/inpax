@@ -1,0 +1,14 @@
+// Runtime smoke: while loop computing the sum 1+2+...+10 into a global.
+int total;
+
+inpainit() {
+  int i;
+  i = 1;
+  total = 0;
+  while (i <= 10) {
+    total = total + i;
+    i = i + 1;
+  }
+}
+
+inpaexit() {}

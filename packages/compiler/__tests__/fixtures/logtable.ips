@@ -1,0 +1,12 @@
+// Trivial logic table — exercises the 0x05 (lt_*) + 0x04 (LT_*) pair.
+LOGTABLE lt_demo(out: bool o, in: bool i1 i2)
+{
+  0y00: 0y0;
+  0y01: 0y0;
+  0y10: 0y0;
+  0y11: 0y1;
+}
+
+inpainit() {}
+
+inpaexit() {}

@@ -54,7 +54,7 @@ export interface UserBox {
 }
 
 export interface InputDialog {
-  type: 'text' | 'number' | 'hex' | 'digital' | 'message';
+  type: 'text' | 'number' | 'hex' | 'digital' | 'message' | 'scriptselect' | 'connect' | 'connect-error';
   title: string;
   text: string;
   value: string;
@@ -62,6 +62,13 @@ export interface InputDialog {
   max?: number | string;
   trueText?: string;
   falseText?: string;
+  /**
+   * For `type: 'scriptselect'` only — the basename of the .ENG / .GER
+   * (or other language-suffixed INI) file the script asked us to show
+   * a picker for. The host component reads and parses it; the
+   * TuiProvider only carries the filename through.
+   */
+  scriptSelectFile?: string;
 }
 
 export interface TuiState {

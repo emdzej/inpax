@@ -40,6 +40,28 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.10)
 
+  apps/inpax-compile:
+    dependencies:
+      '@emdzej/inpax-compiler':
+        specifier: workspace:*
+        version: link:../../packages/compiler
+      '@emdzej/inpax-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      chalk:
+        specifier: ^5.3.0
+        version: 5.6.2
+      commander:
+        specifier: ^12.0.0
+        version: 12.1.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.10
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   apps/inpax-web:
     dependencies:
       '@emdzej/ediabasx-ediabas':
@@ -78,6 +100,9 @@ importers:
       '@emdzej/inpax-parser':
         specifier: workspace:*
         version: link:../../packages/parser
+      '@emdzej/inpax-providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
       '@emdzej/inpax-tui-provider':
         specifier: workspace:*
         version: link:../../packages/tui-provider
@@ -112,6 +137,40 @@ importers:
       vite:
         specifier: ^5.4.0
         version: 5.4.21(@types/node@22.19.10)
+
+  apps/ipo-editor:
+    dependencies:
+      '@emdzej/inpax-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@emdzej/inpax-parser':
+        specifier: workspace:*
+        version: link:../../packages/parser
+      chalk:
+        specifier: ^5.3.0
+        version: 5.6.2
+      commander:
+        specifier: ^12.0.0
+        version: 12.1.0
+      iconv-lite:
+        specifier: ^0.6.3
+        version: 0.6.3
+      ink:
+        specifier: ^5.1.0
+        version: 5.2.1(@types/react@18.3.28)(react@18.3.1)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.10
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.28
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
 
   packages/cli:
     dependencies:
@@ -179,7 +238,20 @@ importers:
         version: 5.9.3
 
   packages/compiler:
+    dependencies:
+      '@emdzej/inpax-core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
+      '@emdzej/inpax-dis':
+        specifier: workspace:*
+        version: link:../disassembler
+      '@emdzej/inpax-interpreter':
+        specifier: workspace:*
+        version: link:../interpreter
+      '@emdzej/inpax-parser':
+        specifier: workspace:*
+        version: link:../parser
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.10
@@ -1690,6 +1762,10 @@ packages:
     resolution: {integrity: sha512-eKCa6bwnJhvxj14kZk5NCPc6Hb6BdsU9DZcOnmQKSnO1VKrfV0zCvtttPZUsBvjmNDn8rpcJfpwSYnHBjc95MQ==}
     engines: {node: '>=18.18.0'}
 
+  iconv-lite@0.6.3:
+    resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
+    engines: {node: '>=0.10.0'}
+
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
 
@@ -2210,6 +2286,9 @@ packages:
   safe-stable-stringify@2.5.0:
     resolution: {integrity: sha512-b3rppTKm9T+PsVCBEOUR46GWI7fdOs00VKZ1+9c1EWDaDMvjQc6tUwuFyIprgGgTcWoVHSKrU8H31ZHA2e0RHA==}
     engines: {node: '>=10'}
+
+  safer-buffer@2.1.2:
+    resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
   scheduler@0.23.2:
     resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
@@ -3811,6 +3890,10 @@ snapshots:
 
   human-signals@8.0.1: {}
 
+  iconv-lite@0.6.3:
+    dependencies:
+      safer-buffer: 2.1.2
+
   ieee754@1.2.1: {}
 
   ignore@5.3.2: {}
@@ -4299,6 +4382,8 @@ snapshots:
   safe-buffer@5.2.1: {}
 
   safe-stable-stringify@2.5.0: {}
+
+  safer-buffer@2.1.2: {}
 
   scheduler@0.23.2:
     dependencies:

@@ -124,6 +124,20 @@ export class MockUIProvider extends EventEmitter<UIEvents> implements IUIProvide
     return { fg: this.currentFg, bg: this.currentBg };
   }
 
+  async scriptSelect(iniFile: string): Promise<string | null> {
+    this.record('scriptSelect', iniFile);
+    return null;
+  }
+
+  async ensureConnected(): Promise<void> {
+    this.record('ensureConnected');
+  }
+
+  async confirmConnectError(message: string): Promise<'retry' | 'continue' | 'stop'> {
+    this.record('confirmConnectError', message);
+    return 'continue';
+  }
+
   setMenuTitle(title: string): void {
     this.record('setMenuTitle', title);
     this.menuTitle = title;

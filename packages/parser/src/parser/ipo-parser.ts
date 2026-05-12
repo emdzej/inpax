@@ -375,12 +375,13 @@ export class IpoParser {
     while (this.offset < this.bytes.length && this.bytes[this.offset] !== terminator) {
       this.offset++;
     }
-    // INPA encodes its strings as Latin-1ish (Windows-1252) — TextDecoder
-    // 'utf-8' will choke on accented characters in BMW German text. We
-    // accept that for now since the existing tests only cover ASCII
-    // strings; a CP1252 decoder is a separate concern.
+    // INPA encodes strings as Windows-1252 (BMW workshop / German
+    // language) — `ä`, `ö`, `ü`, etc. live in the 0xA0-0xFF range
+    // where UTF-8 sees them as invalid start bytes and writes a
+    // replacement char (the `Steuerger�t` symptom). `TextDecoder`
+    // supports `windows-1252` natively in both browsers and Node.
     const slice = this.bytes.subarray(start, this.offset);
-    const str = new TextDecoder('utf-8', { fatal: false }).decode(slice);
+    const str = new TextDecoder('windows-1252', { fatal: false }).decode(slice);
     this.offset++; // Skip terminator
     return str;
   }

@@ -185,6 +185,28 @@ export class CliProvider extends EventEmitter<UIEvents> implements IUIProvider {
     return { fg: this.fg, bg: this.bg };
   }
 
+  async scriptSelect(iniFile: string): Promise<string | null> {
+    // CLI doesn't currently surface a tree picker — log a hint and
+    // resolve null (cancel). A future enhancement could read the
+    // file from `inpaRoot/CFGDAT/<iniFile>` and prompt interactively.
+    this.println(`scriptselect: ${iniFile} (CLI picker not yet implemented)`);
+    return null;
+  }
+
+  async ensureConnected(): Promise<void> {
+    // CLI runs with the cable opened up-front via `ediabasx
+    // configure` + the `run` command's transport build. No
+    // mid-script "open settings" prompt — INPAapiInit just continues
+    // and lets the existing transport take care of itself.
+  }
+
+  async confirmConnectError(message: string): Promise<"retry" | "continue" | "stop"> {
+    // No interactive prompt — print the error and continue. Future
+    // work could read a stdin choice in raw mode.
+    this.println(`INPAapiInit failed: ${message} (continuing)`);
+    return "continue";
+  }
+
   // === Menu ===
 
   setMenuTitle(title: string): void {

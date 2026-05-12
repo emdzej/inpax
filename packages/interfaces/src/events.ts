@@ -86,6 +86,15 @@ export interface UIEvents {
   'input:cancel': () => void;
   'input:submit': (event: InputSubmitEvent) => void;
   'messagebox:closed': (event: MessageBoxClosedEvent) => void;
+  /**
+   * Fired by the `scriptselect` system function after the user picks
+   * an IPO from the .ENG/.GER tree. Hosts listen for this on
+   * `runtime.ui` to swap the running IPO — dispose the current VM,
+   * load `<ipo>.IPO` from SGDAT (case-insensitive), start a fresh
+   * runtime. `iniFile` is the source the picker was driven from
+   * (for diagnostics / breadcrumbs).
+   */
+  'script:switch': (event: { ipo: string; iniFile: string }) => void;
 }
 
 export interface StateMachineEvents {

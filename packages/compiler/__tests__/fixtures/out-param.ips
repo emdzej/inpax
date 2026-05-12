@@ -1,0 +1,10 @@
+set_to_one(out: int result) {
+  result = 1;
+}
+
+inpainit() {
+  int x;
+  set_to_one(x);
+}
+
+inpaexit() {}

@@ -54,15 +54,12 @@ type HandlerCtx = {
 type Handler = (call: NativeImportCall, ctx: HandlerCtx) => unknown[];
 
 /**
- * `[inpax-web/native-imports]`-prefixed console helpers. Web devtools
- * is the only "logs" surface we have; using a recognisable prefix lets
- * the user filter on it and lets a future status pane harvest the
- * same events. Levels follow `console.info` / `console.warn` so a
- * `verbose: false` flag could downgrade `info` to `debug` later.
+ * `[inpax-web/native-imports]`-prefixed `console.warn` helper. Used
+ * for genuine warnings (missing CFGDAT, INI parse failures, unknown
+ * CALLE targets); routine per-call traces are not logged to keep the
+ * DevTools console signal-to-noise high for normal runs.
  */
 const LOG_PREFIX = "[inpax-web/native-imports]";
-const logInfo = (msg: string, data?: unknown) =>
-  data !== undefined ? console.info(LOG_PREFIX, msg, data) : console.info(LOG_PREFIX, msg);
 const logWarn = (msg: string, data?: unknown) =>
   data !== undefined ? console.warn(LOG_PREFIX, msg, data) : console.warn(LOG_PREFIX, msg);
 
@@ -119,10 +116,6 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
    */
   async prefetchIniFiles(): Promise<void> {
     const { install } = this.ctx.cfg;
-    logInfo("prefetchIniFiles start", {
-      cfgdat: install.cfgdat ? install.cfgdat.name : null,
-      ediabasBin: install.ediabasBin ? install.ediabasBin.name : null,
-    });
     const tasks: Array<Promise<void>> = [];
     if (install.cfgdat) {
       tasks.push(this.cacheIniFile(install.cfgdat, "INPA.INI", "..\\CFGDAT\\INPA.INI"));
@@ -135,9 +128,6 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
       logWarn("no EDIABAS/Bin directory — EDIABAS.INI will not be loaded");
     }
     await Promise.all(tasks);
-    logInfo("prefetchIniFiles complete", {
-      cacheKeys: Array.from(this.ctx.iniCache.keys()),
-    });
   }
 
   private async cacheIniFile(
@@ -164,13 +154,6 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
       const aliasKey = keyAlias.replace(/\\/g, "/").toLowerCase();
       this.ctx.iniCache.set(baseKey, parsed);
       this.ctx.iniCache.set(aliasKey, parsed);
-      const version = getFirst(parsed, "INFO", "VERSION");
-      logInfo(`cached ${filename}`, {
-        size: content.length,
-        keys: [baseKey, aliasKey],
-        version,
-        sections: Object.keys(parsed),
-      });
     } catch (err) {
       logWarn(`failed to cache ${filename}`, (err as Error).message);
     }
@@ -227,14 +210,6 @@ const getPrivateProfileString: Handler = (call, ctx) => {
   const ini = lookupIni(fileName, ctx);
   const looked = ini ? getFirst(ini, section, key) : undefined;
   const value = looked !== undefined ? looked : defaultValue;
-  logInfo("GetPrivateProfileStringA", {
-    file: fileName,
-    section,
-    key,
-    hit: looked !== undefined,
-    value,
-    cacheHit: ini !== null,
-  });
   return writeStringOut(call, value, size);
 };
 
@@ -251,14 +226,6 @@ const getPrivateProfileInt: Handler = (call, ctx) => {
     const parsed = parseInt(raw.trim(), 10);
     if (!Number.isNaN(parsed)) value = parsed;
   }
-  logInfo("GetPrivateProfileIntA", {
-    file: fileName,
-    section,
-    key,
-    hit: raw !== undefined,
-    value,
-    cacheHit: ini !== null,
-  });
 
   const out = emptyResults(call);
   const retIdx = returnIndex(call);

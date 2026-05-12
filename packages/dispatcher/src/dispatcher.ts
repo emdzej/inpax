@@ -492,7 +492,39 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
 
             // === EDIABAS ===
             case SystemFunction.INPAapiInit:
-                return finalize(ediabas.init());
+                // Drive the host's "ensure the cable is open" flow before
+                // letting the provider init the comm session. The host
+                // (web `ConfigPanel`, CLI prompt, …) is responsible for
+                // showing whatever settings UI it has and resolving the
+                // promise once the user is done; we then let
+                // `ediabas.init()` either open the link (success) or fail
+                // (which surfaces as a `job:error` for the script to
+                // see). The split keeps the dispatcher generic — no
+                // host-specific UI knowledge here.
+                return finalize(
+                    (async () => {
+                        // Loop: ensure connection → try init. On failure
+                        // ask the host what to do — retry pulls a fresh
+                        // transport via `ensureConnected` and re-tries,
+                        // continue lets the script proceed (later jobs
+                        // will fail), stop throws so the VM halts.
+                        // Subsequent iterations pass the previous error
+                        // along so the dialog can show it.
+                        while (true) {
+                            await ui.ensureConnected();
+                            try {
+                                await ediabas.init();
+                                return;
+                            } catch (err) {
+                                const message = err instanceof Error ? err.message : String(err);
+                                const choice = await ui.confirmConnectError(message);
+                                if (choice === "stop") throw err;
+                                if (choice === "continue") return;
+                                // "retry" — loop
+                            }
+                        }
+                    })()
+                );
             case SystemFunction.INPAapiEnd:
                 return finalize(ediabas.end());
             case SystemFunction.INPAapiJob:

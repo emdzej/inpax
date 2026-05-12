@@ -15,6 +15,18 @@ export class NullUIProvider extends EventEmitter<UIEvents> implements IUIProvide
   getCurrentColors(): { fg: number; bg: number } {
     return { fg: 1, bg: 0 };
   }
+  async scriptSelect(_iniFile: string): Promise<string | null> {
+    return null;
+  }
+  async ensureConnected(): Promise<void> {
+    // Null provider can't drive a UI flow — assume connection is
+    // managed externally and resolve immediately.
+  }
+  async confirmConnectError(_message: string): Promise<"retry" | "continue" | "stop"> {
+    // No interactive surface — default to "continue" so the script
+    // doesn't hang waiting for a button click that can't happen.
+    return "continue";
+  }
 
   // === Menu ===
   setMenuTitle(_title: string): void {}

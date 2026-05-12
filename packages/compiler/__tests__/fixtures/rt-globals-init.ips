@@ -1,0 +1,10 @@
+// Runtime smoke: globals with declared initialisers should still hold
+// their values after `inpainit` runs (note: our compiler does not yet
+// emit init code in __inpa_startup__, so this test asserts the
+// CURRENT behaviour — initialisers are dropped, globals default to 0
+// or "". We keep the fixture so the test catches the day we fix this.)
+int answer = 42;
+string greeting = "hello";
+
+inpainit() {}
+inpaexit() {}

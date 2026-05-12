@@ -1,0 +1,5 @@
+inpainit() {
+  int x;
+  x = 1;
+}
+inpaexit() {}

@@ -30,6 +30,19 @@
     const provider = ui;
     const refresh = () => {
       const next = provider.getInputDialog();
+      // scriptselect is handled by ScriptSelectDialog (richer UI —
+      // tree + entries); connect / connect-error are handled by
+      // ConnectDialog. Skip them here so we don't render two modals
+      // on top of each other.
+      if (
+        next &&
+        (next.type === "scriptselect" ||
+          next.type === "connect" ||
+          next.type === "connect-error")
+      ) {
+        dialog = null;
+        return;
+      }
       dialog = next ? { ...next } : null;
       // Reset transient input state on each new dialog.
       if (next) {

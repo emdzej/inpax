@@ -17,6 +17,7 @@
     "@emdzej/inpax-dispatcher": "workspace:*",
     "@emdzej/inpax-interfaces": "workspace:*",
     "@emdzej/inpax-tui-provider": "workspace:*",
+    "@emdzej/inpax-providers": "workspace:*",
     "@emdzej/inpax-ediabasx-provider": "workspace:*",
     "@emdzej/inpax-ini-parser": "workspace:*",
     "@emdzej/inpax-logger": "workspace:*",
