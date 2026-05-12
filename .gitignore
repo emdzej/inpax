@@ -12,3 +12,9 @@ packages/*/dist/
 
 # Turborepo
 .turbo
+
+# IDE — local debugger / workspace prefs, keep out of the repo
+.vscode/
+
+# Legacy code tree, kept on disk for reference but not part of the build
+my/
