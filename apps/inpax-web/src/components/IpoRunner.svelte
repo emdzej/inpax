@@ -18,6 +18,7 @@
   import { classicInpaTheme } from "../lib/theme";
   import ScreenCanvas from "./ScreenCanvas.svelte";
   import FKeyBar from "./FKeyBar.svelte";
+  import MenuTitleBar from "./MenuTitleBar.svelte";
   import DialogOverlay from "./DialogOverlay.svelte";
   import ScriptSelectDialog from "./ScriptSelectDialog.svelte";
   import ConnectDialog from "./ConnectDialog.svelte";
@@ -193,6 +194,7 @@
            `runtime.ui`, picking up the new provider's empty state and
            then populating from its `setitem` calls. -->
       {#key runtime}
+        <MenuTitleBar ui={runtime.ui} />
         <footer class="border-t border-zinc-800">
           <FKeyBar ui={runtime.ui} />
         </footer>
