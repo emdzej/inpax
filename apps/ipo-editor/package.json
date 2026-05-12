@@ -2,7 +2,6 @@
   "name": "@emdzej/inpax-ipo-editor",
   "version": "0.1.0",
   "description": "Terminal UI for editing constants in compiled INPA .ipo files",
-  "private": true,
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -26,5 +25,11 @@
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
     "typescript": "^5.7.0"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ]
 }

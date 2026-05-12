@@ -5,8 +5,8 @@ on:
     types: [published]
   workflow_dispatch:
     inputs:
-      dry-run:
-        description: 'Dry run (no actual publish)'
+      dry_run:
+        description: 'Dry run (do not publish)'
         required: false
         default: 'false'
         type: boolean
@@ -15,22 +15,33 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
+      # `id-token: write` is required to mint the OIDC token that npm
+      # trusted publishing exchanges for a short-lived publish credential.
+      # Without it the `npm publish` step would fall back to looking for
+      # NODE_AUTH_TOKEN and fail. Mirrors the ediabasx publish workflow.
       contents: read
-      packages: write
-
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@emdzej'
+          version: 10.33.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          # Pin the registry so the OIDC handshake targets npmjs.org.
+          # Each package declares `publishConfig.access: "public"` (scoped
+          # packages default to private; that flag flips them to public so
+          # they don't trip the npm 402 "Payment Required" gate).
+          registry-url: 'https://registry.npmjs.org'
+
+      # Node 22 ships with npm 10; npm trusted publishing (the OIDC ↔
+      # npmjs.org flow) requires npm >= 11.5.1.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -38,19 +49,14 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Configure npm for GitHub Packages
-        run: |
-          echo "@emdzej:registry=https://npm.pkg.github.com" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN}" >> .npmrc
-
+      # `pnpm -r publish` walks the workspace, skips private packages
+      # (currently `apps/inpax-web`), and forwards to `npm publish`
+      # per package. `--provenance` attaches a verifiable build
+      # attestation — free when publishing via trusted publishing.
       - name: Publish packages
-        if: ${{ github.event.inputs.dry-run != 'true' }}
-        run: pnpm -r publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: pnpm -r publish --provenance --no-git-checks
 
-      - name: Publish packages (dry run)
-        if: ${{ github.event.inputs.dry-run == 'true' }}
-        run: pnpm -r publish --access public --no-git-checks --dry-run
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Dry run
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: pnpm -r publish --provenance --no-git-checks --dry-run

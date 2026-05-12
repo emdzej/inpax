@@ -1,7 +1,7 @@
 {
   "name": "@emdzej/inpax-ediabasx-provider",
   "version": "0.1.0",
-  "description": "EdiabasX provider for INPA interpreter — uses @emdzej/ediabasx-ediabas for real ECU communication.",
+  "description": "EdiabasX provider for INPA interpreter \u2014 uses @emdzej/ediabasx-ediabas for real ECU communication.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,7 +32,6 @@
     "vitest": "^2.1.8"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
     "access": "public"
   },
   "repository": {

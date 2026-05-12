@@ -39,7 +39,6 @@
     "url": "https://github.com/emdzej/inpax.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
     "access": "public"
   }
 }
