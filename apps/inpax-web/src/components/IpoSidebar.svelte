@@ -40,10 +40,10 @@
 {#if settings.sidebarCollapsed}
   <!-- Collapsed rail — just an expand button. Keeps a stable layout
        slot so the canvas doesn't reflow on toggle. -->
-  <aside class="flex h-full w-10 shrink-0 flex-col items-center border-r border-zinc-800 bg-zinc-900">
+  <aside class="flex h-full w-10 shrink-0 flex-col items-center border-r border-divider bg-surface">
     <button
       type="button"
-      class="mt-2 rounded p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+      class="mt-2 rounded p-2 text-muted hover:bg-elevated hover:text-foreground"
       title="Expand script list"
       aria-label="Expand script list"
       onclick={() => setSidebarCollapsed(false)}
@@ -53,17 +53,17 @@
     </button>
   </aside>
 {:else}
-  <aside class="flex h-full w-72 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900">
-    <div class="flex items-center gap-2 border-b border-zinc-800 p-3">
+  <aside class="flex h-full w-72 shrink-0 flex-col border-r border-divider bg-surface">
+    <div class="flex items-center gap-2 border-b border-divider p-3">
       <input
         type="search"
-        class="min-w-0 flex-1 rounded bg-zinc-800 px-3 py-1.5 text-sm placeholder-zinc-500 outline-none focus:ring-1 focus:ring-accent"
+        class="min-w-0 flex-1 rounded bg-elevated px-3 py-1.5 text-sm placeholder-faint outline-none focus:ring-1 focus:ring-accent"
         placeholder="Filter scripts…"
         bind:value={filter}
       />
       <button
         type="button"
-        class="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+        class="rounded p-1.5 text-muted hover:bg-elevated hover:text-foreground"
         title="Collapse script list"
         aria-label="Collapse script list"
         onclick={() => setSidebarCollapsed(true)}
@@ -74,9 +74,9 @@
 
     <div class="flex-1 overflow-y-auto">
       {#each filteredSections as [origin, entries] (origin)}
-        <div class="border-b border-zinc-800/60 last:border-0">
-          <div class="sticky top-0 bg-zinc-900/95 px-3 py-1.5 text-xs uppercase tracking-wider text-zinc-500">
-            {origin} <span class="text-zinc-600">({entries.length})</span>
+        <div class="border-b border-divider last:border-0">
+          <div class="sticky top-0 bg-surface px-3 py-1.5 text-xs uppercase tracking-wider text-faint">
+            {origin} <span class="text-faint">({entries.length})</span>
           </div>
           <ul>
             {#each entries as entry (entry.origin + "/" + entry.name)}
@@ -90,8 +90,8 @@
               <li class="group flex items-center">
                 <button
                   type="button"
-                  class="min-w-0 flex-1 truncate px-3 py-1 text-left text-sm transition hover:bg-zinc-800"
-                  class:bg-zinc-800={selected}
+                  class="min-w-0 flex-1 truncate px-3 py-1 text-left text-sm transition hover:bg-elevated"
+                  class:bg-elevated={selected}
                   class:text-accent={selected}
                   onclick={() => (app.selectedIpo = entry)}
                 >
@@ -103,10 +103,10 @@
                      entry can be pinned at a time. -->
                 <button
                   type="button"
-                  class="px-2 py-1 text-sm leading-none transition group-hover:opacity-100 hover:bg-zinc-800"
+                  class="px-2 py-1 text-sm leading-none transition group-hover:opacity-100 hover:bg-elevated"
                   class:opacity-0={!selected}
                   class:text-accent={pinned}
-                  class:text-zinc-400={!pinned}
+                  class:text-muted={!pinned}
                   title={pinned ? "Unpin (won't run on next launch)" : "Pin as startup script"}
                   aria-label={pinned ? "Unpin startup script" : "Pin as startup script"}
                   aria-pressed={pinned}
@@ -121,13 +121,13 @@
       {/each}
 
       {#if filteredSections.length === 0}
-        <div class="p-4 text-center text-sm text-zinc-500">
+        <div class="p-4 text-center text-sm text-faint">
           {filter ? "No matches." : "No .ipo files found."}
         </div>
       {/if}
     </div>
 
-    <footer class="border-t border-zinc-800 p-3 text-xs text-zinc-500">
+    <footer class="border-t border-divider p-3 text-xs text-faint">
       {app.ipoFiles.length} script{app.ipoFiles.length === 1 ? "" : "s"}
     </footer>
   </aside>

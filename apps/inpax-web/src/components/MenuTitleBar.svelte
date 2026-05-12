@@ -29,7 +29,7 @@
 </script>
 
 {#if title}
-  <div class="border-t border-zinc-800 bg-zinc-900 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-300">
+  <div class="border-t border-divider bg-surface px-3 py-1 text-xs font-medium uppercase tracking-wider text-muted">
     {title}
   </div>
 {/if}

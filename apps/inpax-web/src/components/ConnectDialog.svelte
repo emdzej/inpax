@@ -93,12 +93,12 @@
     role="dialog"
     aria-modal="true"
   >
-    <div class="w-full max-w-md rounded border border-zinc-700 bg-zinc-900 shadow-2xl">
-      <header class="border-b border-zinc-800 px-4 py-3">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-300">
+    <div class="w-full max-w-md rounded border border-rule bg-surface shadow-2xl">
+      <header class="border-b border-divider px-4 py-3">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-muted">
           {isErrorDialog ? "EDIABAS connection failed" : "EDIABAS connection"}
         </h2>
-        <p class="mt-1 text-xs text-zinc-500">
+        <p class="mt-1 text-xs text-faint">
           {isErrorDialog
             ? "The script's INPAapiInit couldn't open the link."
             : "The script is initialising the diagnostic link."}
@@ -106,20 +106,20 @@
       </header>
 
       {#if isErrorDialog}
-        <section class="space-y-3 px-4 py-4 text-sm text-zinc-300">
+        <section class="space-y-3 px-4 py-4 text-sm text-muted">
           <p class="rounded border border-red-700 bg-red-950/40 p-3 text-xs text-red-300">
             {dialog.text}
           </p>
-          <p class="text-xs text-zinc-500">
-            <span class="text-zinc-300">Retry</span> reopens the connect dialog so you can change
+          <p class="text-xs text-faint">
+            <span class="text-muted">Retry</span> reopens the connect dialog so you can change
             settings and try again.
-            <span class="text-zinc-300">Continue</span> lets the script proceed —
+            <span class="text-muted">Continue</span> lets the script proceed —
             later <code>INPAapiJob</code> calls will fail until you reconnect from Settings.
-            <span class="text-zinc-300">Stop</span> aborts the script.
+            <span class="text-muted">Stop</span> aborts the script.
           </p>
         </section>
 
-        <footer class="flex items-center justify-end gap-2 border-t border-zinc-800 bg-zinc-950/50 px-4 py-2">
+        <footer class="flex items-center justify-end gap-2 border-t border-divider bg-elevated/50 px-4 py-2">
           <button
             type="button"
             class="rounded px-3 py-1 text-sm text-red-400 hover:bg-red-900/40 hover:text-red-300"
@@ -129,7 +129,7 @@
           </button>
           <button
             type="button"
-            class="rounded px-3 py-1 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+            class="rounded px-3 py-1 text-sm text-muted hover:bg-elevated hover:text-foreground"
             onclick={continueAnyway}
           >
             Continue
@@ -143,13 +143,13 @@
           </button>
         </footer>
       {:else}
-        <section class="space-y-3 px-4 py-4 text-sm text-zinc-300">
+        <section class="space-y-3 px-4 py-4 text-sm text-muted">
           <div class="flex items-center justify-between">
-            <span class="text-zinc-400">Interface</span>
-            <span class="font-mono text-zinc-200">{app.config.interface}</span>
+            <span class="text-muted">Interface</span>
+            <span class="font-mono text-foreground">{app.config.interface}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-zinc-400">Status</span>
+            <span class="text-muted">Status</span>
             <span
               class="rounded px-2 py-0.5 text-xs"
               class:bg-green-900={connection.phase === "connected"}
@@ -158,8 +158,8 @@
               class:text-amber-200={connection.phase === "connecting"}
               class:bg-red-900={connection.phase === "error"}
               class:text-red-200={connection.phase === "error"}
-              class:bg-zinc-800={connection.phase === "idle" || connection.phase === "disconnected"}
-              class:text-zinc-300={connection.phase === "idle" || connection.phase === "disconnected"}
+              class:bg-elevated={connection.phase === "idle" || connection.phase === "disconnected"}
+              class:text-muted={connection.phase === "idle" || connection.phase === "disconnected"}
             >
               {connection.message}
             </span>
@@ -170,17 +170,17 @@
             </p>
           {/if}
           {#if app.config.interface === "webserial"}
-            <p class="text-xs text-zinc-500">
-              Clicking <span class="text-zinc-300">Connect</span> opens the browser's port
+            <p class="text-xs text-faint">
+              Clicking <span class="text-muted">Connect</span> opens the browser's port
               picker — this counts as the user gesture Web Serial needs.
             </p>
           {/if}
         </section>
 
-        <footer class="flex items-center justify-between gap-2 border-t border-zinc-800 bg-zinc-950/50 px-4 py-2">
+        <footer class="flex items-center justify-between gap-2 border-t border-divider bg-elevated/50 px-4 py-2">
           <button
             type="button"
-            class="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-400 hover:border-zinc-500"
+            class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule"
             onclick={openSettings}
           >
             Settings…
@@ -188,7 +188,7 @@
           <div class="flex gap-2">
             <button
               type="button"
-              class="rounded px-3 py-1 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+              class="rounded px-3 py-1 text-sm text-muted hover:bg-elevated hover:text-foreground"
               onclick={skip}
             >
               Skip

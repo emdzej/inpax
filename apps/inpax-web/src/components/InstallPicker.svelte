@@ -120,7 +120,7 @@
 <div class="flex h-full flex-col items-center justify-center gap-8 p-8">
   <div class="max-w-2xl text-center">
     <h1 class="text-4xl font-bold text-accent">INPAX</h1>
-    <p class="mt-2 text-zinc-400">BMW INPA scripts, in your browser.</p>
+    <p class="mt-2 text-muted">BMW INPA scripts, in your browser.</p>
   </div>
 
   {#if !supported}
@@ -130,7 +130,7 @@
       Use Chrome, Edge, or Opera.
     </div>
   {:else if restoring}
-    <p class="text-sm text-zinc-500">Restoring last folder…</p>
+    <p class="text-sm text-faint">Restoring last folder…</p>
   {:else}
     {#if savedHandle}
       <!-- Browser dropped the permission across the reload but the
@@ -144,7 +144,7 @@
           Continue with {savedHandle.name}
         </button>
         <button
-          class="text-xs text-zinc-500 hover:text-zinc-300 underline-offset-2 hover:underline"
+          class="text-xs text-faint hover:text-muted underline-offset-2 hover:underline"
           onclick={pickRoot}
         >
           Pick a different folder
@@ -157,9 +157,9 @@
       >
         Pick your INPA install folder
       </button>
-      <p class="max-w-md text-center text-sm text-zinc-500">
-        Point at the root that contains <code class="text-zinc-300">EC-APPS/</code> and
-        <code class="text-zinc-300">EDIABAS/</code>. We auto-discover the scripts
+      <p class="max-w-md text-center text-sm text-faint">
+        Point at the root that contains <code class="text-muted">EC-APPS/</code> and
+        <code class="text-muted">EDIABAS/</code>. We auto-discover the scripts
         (SGDAT, CFGDAT) and the SGBD files under EDIABAS/Ecu.
       </p>
     {/if}

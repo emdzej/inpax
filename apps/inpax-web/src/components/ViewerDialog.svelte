@@ -37,24 +37,24 @@
       onclick={close}
     ></button>
     <div
-      class="relative flex max-h-[80vh] w-full max-w-3xl flex-col rounded border border-zinc-700 bg-zinc-900 shadow-xl"
+      class="relative flex max-h-[80vh] w-full max-w-3xl flex-col rounded border border-rule bg-surface shadow-xl"
       role="dialog"
       aria-modal="true"
       tabindex="-1"
     >
-      <header class="flex items-center justify-between border-b border-zinc-800 px-4 py-2">
-        <h2 class="text-sm font-semibold text-zinc-100">
+      <header class="flex items-center justify-between border-b border-divider px-4 py-2">
+        <h2 class="text-sm font-semibold text-foreground">
           {viewer.title || viewer.fileName}
         </h2>
         <button
           type="button"
-          class="rounded px-2 py-1 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+          class="rounded px-2 py-1 text-xs text-muted hover:bg-elevated hover:text-foreground"
           onclick={close}
         >
           Close
         </button>
       </header>
-      <pre class="flex-1 overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-xs text-zinc-200">{viewer.content}</pre>
+      <pre class="flex-1 overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-xs text-foreground">{viewer.content}</pre>
     </div>
   </div>
 {/if}

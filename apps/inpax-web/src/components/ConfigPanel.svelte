@@ -12,6 +12,13 @@
   import { app } from "../lib/state.svelte";
   import { resetConfig, saveConfig, isWebSerialSupported, type InterfaceType } from "../lib/config";
   import { connection, connect, disconnect } from "../lib/connection.svelte";
+  import { settings, setTheme, type ThemeChoice } from "../lib/settings.svelte";
+
+  const themeOptions: Array<{ value: ThemeChoice; label: string; help: string }> = [
+    { value: "system", label: "System", help: "Follows your OS theme — live-updates when you toggle dark mode at the OS level." },
+    { value: "light", label: "Light", help: "Force the light palette." },
+    { value: "dark", label: "Dark", help: "Force the dark palette (the original inpax look)." },
+  ];
 
   let savedAt = $state<number | null>(null);
 
@@ -81,12 +88,12 @@
     role="dialog"
     aria-modal="true"
   >
-    <div class="flex max-h-[90vh] w-full max-w-2xl flex-col rounded border border-zinc-700 bg-zinc-900 shadow-2xl">
-      <header class="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+    <div class="flex max-h-[90vh] w-full max-w-2xl flex-col rounded border border-rule bg-surface shadow-2xl">
+      <header class="flex items-center justify-between border-b border-divider px-4 py-3">
         <div>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-300">Connection Settings</h2>
-          <p class="mt-1 text-xs text-zinc-500">
-            Persists in <code class="text-zinc-400">localStorage</code>. Applied next time you Connect.
+          <h2 class="text-sm font-bold uppercase tracking-wider text-muted">Connection Settings</h2>
+          <p class="mt-1 text-xs text-faint">
+            Persists in <code class="text-muted">localStorage</code>. Applied next time you Connect.
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -95,7 +102,7 @@
           {/if}
           <button
             type="button"
-            class="text-zinc-500 hover:text-zinc-200"
+            class="text-faint hover:text-foreground"
             onclick={close}
             aria-label="Close settings"
           >
@@ -107,15 +114,43 @@
       <div class="flex-1 overflow-auto p-4">
         <div class="flex flex-col gap-6">
           <fieldset class="flex flex-col gap-2">
-            <legend class="text-xs font-bold uppercase tracking-wider text-zinc-500">
+            <legend class="text-xs font-bold uppercase tracking-wider text-faint">
+              Theme
+            </legend>
+            <div class="flex flex-col gap-2">
+              {#each themeOptions as option (option.value)}
+                <label
+                  class="flex cursor-pointer items-start gap-3 rounded border bg-surface p-3 hover:border-rule"
+                  class:border-accent={settings.theme === option.value}
+                  class:border-divider={settings.theme !== option.value}
+                >
+                  <input
+                    type="radio"
+                    name="theme"
+                    value={option.value}
+                    checked={settings.theme === option.value}
+                    onchange={() => setTheme(option.value)}
+                    class="mt-1 accent-accent"
+                  />
+                  <div class="flex-1">
+                    <div class="text-sm font-medium text-foreground">{option.label}</div>
+                    <div class="mt-0.5 text-xs text-faint">{option.help}</div>
+                  </div>
+                </label>
+              {/each}
+            </div>
+          </fieldset>
+
+          <fieldset class="flex flex-col gap-2">
+            <legend class="text-xs font-bold uppercase tracking-wider text-faint">
               Interface
             </legend>
             <div class="flex flex-col gap-2">
               {#each interfaceOptions as option (option.value)}
                 <label
-                  class="flex cursor-pointer items-start gap-3 rounded border bg-zinc-900 p-3 hover:border-zinc-700"
+                  class="flex cursor-pointer items-start gap-3 rounded border bg-surface p-3 hover:border-rule"
                   class:border-accent={app.config.interface === option.value}
-                  class:border-zinc-800={app.config.interface !== option.value}
+                  class:border-divider={app.config.interface !== option.value}
                 >
                   <input
                     type="radio"
@@ -125,8 +160,8 @@
                     class="mt-1 accent-accent"
                   />
                   <div class="flex flex-col">
-                    <span class="text-sm text-zinc-200">{option.label}</span>
-                    <span class="text-xs text-zinc-500">{option.help}</span>
+                    <span class="text-sm text-foreground">{option.label}</span>
+                    <span class="text-xs text-faint">{option.help}</span>
                   </div>
                 </label>
               {/each}
@@ -141,21 +176,21 @@
 
           {#if app.config.interface === "webserial"}
             <fieldset class="grid grid-cols-2 gap-3">
-              <legend class="col-span-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+              <legend class="col-span-2 text-xs font-bold uppercase tracking-wider text-faint">
                 Serial / K-line
               </legend>
-              <label class="flex flex-col gap-1 text-xs text-zinc-400">
+              <label class="flex flex-col gap-1 text-xs text-muted">
                 Baud rate
                 <input
                   type="number"
-                  class="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-200 focus:border-accent focus:outline-none"
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
                   bind:value={app.config.serial!.baudRate}
                 />
               </label>
-              <label class="flex flex-col gap-1 text-xs text-zinc-400">
+              <label class="flex flex-col gap-1 text-xs text-muted">
                 Protocol
                 <select
-                  class="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-200 focus:border-accent focus:outline-none"
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
                   bind:value={app.config.serial!.protocol}
                 >
                   <option value="uart">UART (K+DCAN, raw passthrough)</option>
@@ -164,20 +199,20 @@
                   <option value="tp20">TP2.0 (VAG)</option>
                 </select>
               </label>
-              <label class="flex flex-col gap-1 text-xs text-zinc-400">
+              <label class="flex flex-col gap-1 text-xs text-muted">
                 Data bits
                 <select
-                  class="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-200 focus:border-accent focus:outline-none"
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
                   bind:value={app.config.serial!.dataBits}
                 >
                   <option value={8}>8</option>
                   <option value={7}>7</option>
                 </select>
               </label>
-              <label class="flex flex-col gap-1 text-xs text-zinc-400">
+              <label class="flex flex-col gap-1 text-xs text-muted">
                 Parity
                 <select
-                  class="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-200 focus:border-accent focus:outline-none"
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
                   bind:value={app.config.serial!.parity}
                 >
                   <option value="none">none</option>
@@ -185,31 +220,31 @@
                   <option value="odd">odd</option>
                 </select>
               </label>
-              <label class="flex flex-col gap-1 text-xs text-zinc-400">
+              <label class="flex flex-col gap-1 text-xs text-muted">
                 Stop bits
                 <select
-                  class="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-200 focus:border-accent focus:outline-none"
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
                   bind:value={app.config.serial!.stopBits}
                 >
                   <option value={1}>1</option>
                   <option value={2}>2</option>
                 </select>
               </label>
-              <label class="flex flex-col gap-1 text-xs text-zinc-400">
+              <label class="flex flex-col gap-1 text-xs text-muted">
                 Init mode
                 <select
-                  class="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-200 focus:border-accent focus:outline-none"
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
                   bind:value={app.config.serial!.initMode}
                 >
                   <option value="fast">fast</option>
                   <option value="five-baud">5-baud</option>
                 </select>
               </label>
-              <label class="col-span-2 flex flex-col gap-1 text-xs text-zinc-400">
+              <label class="col-span-2 flex flex-col gap-1 text-xs text-muted">
                 Timeout (ms)
                 <input
                   type="number"
-                  class="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-200 focus:border-accent focus:outline-none"
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
                   bind:value={app.config.serial!.timeoutMs}
                 />
               </label>
@@ -218,30 +253,30 @@
 
           {#if app.config.interface === "enet"}
             <fieldset class="grid grid-cols-2 gap-3">
-              <legend class="col-span-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+              <legend class="col-span-2 text-xs font-bold uppercase tracking-wider text-faint">
                 ENET / DoIP
               </legend>
-              <label class="flex flex-col gap-1 text-xs text-zinc-400">
+              <label class="flex flex-col gap-1 text-xs text-muted">
                 Host
                 <input
                   type="text"
-                  class="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-200 focus:border-accent focus:outline-none"
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
                   bind:value={app.config.enet!.host}
                 />
               </label>
-              <label class="flex flex-col gap-1 text-xs text-zinc-400">
+              <label class="flex flex-col gap-1 text-xs text-muted">
                 Port
                 <input
                   type="number"
-                  class="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm text-zinc-200 focus:border-accent focus:outline-none"
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
                   bind:value={app.config.enet!.port}
                 />
               </label>
             </fieldset>
           {/if}
 
-          <fieldset class="flex flex-col gap-2 rounded border border-zinc-800 bg-zinc-950/60 p-3">
-            <legend class="px-1 text-xs font-bold uppercase tracking-wider text-zinc-500">
+          <fieldset class="flex flex-col gap-2 rounded border border-divider bg-elevated/60 p-3">
+            <legend class="px-1 text-xs font-bold uppercase tracking-wider text-faint">
               Connection
             </legend>
             <div class="flex items-center gap-3">
@@ -253,15 +288,15 @@
                 class:text-amber-200={connection.phase === "connecting"}
                 class:bg-red-900={connection.phase === "error"}
                 class:text-red-200={connection.phase === "error"}
-                class:bg-zinc-800={connection.phase === "idle" || connection.phase === "disconnected"}
-                class:text-zinc-300={connection.phase === "idle" || connection.phase === "disconnected"}
+                class:bg-elevated={connection.phase === "idle" || connection.phase === "disconnected"}
+                class:text-muted={connection.phase === "idle" || connection.phase === "disconnected"}
               >
                 {connection.message}
               </span>
               {#if connection.phase === "connected"}
                 <button
                   type="button"
-                  class="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                  class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground"
                   onclick={() => void disconnect()}
                 >
                   Disconnect
@@ -286,10 +321,10 @@
         </div>
       </div>
 
-      <footer class="flex items-center justify-between border-t border-zinc-800 bg-zinc-950/50 px-4 py-2">
+      <footer class="flex items-center justify-between border-t border-divider bg-elevated/50 px-4 py-2">
         <button
           type="button"
-          class="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-400 hover:border-zinc-500"
+          class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule"
           onclick={reset}
         >
           Reset to defaults

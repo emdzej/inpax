@@ -113,24 +113,24 @@
   }
 </script>
 
-<div class="grid grid-cols-10 gap-px bg-zinc-800 text-xs">
+<div class="grid grid-cols-10 gap-px bg-elevated text-xs">
   {#each Array(10) as _, i (i)}
     {@const slot = slotFor(i)}
     <button
       type="button"
-      class="flex flex-col items-center justify-center px-2 py-2 text-zinc-300 transition"
-      class:bg-zinc-900={!slot.bound}
-      class:bg-zinc-800={slot.bound}
-      class:hover:bg-zinc-700={slot.bound}
+      class="flex flex-col items-center justify-center px-2 py-2 text-muted transition"
+      class:bg-surface={!slot.bound}
+      class:bg-elevated={slot.bound}
+      class:hover:bg-elevated={slot.bound}
       class:cursor-not-allowed={!slot.bound}
       class:opacity-40={!slot.bound}
       onclick={() => slot.bound && ui.selectMenuItem(slot.bound.itemNum)}
       disabled={!slot.bound}
     >
-      <span class="text-[10px] uppercase tracking-wider text-zinc-500">
+      <span class="text-[10px] font-bold uppercase tracking-wider text-accent">
         {slot.label}
       </span>
-      <span class="mt-0.5 truncate font-medium text-zinc-200">
+      <span class="mt-0.5 truncate font-medium text-foreground">
         {slot.bound?.text ?? "—"}
       </span>
     </button>

@@ -156,15 +156,15 @@
     role="dialog"
     aria-modal="true"
   >
-    <div class="flex h-[70vh] w-full max-w-4xl flex-col rounded border border-zinc-700 bg-zinc-900 shadow-2xl">
-      <header class="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+    <div class="flex h-[70vh] w-full max-w-4xl flex-col rounded border border-rule bg-surface shadow-2xl">
+      <header class="flex items-center justify-between border-b border-divider px-4 py-3">
         <div>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-300">Select script</h2>
-          <p class="mt-1 text-xs text-zinc-500">{dialog.scriptSelectFile ?? "—"}</p>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-muted">Select script</h2>
+          <p class="mt-1 text-xs text-faint">{dialog.scriptSelectFile ?? "—"}</p>
         </div>
         <button
           type="button"
-          class="text-zinc-500 hover:text-zinc-200"
+          class="text-faint hover:text-foreground"
           onclick={cancel}
           aria-label="Cancel"
         >
@@ -177,18 +177,18 @@
           {loadError}
         </div>
       {:else if !tree}
-        <div class="flex flex-1 items-center justify-center text-sm text-zinc-500">Loading…</div>
+        <div class="flex flex-1 items-center justify-center text-sm text-faint">Loading…</div>
       {:else}
         <div class="flex flex-1 overflow-hidden">
           <!-- Tree pane: categories / subcategories. -->
-          <nav class="w-1/3 overflow-auto border-r border-zinc-800 bg-zinc-950/50">
+          <nav class="w-1/3 overflow-auto border-r border-divider bg-elevated/50">
             {#each flatTree as { node, depth } (node.section)}
               <button
                 type="button"
-                class="block w-full truncate px-3 py-1.5 text-left text-sm hover:bg-zinc-800"
-                class:bg-zinc-800={activeNode?.section === node.section}
+                class="block w-full truncate px-3 py-1.5 text-left text-sm hover:bg-elevated"
+                class:bg-elevated={activeNode?.section === node.section}
                 class:text-accent={activeNode?.section === node.section}
-                class:text-zinc-300={activeNode?.section !== node.section}
+                class:text-muted={activeNode?.section !== node.section}
                 style="padding-left: {0.75 + depth * 1}rem"
                 onclick={() => {
                   activeNode = node;
@@ -204,26 +204,26 @@
           <section class="flex-1 overflow-auto">
             {#if activeNode}
               {#if activeNode.entries.length === 0}
-                <div class="p-4 text-sm text-zinc-500">No entries in this category.</div>
+                <div class="p-4 text-sm text-faint">No entries in this category.</div>
               {:else}
                 {#each activeNode.entries as entry, i (i)}
                   {#if entry.ipo === ""}
                     <!-- ENTRY=,, → visual separator -->
-                    <div class="my-1 h-px bg-zinc-800"></div>
+                    <div class="my-1 h-px bg-elevated"></div>
                   {:else}
                     <button
                       type="button"
-                      class="flex w-full items-baseline gap-3 px-4 py-1.5 text-left text-sm hover:bg-zinc-800"
-                      class:bg-zinc-800={selectedEntry === entry}
+                      class="flex w-full items-baseline gap-3 px-4 py-1.5 text-left text-sm hover:bg-elevated"
+                      class:bg-elevated={selectedEntry === entry}
                       class:text-accent={selectedEntry === entry}
-                      class:text-zinc-200={selectedEntry !== entry}
+                      class:text-foreground={selectedEntry !== entry}
                       onclick={() => (selectedEntry = entry)}
                       ondblclick={() => {
                         selectedEntry = entry;
                         confirm();
                       }}
                     >
-                      <span class="w-32 shrink-0 font-mono text-xs text-zinc-500">
+                      <span class="w-32 shrink-0 font-mono text-xs text-faint">
                         {entry.ipo}
                       </span>
                       <span class="truncate">{entry.text}</span>
@@ -232,16 +232,16 @@
                 {/each}
               {/if}
             {:else}
-              <div class="p-4 text-sm text-zinc-500">Pick a category on the left.</div>
+              <div class="p-4 text-sm text-faint">Pick a category on the left.</div>
             {/if}
           </section>
         </div>
       {/if}
 
-      <footer class="flex justify-end gap-2 border-t border-zinc-800 bg-zinc-950/50 px-4 py-2">
+      <footer class="flex justify-end gap-2 border-t border-divider bg-elevated/50 px-4 py-2">
         <button
           type="button"
-          class="rounded px-3 py-1 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+          class="rounded px-3 py-1 text-sm text-muted hover:bg-elevated hover:text-foreground"
           onclick={cancel}
         >
           Cancel

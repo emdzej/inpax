@@ -133,18 +133,18 @@
   });
 </script>
 
-<main class="flex h-full flex-1 flex-col bg-zinc-950">
+<main class="flex h-full flex-1 flex-col bg-base">
   {#if !app.selectedIpo}
-    <div class="flex h-full flex-col items-center justify-center text-zinc-500">
+    <div class="flex h-full flex-col items-center justify-center text-faint">
       <p class="text-lg">Pick a script from the sidebar.</p>
     </div>
   {:else}
-    <header class="flex items-center gap-3 border-b border-zinc-800 px-4 py-2 text-sm">
-      <span class="font-semibold text-zinc-100">{app.selectedIpo.name}</span>
-      <span class="text-zinc-500">·</span>
-      <span class="text-zinc-500">{app.selectedIpo.origin}</span>
+    <header class="flex items-center gap-3 border-b border-divider px-4 py-2 text-sm">
+      <span class="font-semibold text-foreground">{app.selectedIpo.name}</span>
+      <span class="text-faint">·</span>
+      <span class="text-faint">{app.selectedIpo.origin}</span>
       {#if title}
-        <span class="text-zinc-500">·</span>
+        <span class="text-faint">·</span>
         <span class="text-accent">{title}</span>
       {/if}
     </header>
@@ -152,7 +152,7 @@
     <section class="relative flex-1 overflow-hidden p-2">
       {#if loading}
         <div class="flex h-full items-center justify-center">
-          <p class="text-sm text-zinc-500">Starting runtime…</p>
+          <p class="text-sm text-faint">Starting runtime…</p>
         </div>
       {:else if error}
         <div class="flex h-full items-center justify-center">
@@ -167,12 +167,12 @@
              per full LINE-block cycle) so the canvas never catches a
              half-rewritten line — that was the Battery/Ignition
              flicker root cause.
-             Wrapper takes the theme background so the "letter-box" area
-             around the cell grid (caused by aspect-ratio fitting) blends
-             with the canvas instead of showing the dark app shell. Only
-             applied while a runtime is live; the Connect / Loading /
-             Error states keep the dark zinc-themed bg so their
-             dark-on-dark text stays readable. -->
+             Wrapper takes the INPA canvas background (which the script
+             chose — usually white) so the "letter-box" area around the
+             cell grid (caused by aspect-ratio fitting) blends with the
+             canvas. The script paints its own colours and is theme-
+             independent; the light/dark switch only affects the
+             surrounding app chrome. -->
         <div class="relative h-full w-full" style="background: {classicInpaTheme.background};">
           <ScreenCanvas screen={runtime.screen} ui={runtime.ui} onFrameReady={runtime.onFrameReady} />
           <!-- UserBoxOverlay sits on top of the canvas so scripts'
@@ -195,7 +195,7 @@
            then populating from its `setitem` calls. -->
       {#key runtime}
         <MenuTitleBar ui={runtime.ui} />
-        <footer class="border-t border-zinc-800">
+        <footer class="border-t border-divider">
           <FKeyBar ui={runtime.ui} />
         </footer>
         <DialogOverlay ui={runtime.ui} />

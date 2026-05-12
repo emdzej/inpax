@@ -3,8 +3,44 @@
 @tailwind utilities;
 
 @layer base {
-  /* Dark-theme scrollbars — apps/inpax-web is built for a Chromium target
-     (Web Serial + File System Access API) so we can rely on -webkit-* */
+  /* Semantic theme tokens — see tailwind.config.ts. Values are
+     `R G B` triples (no `rgb()` wrapper) so the Tailwind colour
+     definition `rgb(var(...) / <alpha-value>)` can splice an alpha
+     in. Changing the values inside `.dark` is what flips the whole
+     UI; components reference the semantic names (`bg-surface`,
+     `text-muted`, etc.) and don't have to know which theme is on. */
+
+  :root {
+    /* Light theme (default). White bg, zinc surface steps, deep
+       text — strict separation between bg / surface / elevated so
+       flat areas stay distinguishable. */
+    --theme-bg: 255 255 255;             /* white */
+    --theme-surface: 244 244 245;        /* zinc-100 */
+    --theme-elevated: 228 228 231;       /* zinc-200 */
+    --theme-border-strong: 212 212 216;  /* zinc-300 */
+    --theme-border-subtle: 228 228 231;  /* zinc-200 */
+    --theme-text-primary: 24 24 27;      /* zinc-900 */
+    --theme-text-secondary: 63 63 70;    /* zinc-700 */
+    --theme-text-muted: 113 113 122;     /* zinc-500 */
+  }
+
+  .dark {
+    /* Dark theme — matches the original inpax look (zinc-950 surfaces
+       with zinc-100 text). Kept very close to the historical palette
+       so muscle-memory users don't notice the change. */
+    --theme-bg: 9 9 11;                  /* zinc-950 */
+    --theme-surface: 24 24 27;           /* zinc-900 */
+    --theme-elevated: 39 39 42;          /* zinc-800 */
+    --theme-border-strong: 39 39 42;     /* zinc-800 */
+    --theme-border-subtle: 39 39 42;     /* zinc-800 */
+    --theme-text-primary: 244 244 245;   /* zinc-100 */
+    --theme-text-secondary: 212 212 216; /* zinc-300 */
+    --theme-text-muted: 113 113 122;     /* zinc-500 */
+  }
+
+  /* Scrollbars pull from the theme tokens so they don't stay dark
+     in light mode. Apps/inpax-web targets Chromium (Web Serial +
+     File System Access API) so the -webkit-* prefixes are safe. */
   *::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -13,10 +49,15 @@
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
-    background: #3f3f46;
+    background: rgb(var(--theme-elevated));
     border-radius: 4px;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: #52525b;
+    background: rgb(var(--theme-border-strong));
+  }
+
+  body {
+    background: rgb(var(--theme-bg));
+    color: rgb(var(--theme-text-primary));
   }
 }

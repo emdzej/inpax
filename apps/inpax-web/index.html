@@ -4,8 +4,31 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>INPAX — BMW INPA in the browser</title>
+    <!-- Resolve the saved theme choice BEFORE the Svelte bundle paints
+         so users on dark mode don't get a flash of light. App.svelte
+         re-runs the same resolution as soon as it mounts and takes
+         over from there (including live-tracking system theme
+         changes). Settings key must match `STORAGE_KEY` in
+         apps/inpax-web/src/lib/settings.svelte.ts. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem("inpax.web.settings.v1");
+          var parsed = raw ? JSON.parse(raw) : {};
+          var choice = parsed.theme || "system";
+          var dark =
+            choice === "dark" ||
+            (choice === "system" &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (_) {
+          /* swallow — defaults to light, App.svelte will reconcile */
+        }
+      })();
+    </script>
   </head>
-  <body class="h-full bg-zinc-950 text-zinc-100 font-mono">
+  <body class="h-full bg-base font-mono text-foreground">
     <div id="app" class="h-full"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -107,11 +107,11 @@
     role="dialog"
     aria-modal="true"
   >
-    <div class="w-full max-w-md rounded border border-zinc-700 bg-zinc-900 shadow-2xl">
-      <header class="border-b border-zinc-800 px-4 py-2 text-sm font-semibold text-accent">
+    <div class="w-full max-w-md rounded border border-rule bg-surface shadow-2xl">
+      <header class="border-b border-divider px-4 py-2 text-sm font-semibold text-accent">
         {dialog.title || "INPA"}
       </header>
-      <section class="space-y-3 px-4 py-3 text-sm text-zinc-200">
+      <section class="space-y-3 px-4 py-3 text-sm text-foreground">
         <p class="whitespace-pre-wrap">{dialog.text}</p>
 
         {#if dialog.type === "text" || dialog.type === "number" || dialog.type === "hex"}
@@ -119,12 +119,12 @@
                UX for a transient prompt the user just triggered. -->
           <input
             type={dialog.type === "number" ? "number" : "text"}
-            class="w-full rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-zinc-100 outline-none focus:ring-1 focus:ring-accent"
+            class="w-full rounded border border-rule bg-base px-2 py-1 text-foreground outline-none focus:ring-1 focus:ring-accent"
             bind:value={inputValue}
             autofocus
           />
           {#if dialog.type === "number" || dialog.type === "hex"}
-            <p class="text-xs text-zinc-500">
+            <p class="text-xs text-faint">
               min: {dialog.min ?? "—"} · max: {dialog.max ?? "—"}
             </p>
           {/if}
@@ -135,11 +135,11 @@
           </label>
         {/if}
       </section>
-      <footer class="flex justify-end gap-2 border-t border-zinc-800 bg-zinc-950/50 px-4 py-2">
+      <footer class="flex justify-end gap-2 border-t border-divider bg-elevated/50 px-4 py-2">
         {#if dialog.type !== "message"}
           <button
             type="button"
-            class="rounded px-3 py-1 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+            class="rounded px-3 py-1 text-sm text-muted hover:bg-elevated hover:text-foreground"
             onclick={cancel}
           >
             Cancel

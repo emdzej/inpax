@@ -10,6 +10,8 @@
  * localStorage on every change.
  */
 
+export type ThemeChoice = "light" | "dark" | "system";
+
 export interface WebSettings {
   /**
    * Filename of the IPO the app should auto-run on next launch, or
@@ -20,6 +22,13 @@ export interface WebSettings {
   startupIpo: string | null;
   /** Sidebar collapsed state — the file browser folds into a thin rail. */
   sidebarCollapsed: boolean;
+  /**
+   * Theme choice. "system" tracks `prefers-color-scheme` and updates
+   * when the OS toggles light/dark; "light" / "dark" pin the theme
+   * regardless of OS preference. App.svelte resolves this into a
+   * boolean and toggles a `dark` class on <html>.
+   */
+  theme: ThemeChoice;
 }
 
 const STORAGE_KEY = "inpax.web.settings.v1";
@@ -27,6 +36,7 @@ const STORAGE_KEY = "inpax.web.settings.v1";
 const DEFAULTS: WebSettings = {
   startupIpo: null,
   sidebarCollapsed: false,
+  theme: "system",
 };
 
 function load(): WebSettings {
@@ -76,4 +86,21 @@ export function isStartupIpo(name: string): boolean {
 export function setSidebarCollapsed(collapsed: boolean): void {
   settings.sidebarCollapsed = collapsed;
   persist();
+}
+
+export function setTheme(theme: ThemeChoice): void {
+  settings.theme = theme;
+  persist();
+}
+
+/**
+ * Resolve the user's theme choice into a concrete light/dark flag.
+ * For `"system"` we consult `prefers-color-scheme` at call time.
+ * Safe in SSR / pre-DOM contexts (returns the light branch).
+ */
+export function isDarkTheme(): boolean {
+  if (settings.theme === "dark") return true;
+  if (settings.theme === "light") return false;
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }

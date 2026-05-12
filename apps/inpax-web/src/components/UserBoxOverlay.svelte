@@ -49,11 +49,11 @@
   <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
     {#each boxes as box (box.boxNum)}
       <div
-        class="flex min-w-[20rem] max-w-[80%] flex-col rounded border border-zinc-700 shadow-lg"
+        class="flex min-w-[20rem] max-w-[80%] flex-col rounded border border-rule shadow-lg"
         style={boxStyle(box)}
       >
         {#if box.title}
-          <header class="border-b border-zinc-700 px-2 py-1 text-xs font-semibold">
+          <header class="border-b border-rule px-2 py-1 text-xs font-semibold">
             {box.title}
           </header>
         {/if}
