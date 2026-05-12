@@ -8,7 +8,6 @@ import {
     AluOp,
     Scope,
     CallTarget,
-    StackEntryFlags,
     Value,
 } from '@emdzej/inpax-core';
 import type { IInpaRuntime, NativeImportParam } from '@emdzej/inpax-interfaces';

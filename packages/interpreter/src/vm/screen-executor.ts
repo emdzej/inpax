@@ -1,6 +1,6 @@
 import { EventEmitter } from 'eventemitter3';
 import { getLogger } from '@emdzej/inpax-logger';
-import type { ScreenBlock, LineBlock, FunctionBlock, StackEntry, Value } from '@emdzej/inpax-core';
+import type { ScreenBlock, LineBlock, FunctionBlock, Value } from '@emdzej/inpax-core';
 import { ValueType } from '@emdzej/inpax-core';
 import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
