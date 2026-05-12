@@ -12,7 +12,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/packages/cli/dist/index.js",
+            "program": "${workspaceFolder}/apps/cli/dist/index.js",
             "args": ["run", "/Volumes/emdzej/Documents/ipo/E46_NEW.ipo", "--debug"],
             "outFiles": [
                 "${workspaceFolder}/**/*.js"

@@ -3,7 +3,7 @@
  * imports that inpax scripts use, reading via FileSystemDirectoryHandle
  * instead of `node:fs`.
  *
- * Mirrors `packages/cli/src/native-imports/*` per DLL family (INI,
+ * Mirrors `apps/cli/src/native-imports/*` per DLL family (INI,
  * config, system, strings, file). Browser-specific adaptations:
  *
  *   - `prefetchIniFiles()` populates the INI cache up-front since the

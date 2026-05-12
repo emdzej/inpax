@@ -50,7 +50,7 @@ pnpm --filter @emdzej/inpax-web dev
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ Apps & CLIs                                                       │
-│   packages/cli        terminal TUI runner — disasm / info / run   │
+│   apps/cli            terminal TUI runner — disasm / info / run   │
 │   apps/inpax-web      browser SPA — canvas + Web Serial           │
 │   apps/inpax-compile  IPS → IPO bytecode compiler CLI             │
 │   apps/ipo-editor     ink TUI for editing constants in .ipo files │
@@ -79,7 +79,7 @@ pnpm --filter @emdzej/inpax-web dev
 
 | Package | Description |
 |---------|-------------|
-| [@emdzej/inpax-cli](./packages/cli) | CLI: disassemble, info, run with TUI / headless |
+| [@emdzej/inpax-cli](./apps/cli) | CLI: disassemble, info, run with TUI / headless |
 | [@emdzej/inpax-web](./apps/inpax-web) | Browser SPA — canvas runtime + Web Serial transport |
 | [@emdzej/inpax-compile](./apps/inpax-compile) | IPS source → IPO bytecode compiler CLI |
 | [@emdzej/inpax-ipo-editor](./apps/ipo-editor) | TUI for editing constants in compiled `.ipo` files |

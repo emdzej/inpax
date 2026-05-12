@@ -843,7 +843,7 @@ inpainit()
 
 
 > inpax@0.0.0 cli /Users/mjaskols/Projects/my/inpax
-> node packages/cli/dist/index.js "disasm" "/Volumes/emdzej/Documents/mj-test/T06_if_else.ipo"
+> node apps/cli/dist/index.js "disasm" "/Volumes/emdzej/Documents/mj-test/T06_if_else.ipo"
 
 0x0279: === G: Global Data ===
 [0 : 0x0000] type=void (0x00)

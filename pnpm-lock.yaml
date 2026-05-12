@@ -40,6 +40,58 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.10)
 
+  apps/cli:
+    dependencies:
+      '@emdzej/ediabasx-interfaces':
+        specifier: link:../../../ediabasx/packages/interfaces
+        version: link:../../../ediabasx/packages/interfaces
+      '@emdzej/inpax-cli-provider':
+        specifier: workspace:*
+        version: link:../../packages/cli-provider
+      '@emdzej/inpax-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@emdzej/inpax-dis':
+        specifier: workspace:*
+        version: link:../../packages/disassembler
+      '@emdzej/inpax-ediabasx-provider':
+        specifier: workspace:*
+        version: link:../../packages/ediabasx-provider
+      '@emdzej/inpax-ini-parser':
+        specifier: workspace:*
+        version: link:../../packages/ini-parser
+      '@emdzej/inpax-interfaces':
+        specifier: workspace:*
+        version: link:../../packages/interfaces
+      '@emdzej/inpax-interpreter':
+        specifier: workspace:*
+        version: link:../../packages/interpreter
+      '@emdzej/inpax-mock-provider':
+        specifier: workspace:*
+        version: link:../../packages/mock-provider
+      '@emdzej/inpax-parser':
+        specifier: workspace:*
+        version: link:../../packages/parser
+      '@emdzej/inpax-tui':
+        specifier: workspace:*
+        version: link:../../packages/tui
+      '@emdzej/inpax-tui-provider':
+        specifier: workspace:*
+        version: link:../../packages/tui-provider
+      chalk:
+        specifier: ^5.3.0
+        version: 5.6.2
+      commander:
+        specifier: ^12.0.0
+        version: 12.1.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.33
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
   apps/inpax-compile:
     dependencies:
       '@emdzej/inpax-compiler':
@@ -170,58 +222,6 @@ importers:
         version: 18.3.28
       typescript:
         specifier: ^5.7.0
-        version: 5.9.3
-
-  packages/cli:
-    dependencies:
-      '@emdzej/ediabasx-interfaces':
-        specifier: link:../../../ediabasx/packages/interfaces
-        version: link:../../../ediabasx/packages/interfaces
-      '@emdzej/inpax-cli-provider':
-        specifier: workspace:*
-        version: link:../cli-provider
-      '@emdzej/inpax-core':
-        specifier: workspace:*
-        version: link:../core
-      '@emdzej/inpax-dis':
-        specifier: workspace:*
-        version: link:../disassembler
-      '@emdzej/inpax-ediabasx-provider':
-        specifier: workspace:*
-        version: link:../ediabasx-provider
-      '@emdzej/inpax-ini-parser':
-        specifier: workspace:*
-        version: link:../ini-parser
-      '@emdzej/inpax-interfaces':
-        specifier: workspace:*
-        version: link:../interfaces
-      '@emdzej/inpax-interpreter':
-        specifier: workspace:*
-        version: link:../interpreter
-      '@emdzej/inpax-mock-provider':
-        specifier: workspace:*
-        version: link:../mock-provider
-      '@emdzej/inpax-parser':
-        specifier: workspace:*
-        version: link:../parser
-      '@emdzej/inpax-tui':
-        specifier: workspace:*
-        version: link:../tui
-      '@emdzej/inpax-tui-provider':
-        specifier: workspace:*
-        version: link:../tui-provider
-      chalk:
-        specifier: ^5.3.0
-        version: 5.6.2
-      commander:
-        specifier: ^12.0.0
-        version: 12.1.0
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.33
-      typescript:
-        specifier: ^5.0.0
         version: 5.9.3
 
   packages/cli-provider:
