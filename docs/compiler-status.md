@@ -18,11 +18,30 @@ Pipeline: `preprocess → tokenize → parse → analyze → codegen → writeIp
 ```bash
 pnpm --filter @emdzej/inpax-compiler-core build
 pnpm --filter @emdzej/inpax-compiler build
-pnpm exec vitest run packages/compiler-core   # 26 tests, all green
-inpax-compiler -I ~/Downloads/inpa/EC-APPS/INPA/SGDAT ~/Downloads/inpa/EC-APPS/INPA/CFGDAT/startus.ips -o /tmp/startus.ipo
+pnpm exec vitest run packages/compiler-core    # 27 tests, all green
+
+# single file
+pnpm compile -I ~/Downloads/inpa/EC-APPS/INPA/SGDAT \
+  ~/Downloads/inpa/EC-APPS/INPA/CFGDAT/startus.ips -o /tmp/startus.ipo
+
+# batch — variadic <files...>, -o <dir>, --continue past failures
+pnpm compile -I path/a,path/b -I path/c -o /tmp/out --continue \
+  scripts/*.ips
 ```
 
 Real-world smoke: `startus.ips` (BMW Rectification entry point) compiles to a 12 786-byte IPO that parses and disassembles cleanly (19 functions, 67 globals, 593 constants, 2 screens, 1 menu, 5 import descriptors).
+
+### CLI surface (`apps/inpax-compiler/`)
+
+| Flag | Meaning |
+|---|---|
+| `<files...>` | One or more `.ips` files (variadic) |
+| `-o <path>` | Single input: output `.ipo` path. Batch: output directory. Mis-specifying as a file in batch mode is rejected with exit 2. |
+| `-I <dir>` | `#include` search path — **repeatable** AND **comma-separated** (`-I a,b -I c`). Empty segments dropped. |
+| `--continue` | Keep compiling after a file fails (batch mode). Final exit non-zero if any failed. |
+| `-v / --verbose` | Per-file lines + summary even with a single input. |
+
+Per-file lines + summary always printed in batch mode. Case-insensitive sibling fallback in the preprocessor catches `#include "BMW_STD.H"` against an on-disk `bmw_std.h` (covered by a real-FS regression test).
 
 ## What works
 
@@ -98,13 +117,33 @@ Two candidates:
    - **Verify `string[N]` runtime semantics** by compiling + running a fixture that exercises buffer-length-dependent code (`GetPrivateProfileString` write target).
    - **Bool / byte / real CALLE descriptor chars** — find a real `.ipo` that uses them and validate against the encoder.
 
+## Companion app: ipo-editor
+
+A separate TUI at `apps/ipo-editor/` lets you edit constants in compiled `.ipo` files (translation use case — change German strings to other languages without recompiling). Built on `ink` + `commander` + `iconv-lite`; depends on `@emdzej/inpax-parser` for the walk.
+
+Key features:
+- Codepage-aware decode/encode (`--codepage cp1252` default; cp1250/1251/etc. for other locales)
+- Per-type edit dialogs (string with live cp-mapping check, bool radio, int/byte/long with range + hex preview, real with sci-notation)
+- Byte-preserving save: only the Constant Data block's payload is re-emitted; every other block byte stays identical. `.bak` created by default; `--no-backup` to skip.
+- FFI-descriptor strings auto-locked unless `--allow-ffi` (heuristic: contains `::`, `:<letter>.`, `%`)
+- `--readonly` for view-only mode
+
+```bash
+pnpm editor ~/Downloads/inpa/EC-APPS/NFS/SGDAT/ABGAS.IPO
+pnpm editor --codepage cp1250 path/to/file.ipo
+```
+
+End-to-end save path verified against a real BMW file (`ABGAS.IPO`): length-changing string edit + int edit round-trip cleanly, all prefix bytes byte-identical to source, `.bak` matches source.
+
 ## Repo entry points (for next time)
 
 - Compiler library: `packages/compiler-core/src/index.ts` (the `compile(source, options)` export)
-- CLI: `apps/inpax-compiler/src/index.ts`
+- Compiler CLI: `apps/inpax-compiler/src/index.ts`
+- Editor TUI: `apps/ipo-editor/src/index.tsx`, `apps/ipo-editor/src/components/`
 - Codegen: `packages/compiler-core/src/codegen/codegen.ts`
 - Writer: `packages/compiler-core/src/writer/writer.ts`
 - Semantic / symbols: `packages/compiler-core/src/semantic/symbol-table.ts`
+- Preprocessor: `packages/compiler-core/src/preprocessor/preprocessor.ts`
 - Tests: `packages/compiler-core/src/__tests__/`
 - Fixtures: `packages/compiler-core/__tests__/fixtures/`
 - Format spec we cross-reference: `docs/ipo-file-structure.md`, `docs/opcode-reference.md`

@@ -485,6 +485,34 @@ describe('stage 2e — #include + #pragma', () => {
       }),
     ).toThrow(/cannot find include/);
   });
+
+  it('resolves an #include case-insensitively (basename) when the disk casing differs', () => {
+    // Real BMW case: a script written under DOS/Windows uses
+    // uppercase `BMW_STD.H`, but the file on a case-sensitive
+    // filesystem is `bmw_std.h`. The preprocessor's CI-fallback uses
+    // `readdirSync` on the real filesystem, so this test exercises
+    // an actual temp directory rather than the virtual fileReader.
+    const { mkdtempSync, writeFileSync, rmSync } = require('node:fs') as typeof import('node:fs');
+    const { tmpdir } = require('node:os') as typeof import('node:os');
+    const tmp = mkdtempSync(join(tmpdir(), 'inpax-ci-include-'));
+    try {
+      writeFileSync(join(tmp, 'bmw_std.h'), 'int counter;\n');
+      writeFileSync(
+        join(tmp, 'main.ips'),
+        '#include "BMW_STD.H"\ninpainit() { counter = 1; }\ninpaexit() {}',
+      );
+      const src = readFileSync(join(tmp, 'main.ips'), 'utf-8');
+      const bytes = compile(src, {
+        filePath: join(tmp, 'main.ips'),
+        includePaths: [tmp],
+      });
+      const ipo = parseIpo(bytes);
+      // One user global (`counter`) plus the implicit void slot.
+      expect(ipo.globals.types).toEqual([0x00, 0x03]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('stage 2f — import32 / CALLE', () => {

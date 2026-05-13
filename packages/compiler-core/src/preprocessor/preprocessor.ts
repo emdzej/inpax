@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, isAbsolute, resolve as resolvePath } from 'node:path';
 
 export class PreprocessorError extends Error {
@@ -162,9 +162,18 @@ function defaultFileReader(absPath: string): string | undefined {
   }
 }
 
+/**
+ * Look for a file in `dirname(absPath)` whose basename matches
+ * `basename(absPath)` case-insensitively. INPA scripts in the wild are
+ * inconsistent: a script writes `#include "BMW_STD.H"` (uppercase
+ * legacy convention) but the file on a Unix filesystem is
+ * `bmw_std.h`. We scan the directory once and pick the first match.
+ *
+ * Returns `undefined` if the directory doesn't exist or no entry
+ * matches. Returns the original path unchanged if it exists exactly.
+ */
 function caseInsensitiveSibling(absPath: string): string | undefined {
   try {
-    const { readdirSync } = require('node:fs') as typeof import('node:fs');
     const dir = dirname(absPath);
     const target = absPath.slice(dir.length + 1).toLowerCase();
     for (const entry of readdirSync(dir)) {
