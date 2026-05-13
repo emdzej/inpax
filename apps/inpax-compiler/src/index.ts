@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, resolve as resolvePath } from 'node:path';
 import { Command } from 'commander';
 import chalk from 'chalk';
@@ -116,10 +116,56 @@ program
     }
   });
 
+/**
+ * Scaffold a minimal IPS file. Modelled after the canonical "empty
+ * INPA script" shape every BMW script starts from — `#pragma winedit`
+ * + `#include "inpa.h"` + the two mandatory entry points.
+ */
+program
+  .command('new <file>')
+  .description('write a starter .ips file with inpainit / inpaexit stubs')
+  .option('--title <text>', 'placeholder text for settitle() in inpainit', 'New script')
+  .option('--force', 'overwrite if the file already exists')
+  .action((file: string, opts: { title: string; force?: boolean }) => {
+    const outPath = resolvePath(file.endsWith('.ips') ? file : `${file}.ips`);
+    if (existsSync(outPath) && !opts.force) {
+      console.error(
+        chalk.red(
+          `error: ${shortPath(outPath)} already exists — pass --force to overwrite`,
+        ),
+      );
+      process.exit(2);
+    }
+    writeFileSync(outPath, ipsTemplate(opts.title), { encoding: 'utf-8' });
+    process.stderr.write(
+      chalk.gray(`✓ wrote ${shortPath(outPath)}\n`),
+    );
+  });
+
 program.parseAsync(process.argv).catch((err) => {
   console.error(chalk.red((err as Error).message));
   process.exit(1);
 });
+
+function ipsTemplate(title: string): string {
+  // Escape any " in the user-supplied title — keeps the generated
+  // file valid IPS even if the caller passes something quote-y.
+  const safe = title.replace(/[\\"]/g, '\\$&');
+  return [
+    '#pragma winedit',
+    '#include "inpa.h"',
+    '',
+    'inpainit()',
+    '{',
+    `  settitle("${safe}");`,
+    '}',
+    '',
+    'inpaexit()',
+    '{',
+    '}',
+    '',
+  ].join('\n');
+}
 
 /**
  * commander accumulator for `-I` flags. Accepts both repeated flags
