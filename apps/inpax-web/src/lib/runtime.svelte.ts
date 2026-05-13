@@ -23,7 +23,7 @@ import {
 } from "@emdzej/inpax-providers/null";
 import { EdiabasXProvider, Inp1Adapter } from "@emdzej/inpax-ediabasx-provider";
 import { BrowserExternalProvider } from "./browser-external.svelte.js";
-import { settings, RUNTIME_TICK_MS_FAST } from "./settings.svelte.js";
+import { settings, RUNTIME_TICK_MS_FAST, debugLog } from "./settings.svelte.js";
 import { Ediabas, type EdiabasConfig } from "@emdzej/ediabasx-ediabas";
 import { BrowserNativeImportProvider } from "./native-imports.js";
 import { makeBrowserSgbdResolver } from "./sgbd-loader.js";
@@ -205,10 +205,10 @@ export async function startInpaRuntime(
     const handler = findMenuItemHandler(ipo, menuHandle, itemNum);
     if (handler) {
       scheduler.queueMenuAction(itemNum, async () => {
-        console.info(`[menu:select] running handler for F${itemNum}`);
+        debugLog(`[menu:select] running handler for F${itemNum}`);
         try {
           await vm.executeBlock(handler);
-          console.info(`[menu:select] handler for F${itemNum} done`);
+          debugLog(`[menu:select] handler for F${itemNum} done`);
         } catch (err) {
           console.error(`[menu:select] handler for F${itemNum} threw:`, err);
         }

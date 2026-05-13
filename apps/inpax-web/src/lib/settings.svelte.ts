@@ -50,6 +50,22 @@ export interface WebSettings {
  *  artificial throttle, just yield to the event loop" behaviour. */
 export const RUNTIME_TICK_MS_FAST = 50;
 
+/**
+ * Diagnostic `console.info` that no-ops when debug mode is off. Use
+ * for runtime traces a developer wants while investigating but that
+ * would be noise during normal operation (per-F-key handler entry/
+ * exit, per-cycle attach diagnostics, etc.). Real warnings and
+ * errors should keep going through `console.warn` / `console.error`
+ * unconditionally — those signal actual defects.
+ *
+ * `args` is spread directly into `console.info` so callers can pass
+ * objects without manual JSON-stringification.
+ */
+export function debugLog(...args: unknown[]): void {
+  if (!settings.debugMode) return;
+  console.info(...args);
+}
+
 const STORAGE_KEY = "inpax.web.settings.v1";
 
 const DEFAULTS: WebSettings = {
