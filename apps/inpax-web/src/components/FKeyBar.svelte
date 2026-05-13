@@ -26,16 +26,15 @@
    * regional keyboards where digits are deadkeys).
    */
 
-  import type { TuiProvider } from "@emdzej/inpax-tui-provider";
-  import type { MenuItem } from "@emdzej/inpax-tui-provider";
+  import type { UIProvider, MenuItem } from "@emdzej/inpax-ui-provider-core";
 
-  type Props = { ui: TuiProvider };
+  type Props = { ui: UIProvider };
   const { ui }: Props = $props();
 
   let items = $state<MenuItem[]>([]);
   let shift = $state(false);
 
-  // Re-snapshot menu items on every state:changed — TuiProvider
+  // Re-snapshot menu items on every state:changed — the provider
   // mutates its internal arrays in place but emits `state:changed`
   // every time the script touches anything. Re-subscribes when `ui`
   // changes too (switching scripts gives us a fresh provider).

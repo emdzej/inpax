@@ -12,9 +12,9 @@
    * no per-frame JS so it doesn't fight the canvas paint loop.
    */
 
-  import type { TuiProvider } from "@emdzej/inpax-tui-provider";
+  import type { UIProvider } from "@emdzej/inpax-ui-provider-core";
 
-  type Props = { ui: TuiProvider };
+  type Props = { ui: UIProvider };
   const { ui }: Props = $props();
 
   let cyclic = $state(false);

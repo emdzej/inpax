@@ -2,8 +2,8 @@
   /**
    * Modal for the script-driven connect flow.
    *
-   * Watches the TuiProvider's `inputDialog` for a `type === 'connect'`
-   * payload — set by `TuiProvider.ensureConnected()`, which the
+   * Watches the provider's `inputDialog` for a `type === 'connect'`
+   * payload — set by `UIProvider.ensureConnected()`, which the
    * dispatcher's `INPAapiInit` awaits. When the dialog appears:
    *
    *   1. We render a modal explaining what's happening — current
@@ -22,11 +22,11 @@
    *      reconnects manually from Settings.
    */
 
-  import type { TuiProvider, InputDialog } from "@emdzej/inpax-tui-provider";
+  import type { UIProvider, InputDialog } from "@emdzej/inpax-ui-provider-core";
   import { app } from "../lib/state.svelte";
   import { connection, connect } from "../lib/connection.svelte";
 
-  type Props = { ui: TuiProvider };
+  type Props = { ui: UIProvider };
   const { ui }: Props = $props();
 
   let dialog = $state<InputDialog | null>(null);

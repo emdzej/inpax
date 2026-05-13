@@ -20,7 +20,11 @@
    * wide as it is tall). DPR scaling for crisp retina glyphs.
    */
 
-  import type { ScreenBuffer, TuiProvider } from "@emdzej/inpax-tui-provider";
+  import {
+    formatAnalogValue,
+    type ScreenBuffer,
+    type UIProvider,
+  } from "@emdzej/inpax-ui-provider-core";
   import { classicInpaTheme, paletteColor } from "../lib/theme";
 
   type Props = {
@@ -32,7 +36,7 @@
      * `digitalout`. Optional so the canvas still works in test /
      * preview contexts that only render the screen buffer.
      */
-    ui?: TuiProvider;
+    ui?: UIProvider;
     /**
      * Optional frame-ready subscription — when supplied, paints fire
      * on the runtime's `cycle:complete` boundary (one paint per full
@@ -183,7 +187,7 @@
     }
 
     // Graphical overlays — analog gauges, digital LEDs, sized text.
-    // These read from the TuiProvider's typed-primitive arrays so we
+    // These read from the provider's typed-primitive arrays so we
     // can render them as real graphics (not character cells). Each
     // pass also fills its target region with the theme background
     // first to hide the small cell-grid text the provider also wrote
@@ -369,24 +373,6 @@
       ctx.textBaseline = "top";
       ctx.fillText(line.text, x, y);
     }
-  }
-
-  /**
-   * Mirror of `TuiProvider`'s internal `formatAnalogValue`. Inlined to
-   * keep the canvas free of cross-package imports for one helper —
-   * the TuiProvider doesn't export it. If this is wrong, the analog
-   * gauge will show the wrong number but everything else still works.
-   */
-  function formatAnalogValue(value: number, format: string): string {
-    if (!format) return value.toString();
-    const regex = /%(?:(\d+)\.)?(\d+)?[dfg]/;
-    const match = format.match(regex);
-    if (!match) return format;
-    const decimals = match[2] ? parseInt(match[2], 10) : 0;
-    const formatted = format.endsWith("d")
-      ? Math.round(value).toString()
-      : value.toFixed(decimals);
-    return format.replace(regex, formatted);
   }
 
   // Paint coalescing: cycle:complete from the runtime is the only

@@ -25,7 +25,7 @@
     "@emdzej/inpax-logger": "workspace:*",
     "@emdzej/inpax-parser": "workspace:*",
     "@emdzej/inpax-providers": "workspace:*",
-    "@emdzej/inpax-tui-provider": "workspace:*",
+    "@emdzej/inpax-ui-provider-core": "workspace:*",
     "workbox-window": "^7.4.1"
   },
   "devDependencies": {

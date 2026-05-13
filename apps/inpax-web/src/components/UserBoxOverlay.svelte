@@ -2,7 +2,7 @@
   /**
    * Visual layer for `userboxopen` / `userboxftextout` / `userboxclose`.
    *
-   * TuiProvider stores user boxes in `state.userBoxes` (Map<boxNum,
+   * The provider stores user boxes in `state.userBoxes` (Map<boxNum,
    * UserBox>). Scripts use them as progress dialogs during long jobs
    * (e.g. "Fehlerspeicher lesen" while INPAapiFsLesen runs). Without
    * rendering them here those operations look like nothing is
@@ -17,14 +17,14 @@
    * the script's width as a relative hint (clamped sensibly).
    */
 
-  import type { TuiProvider, UserBox } from "@emdzej/inpax-tui-provider";
+  import type { UIProvider, UserBox } from "@emdzej/inpax-ui-provider-core";
   import { classicInpaTheme, paletteColor } from "../lib/theme";
 
   // INPA defaults: C_BLACK foreground on C_WHITE background.
   const DEFAULT_FG = classicInpaTheme.palette[1];
   const DEFAULT_BG = classicInpaTheme.palette[0];
 
-  type Props = { ui: TuiProvider };
+  type Props = { ui: UIProvider };
   const { ui }: Props = $props();
 
   let boxes = $state<UserBox[]>([]);

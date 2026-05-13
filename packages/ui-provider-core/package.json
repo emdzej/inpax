@@ -1,7 +1,7 @@
 {
-  "name": "@emdzej/inpax-tui-provider",
+  "name": "@emdzej/inpax-ui-provider-core",
   "version": "0.1.0",
-  "description": "Headless TUI state management for INPA runtime",
+  "description": "Abstract UI provider — shared state + IUIProvider implementation that TUI and Web subclasses build on.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@emdzej/inpax-interfaces": "workspace:*",
-    "@emdzej/inpax-ui-provider-core": "workspace:*",
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {

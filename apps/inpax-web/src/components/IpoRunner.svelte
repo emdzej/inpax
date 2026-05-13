@@ -31,7 +31,7 @@
   let error = $state<string | null>(null);
   let loading = $state(false);
 
-  // Re-snapshot the title on every TuiProvider state:changed event.
+  // Re-snapshot the title on every WebUIProvider state:changed event.
   // settitle() is the most common UI op a script does early, so
   // pinning it gives an immediate visual confirmation the runtime
   // is alive.
@@ -145,7 +145,7 @@
       // dialog overlays) read `runtime.ui` and won't notice the swap
       // until `runtime` is reassigned to the new handle. The brief
       // `null` state forces them to unmount and re-mount fresh
-      // against the new TuiProvider.
+      // against the new WebUIProvider.
       runtime = null;
     };
   });

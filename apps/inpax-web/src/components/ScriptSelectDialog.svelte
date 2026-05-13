@@ -16,7 +16,7 @@
    * `type === 'scriptselect'`).
    */
 
-  import type { TuiProvider, InputDialog } from "@emdzej/inpax-tui-provider";
+  import type { UIProvider, InputDialog } from "@emdzej/inpax-ui-provider-core";
   import { app } from "../lib/state.svelte";
   import {
     loadScriptSelect,
@@ -24,7 +24,7 @@
     type ScriptSelectEntry,
   } from "../lib/script-select";
 
-  type Props = { ui: TuiProvider };
+  type Props = { ui: UIProvider };
   const { ui }: Props = $props();
 
   let dialog = $state<InputDialog | null>(null);
@@ -33,7 +33,7 @@
   let selectedEntry = $state<ScriptSelectEntry | null>(null);
   let loadError = $state<string | null>(null);
 
-  // Subscribe to the TuiProvider's state changes — fires whenever
+  // Subscribe to the provider's state changes — fires whenever
   // any UI op happens, including the scriptselect dialog being set.
   // We filter to the scriptselect type so the regular DialogOverlay
   // can keep handling message/text/number/hex/digital.

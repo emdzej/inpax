@@ -79,7 +79,7 @@ export default defineConfig({
       "@emdzej/inpax-interpreter",
       "@emdzej/inpax-dispatcher",
       "@emdzej/inpax-interfaces",
-      "@emdzej/inpax-tui-provider",
+      "@emdzej/inpax-ui-provider-core",
       "@emdzej/inpax-ediabasx-provider",
       "@emdzej/inpax-ini-parser",
       "@emdzej/inpax-logger",

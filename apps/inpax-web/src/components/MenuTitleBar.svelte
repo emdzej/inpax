@@ -2,7 +2,7 @@
   /**
    * Header strip above the F-key bar showing the current menu title.
    *
-   * INPA's `setmenutitle "<text>"` writes through `TuiProvider.setMenuTitle`
+   * INPA's `setmenutitle "<text>"` writes through `UIProvider.setMenuTitle`
    * into `state.menuTitle`. Most BMW scripts use it for the menu's
    * human-readable label (e.g. "Fehlerspeicher" on the fault-store
    * menu, "Hauptmenü" on the main menu), so it's the natural breadcrumb
@@ -11,9 +11,9 @@
    * Hides itself when the title is empty so screens that never call
    * setmenutitle don't get a blank bar.
    */
-  import type { TuiProvider } from "@emdzej/inpax-tui-provider";
+  import type { UIProvider } from "@emdzej/inpax-ui-provider-core";
 
-  type Props = { ui: TuiProvider };
+  type Props = { ui: UIProvider };
   const { ui }: Props = $props();
 
   let title = $state("");

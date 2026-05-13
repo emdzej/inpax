@@ -12,7 +12,8 @@
 
 import { parseIpo } from "@emdzej/inpax-parser";
 import { VM, MainScheduler } from "@emdzej/inpax-interpreter";
-import { TuiProvider, type ScreenBuffer } from "@emdzej/inpax-tui-provider";
+import type { ScreenBuffer } from "@emdzej/inpax-ui-provider-core";
+import { WebUIProvider } from "./web-ui-provider.svelte.js";
 import {
   NullSimulationProvider,
   NullPrintProvider,
@@ -51,8 +52,8 @@ export interface RuntimeOptions {
 }
 
 export interface RuntimeHandle {
-  /** Live UI state — Svelte components $effect against the underlying TuiProvider. */
-  ui: TuiProvider;
+  /** Live UI state — Svelte components $effect against the underlying WebUIProvider. */
+  ui: WebUIProvider;
   /**
    * Browser-side `external` provider. Exposes `.viewer` $state for
    * `ViewerDialog.svelte` to render the modal that backs `viewopen`.
@@ -67,7 +68,7 @@ export interface RuntimeHandle {
   /**
    * Subscribe to "frame ready" events — fires once per SCREEN cycle
    * (after the executor has run all LINE blocks and the buffer is in
-   * a coherent state), plus on TuiProvider state changes before any
+   * a coherent state), plus on provider state changes before any
    * screen is active (messageboxes, initial title paint, …).
    *
    * The canvas paints from this rather than from `ui.onStateChange`
@@ -105,9 +106,9 @@ export async function startInpaRuntime(
   const ipo = parseIpo(ipoBytes);
 
   // 2. UI provider — feeds the ScreenBuffer that the canvas component
-  //    paints from. TuiProvider also tracks menu items, input dialogs,
+  //    paints from. WebUIProvider also tracks menu items, input dialogs,
   //    title, digital indicators, etc.
-  const ui = new TuiProvider();
+  const ui = new WebUIProvider();
   const screen = ui.getScreenBuffer();
 
   // 3. EDIABAS — real instance with transport supplied by the caller.
@@ -230,7 +231,7 @@ export async function startInpaRuntime(
   });
 
   // Frame-ready fan-out — see `RuntimeHandle.onFrameReady`. Triggers:
-  //   - Pre-screen / setup phase: every TuiProvider `state:changed`
+  //   - Pre-screen / setup phase: every provider `state:changed`
   //     (title, F-key labels, messageboxes — whatever inpainit() writes
   //     before the first SCREEN block).
   //   - Once the screen executor's `cycle:complete` has fired once,

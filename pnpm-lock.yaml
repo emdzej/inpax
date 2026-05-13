@@ -151,9 +151,9 @@ importers:
       '@emdzej/inpax-providers':
         specifier: workspace:*
         version: link:../../packages/providers
-      '@emdzej/inpax-tui-provider':
+      '@emdzej/inpax-ui-provider-core':
         specifier: workspace:*
-        version: link:../../packages/tui-provider
+        version: link:../../packages/ui-provider-core
       workbox-window:
         specifier: ^7.4.1
         version: 7.4.1
@@ -470,6 +470,25 @@ importers:
         version: 5.9.3
 
   packages/tui-provider:
+    dependencies:
+      '@emdzej/inpax-interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
+      '@emdzej/inpax-ui-provider-core':
+        specifier: workspace:*
+        version: link:../ui-provider-core
+      eventemitter3:
+        specifier: ^5.0.1
+        version: 5.0.4
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.10)(terser@5.47.1)
+
+  packages/ui-provider-core:
     dependencies:
       '@emdzej/inpax-interfaces':
         specifier: workspace:*

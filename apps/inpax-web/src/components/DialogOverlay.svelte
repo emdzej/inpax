@@ -2,7 +2,7 @@
   /**
    * Modal overlay for INPA's interactive prompts.
    *
-   * TuiProvider exposes a single `inputDialog` field that's set to one
+   * The provider exposes a single `inputDialog` field that's set to one
    * of five shapes:
    *   - "message" — informational box with just an OK button
    *   - "text"    — free-form text input
@@ -16,10 +16,9 @@
    * messageboxes — same behaviour the Node TUI handles.
    */
 
-  import type { TuiProvider } from "@emdzej/inpax-tui-provider";
-  import type { InputDialog } from "@emdzej/inpax-tui-provider";
+  import type { UIProvider, InputDialog } from "@emdzej/inpax-ui-provider-core";
 
-  type Props = { ui: TuiProvider };
+  type Props = { ui: UIProvider };
   const { ui }: Props = $props();
 
   let dialog = $state<InputDialog | null>(null);
