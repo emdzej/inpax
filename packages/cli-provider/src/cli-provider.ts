@@ -338,9 +338,20 @@ export class CliProvider extends EventEmitter<UIEvents> implements IUIProvider {
     this.println(`${prefix}${color}${formatted}${this.reset()} (${min}-${max})`);
   }
 
-  multiAnalogOut(row: number, col: number, ...values: unknown[]): void {
+  multiAnalogOut(
+    value: number,
+    row: number,
+    col: number,
+    min: number,
+    max: number,
+    _minValid: number,
+    _maxValid: number,
+    _format: string,
+    mode: number,
+  ): void {
     const prefix = this.showCoords ? `[${row},${col}] ` : '';
-    this.println(`${prefix}${values.join(' | ')}`);
+    const modeTag = mode ? ` mode=${mode}` : '';
+    this.println(`${prefix}${value} (${min}-${max})${modeTag}`);
   }
 
   // === Input ===

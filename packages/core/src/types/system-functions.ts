@@ -237,7 +237,7 @@ export const systemFunctions = [
   { id: 0x4A, name: "ftextout", signature: "(in: string text, in: int row, in: int col, in: int fontsize, in: int fontattr)" },
   { id: 0x4B, name: "digitalout", signature: "(in: bool val, in: int row, in: int col, in: string TrueText, in: string FalseText)" },
   { id: 0x4C, name: "analogout", signature: "(in: real val, in: int row, in: int col, in: real min, in: real max, in: real minvalid, in: real maxvalid, in: string format)" },
-  { id: 0x4D, name: "multianalogout", signature: "(in: int row, in: int col, ...)" },
+  { id: 0x4D, name: "multianalogout", signature: "(in: real val, in: int row, in: int col, in: real min, in: real max, in: real minvalid, in: real maxvalid, in: string format, in: int mode)" },
   { id: 0x4E, name: "hexdump", signature: "(in: int row, in: int col, in: string data, in: int len)" },
   { id: 0x4F, name: "ftextclear", signature: "(in: string text, in: int row, in: int col, in: int textsize, in: int textattr)" },
   { id: 0x50, name: "clearrect", signature: "(in: int row, in: int col, in: int width, in: int height)" },

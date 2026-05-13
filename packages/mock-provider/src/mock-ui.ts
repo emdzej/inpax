@@ -222,8 +222,22 @@ export class MockUIProvider extends EventEmitter<UIEvents> implements IUIProvide
     this.outputLines.push({ row, col, text: value.toString() });
   }
 
-  multiAnalogOut(row: number, col: number, ...values: unknown[]): void {
-    this.record('multiAnalogOut', row, col, ...values);
+  multiAnalogOut(
+    value: number,
+    row: number,
+    col: number,
+    min: number,
+    max: number,
+    minValid: number,
+    maxValid: number,
+    format: string,
+    mode: number,
+  ): void {
+    this.record(
+      'multiAnalogOut',
+      value, row, col, min, max, minValid, maxValid, format, mode,
+    );
+    this.outputLines.push({ row, col, text: value.toString() });
   }
 
   getInputState(): number {

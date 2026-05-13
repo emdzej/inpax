@@ -399,7 +399,18 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
                     inputs[7] as string
                 ));
             case SystemFunction.multianalogout:
-                return finalize(ui.multiAnalogOut(inputs[0] as number, inputs[1] as number, ...inputs.slice(2)));
+                // Signature per ref/Inpa.h:201 — identical to
+                // analogout plus a trailing int `mode`. Earlier
+                // (incorrect) shape treated this as a row/col
+                // header + variadic tail; the actual call layout
+                // matches analogout positionally.
+                return finalize(ui.multiAnalogOut(
+                    inputs[0] as number, inputs[1] as number, inputs[2] as number,
+                    inputs[3] as number, inputs[4] as number,
+                    inputs[5] as number, inputs[6] as number,
+                    inputs[7] as string,
+                    inputs[8] as number
+                ));
 
             // === UI: Input ===
             case SystemFunction.getinputstate:

@@ -35,6 +35,15 @@ export interface AnalogValue {
   format: string;
   label?: string;
   unit?: string;
+  /**
+   * Display-mode hint set only by `multianalogout` (system function
+   * 0x4D) — the documented extra arg vs plain `analogout`. INPA's
+   * canonical header doesn't comment on the values; with no BMW
+   * script in our test set exercising this opcode we store it
+   * verbatim so the canvas can branch later if we figure out the
+   * semantics. `undefined` means "regular `analogout`".
+   */
+  mode?: number;
 }
 
 export interface DigitalValue {

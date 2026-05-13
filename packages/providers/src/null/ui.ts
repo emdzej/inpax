@@ -88,7 +88,17 @@ export class NullUIProvider extends EventEmitter<UIEvents> implements IUIProvide
     _maxValid: number,
     _format: string
   ): void {}
-  multiAnalogOut(_row: number, _col: number, ..._values: unknown[]): void {}
+  multiAnalogOut(
+    _value: number,
+    _row: number,
+    _col: number,
+    _min: number,
+    _max: number,
+    _minValid: number,
+    _maxValid: number,
+    _format: string,
+    _mode: number,
+  ): void {}
 
   // === Input (return defaults) ===
   getInputState(): number {

@@ -200,9 +200,25 @@ export interface IUIProvider extends EventEmitter<UIEvents> {
   ): void;
   
   /**
-   * Display multiple analog values
+   * `multianalogout` — same shape as `analogOut` plus a documented
+   * `mode` integer. Per `ref/Inpa.h:201-206` the signature is
+   * `(val, row, col, min, max, minValid, maxValid, format, mode)`.
+   * The `mode` field is stored on the resulting `AnalogValue` and
+   * routed to the canvas; no script in our test set exercises it
+   * yet, so the host treats the entry identically to a regular
+   * `analogout`.
    */
-  multiAnalogOut(row: number, col: number, ...values: unknown[]): void;
+  multiAnalogOut(
+    value: number,
+    row: number,
+    col: number,
+    min: number,
+    max: number,
+    minValid: number,
+    maxValid: number,
+    format: string,
+    mode: number
+  ): void;
 
   // === Input Dialogs ===
   

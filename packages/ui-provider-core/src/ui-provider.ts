@@ -610,7 +610,44 @@ export abstract class UIProvider
     this.update();
   }
 
-  multiAnalogOut(_row: number, _col: number, ..._values: unknown[]): void {
+  /**
+   * `multianalogout` — same plumbing as `analogOut` with one extra
+   * `mode` field stored on the resulting entry. Real INPA's docs
+   * (`ref/Inpa.h:201`) declare it as the canonical multi-value
+   * variant; with no script in our test set actually using a
+   * non-zero mode we render identically to a regular `analogout`
+   * for now. The mode value survives in `state.analogValues` so the
+   * canvas (or any future renderer) can branch on it without going
+   * back through the provider.
+   */
+  multiAnalogOut(
+    value: number,
+    row: number,
+    col: number,
+    min: number,
+    max: number,
+    minValid: number,
+    maxValid: number,
+    format: string,
+    mode: number,
+  ): void {
+    const r = row + this.lineBaseRow;
+    this._state.analogValues = this._state.analogValues.filter(
+      a => !(a.row === r && a.col === col)
+    );
+    this._state.analogValues.push({
+      row: r,
+      col,
+      value,
+      min,
+      max,
+      minValid,
+      maxValid,
+      format,
+      mode,
+    });
+    const formatted = formatAnalogValue(value, format);
+    this.paintAnalog(r, col, formatted, this._state.fg, this._state.bg);
     this.update();
   }
 

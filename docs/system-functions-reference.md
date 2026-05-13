@@ -95,7 +95,7 @@ owns the behaviour.
 | 0x4A | `ftextout` | 🔌 | dispatcher → `ui.fTextOut` | INPA signature is `(text, row, col, fontsize, fontattr)` — **no colour params**. The dispatcher reads `getCurrentColors()` because the previous code accidentally consumed `fontsize`/`fontattr` as fg/bg. |
 | 0x4B | `digitalout` | 🔌 | dispatcher → `ui.digitalOut` | LED indicator. Web canvas renders a real disc; TUI a `●`/`○` glyph. |
 | 0x4C | `analogout` | 🔌 | dispatcher → `ui.analogOut` | Web canvas renders a gauge bar; TUI text only. |
-| 0x4D | `multianalogout` | 🟡 | dispatcher → `ui.multiAnalogOut` | Variadic; current impl emits `state:changed` but doesn't yet render. |
+| 0x4D | `multianalogout` | 🟡 | dispatcher → `ui.multiAnalogOut` | Signature per `ref/Inpa.h:201` is `(val, row, col, min, max, minValid, maxValid, format, mode)` — same as `analogout` plus a trailing `mode` int. Implementation pushes an `AnalogValue` with `mode` set; canvas renders identically to a plain gauge for now (no BMW script in our test set exercises a non-zero mode, so the mode's behavioural semantics are unknown). |
 | 0x4E | `hexdump` | 🔌 | dispatcher → `ui.hexDump` | Hex byte sequence. |
 | 0x4F | `ftextclear` | 🔌 | dispatcher → `ui.fTextClear` | Same shape as `ftextout`; clears the rendered area. |
 | 0x50 | `clearrect` | 🔌 | dispatcher → `ui.clearRect` | Used by the screen executor to wipe LINE content area on a scroll. |
