@@ -481,13 +481,16 @@ copy C:\EC-APPS\INPA\CFGDAT\INPA.INI  C:\EC-APPS\INPA\CFGDAT\INPA.INIX</code></p
   ForEach-Object &#123; Copy-Item $_.FullName ($_.FullName -replace '\.ini$','.INIX') -Force &#125;</code></pre>
 
                 <p class="mt-2 text-xs font-semibold text-blue-900 dark:text-blue-200">cmd.exe</p>
-                <pre class="mt-1 overflow-x-auto rounded bg-white/70 dark:bg-blue-950/80 p-2 text-xs leading-relaxed text-blue-900 dark:text-blue-100"><code>for /R "C:\EDIABAS" %f in (*.ini) do @copy "%f" "%~dpnf.INIX" &gt;nul
-for /R "C:\EC-APPS" %f in (*.ini) do @copy "%f" "%~dpnf.INIX" &gt;nul</code></pre>
+                <pre class="mt-1 overflow-x-auto rounded bg-white/70 dark:bg-blue-950/80 p-2 text-xs leading-relaxed text-blue-900 dark:text-blue-100"><code>for /R "C:\EDIABAS" %f in (*.ini) do copy "%f" "%~dpnf.INIX"
+for /R "C:\EC-APPS" %f in (*.ini) do copy "%f" "%~dpnf.INIX"</code></pre>
 
                 <p class="mt-2 text-xs text-blue-700 dark:text-blue-300">
-                  Wrap each <code>%f</code> as <code>%%f</code> if
-                  you save these into a <code>.bat</code> file
-                  instead of pasting interactively.
+                  Each <code>copy</code> prints the source path +
+                  "1 file(s) copied." so you can see exactly what's
+                  happening. Wrap each <code>%f</code> as
+                  <code>%%f</code> if you save these into a
+                  <code>.bat</code> file instead of pasting
+                  interactively.
                 </p>
               </details>
 
