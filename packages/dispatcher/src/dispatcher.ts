@@ -746,9 +746,10 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
                 resultSets: () => ediabas.resultSets(),
                 resultInt: (name, set) => ediabas.resultInt(name, set),
                 resultText: (name, set, fmt) => ediabas.resultText(name, set, fmt),
+                resultBinary: (name, set) => ediabas.resultBinary(name, set),
                 hasResult: (name, set) => ediabas.hasResult(name, set),
             },
-            { mode: cfg.mode, variant }
+            { mode: cfg.mode, variant, ecu }
         );
 
         // The script's `INPAapiFsMode(mode, fileMode, preInfoFile,
