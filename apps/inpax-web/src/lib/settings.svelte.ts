@@ -29,7 +29,26 @@ export interface WebSettings {
    * boolean and toggles a `dark` class on <html>.
    */
   theme: ThemeChoice;
+  /**
+   * Developer mode — exposes throttling and other diagnostic
+   * settings in the panel. When off, the runtime uses fast defaults
+   * matching real INPA's no-fixed-tick "as fast as the event loop
+   * allows" behaviour.
+   */
+  debugMode: boolean;
+  /**
+   * Scheduler tick interval (ms) used when `debugMode === true`.
+   * Slows down both the main scheduler (state machine + F-key
+   * dispatch) and the screen executor (one LINE block per tick) so
+   * the log stream is legible while we diagnose VM behaviour.
+   * Ignored when debug mode is off.
+   */
+  tickMs: number;
 }
+
+/** Tick used when debug mode is disabled — matches real INPA's "no
+ *  artificial throttle, just yield to the event loop" behaviour. */
+export const RUNTIME_TICK_MS_FAST = 50;
 
 const STORAGE_KEY = "inpax.web.settings.v1";
 
@@ -37,6 +56,8 @@ const DEFAULTS: WebSettings = {
   startupIpo: null,
   sidebarCollapsed: false,
   theme: "system",
+  debugMode: true,
+  tickMs: 500,
 };
 
 function load(): WebSettings {
@@ -91,6 +112,88 @@ export function setSidebarCollapsed(collapsed: boolean): void {
 export function setTheme(theme: ThemeChoice): void {
   settings.theme = theme;
   persist();
+}
+
+export function cycleTheme(): void {
+  // light → dark → system → light. Used by the top-bar toggle.
+  const order: ThemeChoice[] = ["light", "dark", "system"];
+  const idx = order.indexOf(settings.theme);
+  setTheme(order[(idx + 1) % order.length]);
+}
+
+export function setDebugMode(enabled: boolean): void {
+  settings.debugMode = enabled;
+  persist();
+}
+
+export function setTickMs(ms: number): void {
+  // Clamp to a sane range — 1 ms is meaningless (browser timer
+  // resolution); 60 s is the longest useful debug pause.
+  settings.tickMs = Math.max(50, Math.min(60_000, Math.round(ms)));
+  persist();
+}
+
+/**
+ * JSON shape of an export/import payload. Includes the workspace
+ * settings (this file) plus the separately-stored connection config
+ * (`config.ts`) so a single import re-creates a user's whole setup.
+ *
+ * `version` is bumped if the shape becomes incompatible; importers
+ * read the field and either migrate or refuse old versions.
+ */
+export interface SettingsExport {
+  version: 1;
+  exportedAt: string;
+  settings: WebSettings;
+  config?: unknown; // shape lives in config.ts; opaque here
+}
+
+/** Build the export payload, embedding the workspace settings plus
+ *  whatever `loadConfig()` returns for connection config. */
+export function buildSettingsExport(connectionConfig: unknown): SettingsExport {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    settings: { ...settings },
+    config: connectionConfig,
+  };
+}
+
+/**
+ * Apply an imported payload in-place. Validates the version + the
+ * settings shape; throws if it's missing required fields. The
+ * connection-config half is returned (rather than applied here)
+ * so the caller can route it through `config.ts`'s state-update
+ * path — keeps this module from depending on `config.ts`.
+ */
+export function applySettingsImport(raw: unknown): { config: unknown } {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Settings file is not a JSON object");
+  }
+  const data = raw as Partial<SettingsExport>;
+  if (data.version !== 1) {
+    throw new Error(`Unsupported settings version: ${String(data.version)}`);
+  }
+  if (!data.settings || typeof data.settings !== "object") {
+    throw new Error("Settings file is missing the `settings` field");
+  }
+  const incoming = data.settings as Partial<WebSettings>;
+  settings.startupIpo =
+    typeof incoming.startupIpo === "string" || incoming.startupIpo === null
+      ? incoming.startupIpo
+      : DEFAULTS.startupIpo;
+  settings.sidebarCollapsed = Boolean(incoming.sidebarCollapsed);
+  settings.theme =
+    incoming.theme === "light" || incoming.theme === "dark" || incoming.theme === "system"
+      ? incoming.theme
+      : DEFAULTS.theme;
+  settings.debugMode = Boolean(incoming.debugMode);
+  settings.tickMs =
+    typeof incoming.tickMs === "number" && Number.isFinite(incoming.tickMs)
+      ? Math.max(50, Math.min(60_000, Math.round(incoming.tickMs)))
+      : DEFAULTS.tickMs;
+  persist();
+  return { config: data.config };
 }
 
 /**

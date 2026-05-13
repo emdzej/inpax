@@ -22,6 +22,7 @@ import {
 } from "@emdzej/inpax-providers/null";
 import { EdiabasXProvider, Inp1Adapter } from "@emdzej/inpax-ediabasx-provider";
 import { BrowserExternalProvider } from "./browser-external.svelte.js";
+import { settings, RUNTIME_TICK_MS_FAST } from "./settings.svelte.js";
 import { Ediabas, type EdiabasConfig } from "@emdzej/ediabasx-ediabas";
 import { BrowserNativeImportProvider } from "./native-imports.js";
 import { makeBrowserSgbdResolver } from "./sgbd-loader.js";
@@ -166,12 +167,13 @@ export async function startInpaRuntime(
   //    back via `external.viewOpen` and the `ViewerDialog` component
   //    renders it as a modal.
   const externalProvider = new BrowserExternalProvider();
-  // Tick interval — temporary throttle to 1000 ms so the log stream is
-  // legible while we diagnose why inpainit appears to re-execute.
-  // Affects both the main scheduler (state machine + F-key handlers)
-  // and the screen executor (LINE block iteration). Bump back to 16
-  // (~60 fps) once we're done debugging.
-  const TICK_MS = 500;
+  // Tick interval driven by user settings (see ConfigPanel → Developer).
+  // Debug mode on → use the user's chosen `tickMs` so the log stream
+  // is legible while diagnosing. Debug mode off → fast default that
+  // mirrors real INPA's "no fixed tick, yield to the event loop"
+  // behaviour. Captured at runtime construction; changing the
+  // setting takes effect on the next script mount, not mid-run.
+  const TICK_MS = settings.debugMode ? settings.tickMs : RUNTIME_TICK_MS_FAST;
   const vm = new VM(ipo, {
     runtime: {
       ui,

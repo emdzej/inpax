@@ -1,12 +1,12 @@
 <script lang="ts">
   import { app } from "./lib/state.svelte";
   import { connection } from "./lib/connection.svelte";
-  import { clearInstallHandle } from "./lib/install-storage";
   import { settings, isDarkTheme } from "./lib/settings.svelte";
   import InstallPicker from "./components/InstallPicker.svelte";
   import IpoSidebar from "./components/IpoSidebar.svelte";
   import IpoRunner from "./components/IpoRunner.svelte";
   import ConfigPanel from "./components/ConfigPanel.svelte";
+  import ThemeToggle from "./components/ThemeToggle.svelte";
 
   // Apply / clear the `dark` class on <html> based on the resolved
   // theme. We watch both the user's explicit choice and (when set to
@@ -29,16 +29,6 @@
     return () => mq.removeEventListener("change", handler);
   });
 
-  async function changeFolder(): Promise<void> {
-    // Drop the persisted handle so the picker comes back clean next
-    // time (no "Continue with last folder" affordance for a folder
-    // the user just walked away from).
-    await clearInstallHandle();
-    app.view = "welcome";
-    app.install = null;
-    app.ipoFiles = [];
-    app.selectedIpo = null;
-  }
 </script>
 
 <div class="flex h-full flex-col bg-base text-foreground">
@@ -73,20 +63,14 @@
         {connection.message}
       </span>
 
+      <ThemeToggle />
+
       <button
         type="button"
         class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-faint hover:text-foreground"
         onclick={() => (app.showSettings = true)}
       >
         Settings
-      </button>
-
-      <button
-        type="button"
-        class="text-xs text-faint hover:text-muted"
-        onclick={() => void changeFolder()}
-      >
-        Change folder
       </button>
     </header>
     <div class="flex flex-1 overflow-hidden">
