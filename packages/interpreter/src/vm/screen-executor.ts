@@ -9,6 +9,20 @@ import { ExecutionContext } from './execution-context.js';
 const log = getLogger('screen-executor');
 
 /**
+ * Vertical stride between SCREEN LINE blocks, in screen rows. LINE N
+ * starts at row `N * LINE_HEIGHT` and its bytecode addresses cells
+ * inside that block via small relative `row` values (typically 1 for
+ * the label and 3 for the indicator). The provider applies the
+ * stride as a base offset; see `IUIProvider.setLineBaseRow`.
+ *
+ * 4 matches the canonical INPA layout (label / spacer / value /
+ * spacer between consecutive LINE blocks). Some scripts may use
+ * different strides — make this configurable per-screen if real
+ * scripts turn out to need it.
+ */
+const LINE_HEIGHT = 4;
+
+/**
  * Screen execution phase
  */
 export type ScreenPhase = 'init' | 'line' | 'idle';
@@ -333,6 +347,9 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
     this.log('Executing INIT phase');
 
     this.vm.getRuntime().ui.blankScreen();
+    // INIT paints absolute coords (screen title at row 1, etc.) — reset
+    // any LINE-base-row offset a previous screen may have left set.
+    this.vm.getRuntime().ui.setLineBaseRow(0);
     // Execute alloc function if present
     if (this.screen.allocFunc) {
       await this.executeBlock(this.screen.allocFunc);
@@ -370,6 +387,19 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
     const line = lines[this.lineIndex];
     this.log(`Executing LINE ${this.lineIndex} (${line.header.name})`);
     this.emit('line:start', this.lineIndex, line);
+
+    // Stack the LINE blocks vertically — each LINE writes inside its
+    // own coordinate space (label at relative row 1, LED/value at
+    // relative row 3, …) so all LINE 0..N use the same row numbers in
+    // their bytecode. The provider adds `lineBaseRow` to incoming
+    // rows.
+    //
+    // We bump the first LINE down by one full stride so rows 0..3
+    // stay free for whatever the INIT block painted there — typically
+    // the screen title via a `fontSize > 0` `ftextout` that takes
+    // ~2 cell rows visually. Without this offset LINE 0's label
+    // collides with the title (column 1, row 1).
+    this.vm.getRuntime().ui.setLineBaseRow((this.lineIndex + 1) * LINE_HEIGHT);
 
     // Execute line's function block
     if (line.func) {

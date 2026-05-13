@@ -37,6 +37,22 @@ export interface IUIProvider extends EventEmitter<UIEvents> {
   setColor(foreground: number, background: number): void;
 
   /**
+   * Set the row-offset that the provider applies to every subsequent
+   * `text` / `textOut` / `fTextOut` / `digitalOut` / `analogOut` /
+   * `hexDump` / `clearRect` call. Used by the screen executor to
+   * stack LINE blocks vertically — each LINE writes its outputs in
+   * its own coordinate space (label at relative row 1, indicator at
+   * relative row 3, …), and the screen executor sets
+   * `lineBaseRow = lineIndex * lineHeight` before running each
+   * LINE's bytecode. Cleared (back to 0) for INIT-phase and idle
+   * rendering, which paint at absolute screen coordinates.
+   *
+   * Default line height in standard INPA screens is 4 rows (label +
+   * spacer + LED/value + spacer); see the screen executor.
+   */
+  setLineBaseRow(baseRow: number): void;
+
+  /**
    * Read the current foreground/background colour codes — what the next
    * `ftextout` / `textout` call will use when the script doesn't supply
    * its own. The dispatcher reads this because INPA's `ftextout`

@@ -120,6 +120,10 @@ export class MockUIProvider extends EventEmitter<UIEvents> implements IUIProvide
     this.currentBg = bg;
   }
 
+  setLineBaseRow(baseRow: number): void {
+    this.record('setLineBaseRow', baseRow);
+  }
+
   getCurrentColors(): { fg: number; bg: number } {
     return { fg: this.currentFg, bg: this.currentBg };
   }

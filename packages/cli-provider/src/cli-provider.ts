@@ -181,6 +181,12 @@ export class CliProvider extends EventEmitter<UIEvents> implements IUIProvider {
     this.bg = bg;
   }
 
+  setLineBaseRow(_baseRow: number): void {
+    // CliProvider streams lines as the script writes them — it doesn't
+    // maintain a 2D coordinate space, so the LINE-block base row is a
+    // no-op here. The screen executor still calls it.
+  }
+
   getCurrentColors(): { fg: number; bg: number } {
     return { fg: this.fg, bg: this.bg };
   }

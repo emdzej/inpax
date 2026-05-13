@@ -26,6 +26,7 @@ const createMockRuntime = (): IInpaRuntime => ({
   ui: {
     setScreen: vi.fn(),
     blankScreen: vi.fn(),
+    setLineBaseRow: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
     emit: vi.fn(),

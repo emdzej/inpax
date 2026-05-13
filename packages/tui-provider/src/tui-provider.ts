@@ -203,10 +203,11 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
   }
 
   clearRect(row: number, col: number, width: number, height: number): void {
+    const r = row + this.lineBaseRow;
     this._state.textLines = this._state.textLines.filter(
-      l => !(l.row >= row && l.row < row + height && l.col >= col && l.col < col + width)
+      l => !(l.row >= r && l.row < r + height && l.col >= col && l.col < col + width)
     );
-    this.screenBuffer.clearRect(row, col, width, height);
+    this.screenBuffer.clearRect(r, col, width, height);
     this.update();
   }
 
@@ -218,6 +219,20 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
   setColor(fg: number, bg: number): void {
     this._state.fg = fg;
     this._state.bg = bg;
+  }
+
+  /**
+   * Row-offset applied to every `text` / `textOut` / `fTextOut` /
+   * `digitalOut` / `analogOut` / `hexDump` / `clearRect` call. The
+   * screen executor flips this between LINE blocks so each line
+   * writes inside its own coordinate space — see `setLineBaseRow`
+   * on `IUIProvider`. Defaults to 0 (absolute coords for INIT-phase
+   * paints).
+   */
+  private lineBaseRow = 0;
+
+  setLineBaseRow(baseRow: number): void {
+    this.lineBaseRow = baseRow;
   }
 
   /**
@@ -266,12 +281,13 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
   // === Text Output ===
 
   text(row: number, col: number, text: string): void {
+    const r = row + this.lineBaseRow;
     this._state.textLines.push({
-      row, col, text,
+      row: r, col, text,
       fg: this._state.fg,
       bg: this._state.bg,
     });
-    this.writeBuffer(row, col, text, this._state.fg, this._state.bg);
+    this.writeBuffer(r, col, text, this._state.fg, this._state.bg);
     this.update();
   }
 
@@ -280,35 +296,39 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
   }
 
   fTextOut(text: string, row: number, col: number, fg: number, bg: number, fontSize: number, fontAttr: number): void {
-    this._state.textLines.push({ row, col, text, fg, bg, fontSize, fontAttr });
-    this.writeBuffer(row, col, text, fg, bg);
+    const r = row + this.lineBaseRow;
+    this._state.textLines.push({ row: r, col, text, fg, bg, fontSize, fontAttr });
+    this.writeBuffer(r, col, text, fg, bg);
     this.update();
   }
 
   fTextClear(text: string, row: number, col: number, _textSize: number, _textAttr: number): void {
+    const r = row + this.lineBaseRow;
     this._state.textLines = this._state.textLines.filter(
-      l => !(l.row === row && l.col === col && l.text === text)
+      l => !(l.row === r && l.col === col && l.text === text)
     );
-    this.screenBuffer.clearRect(row, col, text.length, 1);
+    this.screenBuffer.clearRect(r, col, text.length, 1);
     this.update();
   }
 
   hexDump(row: number, col: number, data: Uint8Array, len: number): void {
+    const r = row + this.lineBaseRow;
     const hex = Array.from(data.slice(0, len))
       .map(b => b.toString(16).padStart(2, '0').toUpperCase())
       .join(' ');
-    this._state.hexDumps.push({ row, col, data: hex });
-    this.writeBuffer(row, col, hex, this._state.fg, this._state.bg);
+    this._state.hexDumps.push({ row: r, col, data: hex });
+    this.writeBuffer(r, col, hex, this._state.fg, this._state.bg);
     this.update();
   }
 
   // === Data Output ===
 
   digitalOut(value: boolean, row: number, col: number, trueText: string, falseText: string): void {
+    const r = row + this.lineBaseRow;
     this._state.digitalValues = this._state.digitalValues.filter(
-      d => !(d.row === row && d.col === col)
+      d => !(d.row === r && d.col === col)
     );
-    this._state.digitalValues.push({ row, col, value, trueText, falseText });
+    this._state.digitalValues.push({ row: r, col, value, trueText, falseText });
     // INPA draws digitalout as a graphical LED-style indicator (filled
     // circle = true, empty = false) PLUS the optional trueText/falseText
     // label next to it. Scripts like UTILITY/STATUS_UBATT pass empty
@@ -321,17 +341,18 @@ export class TuiProvider extends EventEmitter<UIEvents> implements IUIProvider {
     const label = value ? trueText : falseText;
     const text = label ? `${glyph} ${label}` : glyph;
     const fg = value ? 2 /* green */ : 1 /* red */;
-    this.writeBuffer(row, col, text, fg, this._state.bg);
+    this.writeBuffer(r, col, text, fg, this._state.bg);
     this.update();
   }
 
   analogOut(value: number, row: number, col: number, min: number, max: number, minValid: number, maxValid: number, format: string): void {
+    const r = row + this.lineBaseRow;
     this._state.analogValues = this._state.analogValues.filter(
-      a => !(a.row === row && a.col === col)
+      a => !(a.row === r && a.col === col)
     );
-    this._state.analogValues.push({ row, col, value, min, max, minValid, maxValid, format });
+    this._state.analogValues.push({ row: r, col, value, min, max, minValid, maxValid, format });
     const formatted = formatAnalogValue(value, format);
-    this.writeBuffer(row, col, formatted, this._state.fg, this._state.bg);
+    this.writeBuffer(r, col, formatted, this._state.fg, this._state.bg);
     this.update();
   }
 
