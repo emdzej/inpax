@@ -162,6 +162,40 @@
         <code class="text-muted">EDIABAS/</code>. We auto-discover the scripts
         (SGDAT, CFGDAT) and the SGBD files under EDIABAS/Ecu.
       </p>
+
+      <!-- Heads-up about Chrome's File System Access API hiding `.ini`
+           files from web pages on Windows. Without this rename
+           workaround, real INPA installs miss their config (INPA.INI
+           version banner, EDIABAS.INI defaults) on Windows Chrome.
+           Linux / macOS users are unaffected. See
+           docs/research/chrome-ini-blocklist.md. -->
+      <details
+        class="max-w-md rounded border border-blue-300 dark:border-blue-600/40 bg-blue-50 dark:bg-blue-950/40 px-4 py-3 text-sm text-blue-900 dark:text-blue-200"
+      >
+        <summary class="cursor-pointer font-semibold">
+          On Windows? Rename your <code>.INI</code> files first
+        </summary>
+        <div class="mt-2 space-y-2 text-left">
+          <p>
+            Chrome on Windows silently hides <code>.ini</code> files
+            from web pages (security feature for config-like file
+            types). INPAX can't read <code>INPA.INI</code> /
+            <code>EDIABAS.INI</code> without your help.
+          </p>
+          <p class="font-semibold">One-time fix:</p>
+          <p>
+            Copy these two files to a <code>.INIX</code> extension —
+            INPAX will pick them up automatically, your native INPA
+            install keeps working as-is:
+          </p>
+          <pre class="rounded bg-blue-100 dark:bg-blue-950/60 p-2 text-xs leading-relaxed text-blue-900 dark:text-blue-200 overflow-x-auto"><code>copy C:\EDIABAS\Bin\EDIABAS.INI       EDIABAS.INIX
+copy C:\EC-APPS\INPA\CFGDAT\INPA.INI  INPA.INIX</code></pre>
+          <p class="text-xs text-blue-700 dark:text-blue-300">
+            macOS / Linux users (and anyone using the
+            zip-import flow when we ship it) can skip this.
+          </p>
+        </div>
+      </details>
     {/if}
   {/if}
 

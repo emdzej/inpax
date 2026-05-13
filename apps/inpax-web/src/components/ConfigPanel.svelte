@@ -434,6 +434,69 @@
                 </p>
               </div>
             </fieldset>
+
+            <!-- Chrome on Windows hides `.ini` files from the File
+                 System Access API, so INPAX can't read INPA.INI /
+                 EDIABAS.INI directly. The runtime falls back to
+                 `.INIX` copies; this section explains the one-time
+                 rename and offers bulk one-liners for PowerShell /
+                 cmd. See docs/research/chrome-ini-blocklist.md. -->
+            <fieldset class="flex flex-col gap-3 rounded border border-blue-300 dark:border-blue-600/40 bg-blue-50 dark:bg-blue-950/40 p-3">
+              <legend class="px-1 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+                Windows: rename .INI → .INIX
+              </legend>
+              <p class="text-sm text-blue-900 dark:text-blue-200">
+                Chrome on Windows silently hides <code>.ini</code>
+                files from web pages, so INPAX can't read
+                <code>INPA.INI</code> / <code>EDIABAS.INI</code>.
+                INPAX falls back to <code>.INIX</code> copies — make
+                them once and you're set. macOS / Linux users can
+                ignore this.
+              </p>
+
+              <details class="rounded border border-blue-300/60 dark:border-blue-600/30 bg-blue-100/60 dark:bg-blue-950/60 p-2">
+                <summary class="cursor-pointer text-xs font-semibold text-blue-900 dark:text-blue-200">
+                  Just the two files
+                </summary>
+                <pre class="mt-2 overflow-x-auto rounded bg-white/70 dark:bg-blue-950/80 p-2 text-xs leading-relaxed text-blue-900 dark:text-blue-100"><code>copy C:\EDIABAS\Bin\EDIABAS.INI       C:\EDIABAS\Bin\EDIABAS.INIX
+copy C:\EC-APPS\INPA\CFGDAT\INPA.INI  C:\EC-APPS\INPA\CFGDAT\INPA.INIX</code></pre>
+                <p class="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                  Run in <code>cmd.exe</code>. Copy keeps the
+                  originals so your native INPA / Tool32 still work.
+                </p>
+              </details>
+
+              <details class="rounded border border-blue-300/60 dark:border-blue-600/30 bg-blue-100/60 dark:bg-blue-950/60 p-2">
+                <summary class="cursor-pointer text-xs font-semibold text-blue-900 dark:text-blue-200">
+                  Bulk: copy every .ini → .INIX under EDIABAS / EC-APPS
+                </summary>
+                <p class="mt-2 text-xs text-blue-900 dark:text-blue-200">
+                  Future-proofs scripts that read other INIs
+                  (<code>FUNK.INI</code>, <code>obd.ini</code>, etc.).
+                  Pick one shell.
+                </p>
+
+                <p class="mt-2 text-xs font-semibold text-blue-900 dark:text-blue-200">PowerShell</p>
+                <pre class="mt-1 overflow-x-auto rounded bg-white/70 dark:bg-blue-950/80 p-2 text-xs leading-relaxed text-blue-900 dark:text-blue-100"><code>Get-ChildItem -Path C:\EDIABAS,C:\EC-APPS -Recurse -Filter *.ini |
+  ForEach-Object &#123; Copy-Item $_.FullName ($_.FullName -replace '\.ini$','.INIX') -Force &#125;</code></pre>
+
+                <p class="mt-2 text-xs font-semibold text-blue-900 dark:text-blue-200">cmd.exe</p>
+                <pre class="mt-1 overflow-x-auto rounded bg-white/70 dark:bg-blue-950/80 p-2 text-xs leading-relaxed text-blue-900 dark:text-blue-100"><code>for /R "C:\EDIABAS" %f in (*.ini) do @copy "%f" "%~dpnf.INIX" &gt;nul
+for /R "C:\EC-APPS" %f in (*.ini) do @copy "%f" "%~dpnf.INIX" &gt;nul</code></pre>
+
+                <p class="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                  Wrap each <code>%f</code> as <code>%%f</code> if
+                  you save these into a <code>.bat</code> file
+                  instead of pasting interactively.
+                </p>
+              </details>
+
+              <p class="text-xs text-blue-700 dark:text-blue-300">
+                After running either, click <strong>Change folder…</strong>
+                above (or reload the page) to re-read the install
+                with the <code>.INIX</code> files now visible.
+              </p>
+            </fieldset>
           </div>
         {:else}
           <!-- Developer -->

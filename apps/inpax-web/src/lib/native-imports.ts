@@ -136,7 +136,23 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
     keyAlias: string
   ): Promise<void> {
     try {
-      const handle = await findCaseInsensitive(dir, filename);
+      // Chrome's File System Access API silently filters `.ini` files
+      // out of `dir.entries()` on Windows — they're on the "sensitive
+      // file type" blocklist. There's nothing we can do about that
+      // from web code, so we ask the user to rename their `.INI`
+      // files to `.INIX` (a non-blocked extension) on disk and we
+      // pick the renamed copy up here. The cache is still keyed by
+      // the canonical `.ini` name so the BEST2 scripts (which
+      // hardcode `INPA.INI` / `EDIABAS.INI`) find it unchanged.
+      // See `docs/research/chrome-ini-blocklist.md`.
+      const inixFilename = filename.replace(/\.ini$/i, ".INIX");
+      let handle = await findCaseInsensitive(dir, filename);
+      let foundAs = filename;
+      if (!handle && inixFilename !== filename) {
+        handle = await findCaseInsensitive(dir, inixFilename);
+        if (handle) foundAs = inixFilename;
+      }
+
       if (!handle) {
         // Surface the alphabetical neighbourhood + the .ini siblings
         // so the user can tell at a glance whether the file is
@@ -149,15 +165,28 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
           `${filename} not found in ${dir.name}/ — ` +
             `nearby: ${neighbourhood.nearby.join(", ") || "(none)"}; ` +
             `INI files: ${neighbourhood.iniFiles.join(", ") || "(none)"} ` +
-            `(${neighbourhood.totalEntries} entries total)`
+            `(${neighbourhood.totalEntries} entries total). ` +
+            `On Windows, Chrome hides .INI files from web pages; ` +
+            `rename to ${inixFilename} and reload to work around it.`
         );
         return;
       }
+
+      if (foundAs !== filename) {
+        // One-line FYI when the workaround kicked in, so the user
+        // can confirm the rename was the right move.
+        logWarn(
+          `${filename} resolved via ${foundAs} fallback ` +
+            `(Chrome blocks .ini reads; rename worked)`
+        );
+      }
+
       const file = await handle.getFile();
       const content = await file.text();
       const parsed = parseIni(content);
-      // Store under every reasonable lookup form: bare basename, the
-      // INPA-style relative alias, AND the basename's stripped path.
+      // Store under every reasonable lookup form: bare basename
+      // (canonical `.ini` even when we read `.inix`), the INPA-style
+      // relative alias, AND the variant we actually read it from.
       // Script call sites use mixed conventions (`..\CFGDAT\INPA.INI`
       // vs `INPA.INI` vs absolute paths once they've been through
       // GetWindowsDirectoryA), and the dispatcher fires synchronously
@@ -166,6 +195,11 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
       const aliasKey = keyAlias.replace(/\\/g, "/").toLowerCase();
       this.ctx.iniCache.set(baseKey, parsed);
       this.ctx.iniCache.set(aliasKey, parsed);
+      if (foundAs !== filename) {
+        // Belt-and-braces: also cache under the .inix key in case a
+        // future script ever directly asks for the renamed form.
+        this.ctx.iniCache.set(foundAs.toLowerCase(), parsed);
+      }
     } catch (err) {
       logWarn(`failed to cache ${filename}`, (err as Error).message);
     }
