@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, isAbsolute, resolve as resolvePath } from 'node:path';
+import { DEFAULT_SOURCE_ENCODING, decodeBytes } from '../encoding.js';
 
 export class PreprocessorError extends Error {
   constructor(
@@ -21,6 +22,12 @@ export interface PreprocessOptions {
   filePath?: string;
   /** Additional roots to search for `#include` after the current dir. */
   includePaths?: string[];
+  /**
+   * Source encoding for the default disk `fileReader`. Defaults to
+   * `cp1252`. Ignored when `fileReader` is overridden — a custom
+   * reader is responsible for decoding the bytes it returns.
+   */
+  encoding?: string;
   /**
    * Filesystem override — primarily for tests. Map paths to file
    * contents instead of touching disk.
@@ -50,7 +57,9 @@ export class Preprocessor {
     this.includePaths = (options.includePaths ?? []).map((p) =>
       resolvePath(p),
     );
-    this.fileReader = options.fileReader ?? defaultFileReader;
+    const encoding = options.encoding ?? DEFAULT_SOURCE_ENCODING;
+    this.fileReader =
+      options.fileReader ?? ((path: string) => defaultFileReader(path, encoding));
   }
 
   /**
@@ -154,9 +163,12 @@ export class Preprocessor {
   }
 }
 
-function defaultFileReader(absPath: string): string | undefined {
+function defaultFileReader(absPath: string, encoding: string): string | undefined {
   try {
-    return readFileSync(absPath, 'utf-8');
+    // Read raw bytes and decode via iconv — Node's `readFileSync(p,
+    // 'utf-8')` silently corrupts every byte ≥ 0x80, which destroys
+    // German umlauts in cp1252-encoded BMW headers.
+    return decodeBytes(readFileSync(absPath), encoding);
   } catch {
     return undefined;
   }

@@ -3,7 +3,12 @@ import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, resolve as resolvePath } from 'node:path';
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { compile } from '@emdzej/inpax-compiler-core';
+import {
+  compile,
+  DEFAULT_SOURCE_ENCODING,
+  decodeBytes,
+  isEncodingSupported,
+} from '@emdzej/inpax-compiler-core';
 
 interface CompileFlags {
   /**
@@ -13,6 +18,7 @@ interface CompileFlags {
    */
   output?: string;
   include?: string[];
+  encoding?: string;
   /** Keep going after a file fails to compile (batch mode). */
   continue?: boolean;
   verbose?: boolean;
@@ -37,10 +43,20 @@ program
     collectIncludeDirs,
     [] as string[],
   )
+  .option(
+    '-e, --encoding <name>',
+    'source-file encoding (default cp1252; e.g. cp1250, cp1251, latin1, utf-8)',
+    DEFAULT_SOURCE_ENCODING,
+  )
   .option('--continue', 'keep compiling remaining files after one fails')
   .option('-v, --verbose', 'print extra info to stderr')
   .action((files: string[], opts: CompileFlags) => {
     const includePaths = opts.include ?? [];
+    const encoding = opts.encoding ?? DEFAULT_SOURCE_ENCODING;
+    if (!isEncodingSupported(encoding)) {
+      console.error(chalk.red(`error: unknown source encoding: ${encoding}`));
+      process.exit(2);
+    }
     const isBatch = files.length > 1;
     const target = resolveOutputTarget(files, opts.output, isBatch);
 
@@ -54,8 +70,16 @@ program
       const outputPath = outputFor(target, inputPath);
 
       try {
-        const source = readFileSync(inputPath, 'utf-8');
-        const bytes = compile(source, { filePath: inputPath, includePaths });
+        // Decode source bytes with the user-chosen encoding before
+        // handing the string to the compiler. The compiler itself
+        // applies the same encoding to any `#include`d files it
+        // pulls in from disk.
+        const source = decodeBytes(readFileSync(inputPath), encoding);
+        const bytes = compile(source, {
+          filePath: inputPath,
+          includePaths,
+          encoding,
+        });
         writeFileSync(outputPath, bytes);
         okCount++;
         bytesTotal += bytes.byteLength;

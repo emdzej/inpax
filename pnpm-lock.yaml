@@ -250,6 +250,9 @@ importers:
       '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../core
+      iconv-lite:
+        specifier: ^0.6.3
+        version: 0.6.3
     devDependencies:
       '@emdzej/inpax-dis':
         specifier: workspace:*

@@ -18,7 +18,7 @@ Pipeline: `preprocess → tokenize → parse → analyze → codegen → writeIp
 ```bash
 pnpm --filter @emdzej/inpax-compiler-core build
 pnpm --filter @emdzej/inpax-compiler build
-pnpm exec vitest run packages/compiler-core    # 27 tests, all green
+pnpm exec vitest run packages/compiler-core    # 28 tests, all green
 
 # single file
 pnpm compile -I ~/Downloads/inpa/EC-APPS/INPA/SGDAT \
@@ -38,6 +38,7 @@ Real-world smoke: `startus.ips` (BMW Rectification entry point) compiles to a 12
 | `<files...>` | One or more `.ips` files (variadic) |
 | `-o <path>` | Single input: output `.ipo` path. Batch: output directory. Mis-specifying as a file in batch mode is rejected with exit 2. |
 | `-I <dir>` | `#include` search path — **repeatable** AND **comma-separated** (`-I a,b -I c`). Empty segments dropped. |
+| `-e, --encoding <name>` | Source-file encoding for both the entry `.ips` and any `#include`d files. Default `cp1252` (every BMW German script we've seen). Accepts cp1250/cp1251/cp1254/latin1/utf-8/etc. via iconv-lite canonicalisation. |
 | `--continue` | Keep compiling after a file fails (batch mode). Final exit non-zero if any failed. |
 | `-v / --verbose` | Per-file lines + summary even with a single input. |
 

@@ -486,6 +486,45 @@ describe('stage 2e — #include + #pragma', () => {
     ).toThrow(/cannot find include/);
   });
 
+  it('decodes #include bodies with the supplied --encoding (cp1252)', () => {
+    // BMW headers like `BMW_STD.H` ship in cp1252; reading them as
+    // UTF-8 silently corrupts every byte ≥ 0x80 (German umlauts).
+    // The `encoding` option flows to the preprocessor's default
+    // fileReader so the included content arrives as the right JS
+    // string. We construct a cp1252 file on disk byte-by-byte to
+    // avoid depending on what the test runner's locale does.
+    const { mkdtempSync, writeFileSync, rmSync } = require('node:fs') as typeof import('node:fs');
+    const { tmpdir } = require('node:os') as typeof import('node:os');
+    const tmp = mkdtempSync(join(tmpdir(), 'inpax-enc-'));
+    try {
+      // Encode `string gruss = "Zündung";` directly as cp1252 bytes —
+      // the only non-ASCII char is ü (0xFC). Keeping the identifier
+      // ASCII so the lexer doesn't need to handle non-ASCII idents.
+      const cp1252 = Buffer.from([
+        // string gruss = "
+        0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x20, 0x67, 0x72, 0x75, 0x73, 0x73,
+        0x20, 0x3d, 0x20, 0x22,
+        // Zündung
+        0x5a, 0xfc, 0x6e, 0x64, 0x75, 0x6e, 0x67,
+        // ";\n
+        0x22, 0x3b, 0x0a,
+      ]);
+      writeFileSync(join(tmp, 'hdr.h'), cp1252);
+      const bytes = compile(
+        '#include "hdr.h"\ninpainit() { settitle(gruss); }\ninpaexit() {}',
+        { filePath: join(tmp, 'main.ips'), encoding: 'cp1252' },
+      );
+      // The compiled IPO should contain the cp1252-encoded "Zündung"
+      // bytes (the writer encodes JS strings naively via
+      // `charCodeAt & 0xff`, which is identity for Latin-1 high
+      // bytes — so 0xFC stays 0xFC).
+      const needle = Buffer.from([0x5a, 0xfc, 0x6e, 0x64, 0x75, 0x6e, 0x67]);
+      expect(Buffer.from(bytes).includes(needle)).toBe(true);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('resolves an #include case-insensitively (basename) when the disk casing differs', () => {
     // Real BMW case: a script written under DOS/Windows uses
     // uppercase `BMW_STD.H`, but the file on a case-sensitive
