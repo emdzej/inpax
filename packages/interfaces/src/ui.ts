@@ -63,6 +63,47 @@ export interface IUIProvider extends EventEmitter<UIEvents> {
    */
   getCurrentColors(): { fg: number; bg: number };
 
+  // === Pagination ===
+  //
+  // INPA SCREEN blocks can declare more LINE blocks than fit on a
+  // 25-row viewport. The screen executor calls `setTotalLines` /
+  // `setVisibleLineCount` at attach time so the provider knows the
+  // overflow extent, then reads `getFirstVisibleLine()` at the start
+  // of each LINE-phase pass to decide which blocks to run + where to
+  // position them. The host UI mutates the window via `scrollLines`
+  // (or `scrollToTop` / `scrollToBottom`) in response to keyboard /
+  // mouse input. See `docs/research/screen-line-pagination.md`.
+
+  /** Set the total LINE-block count of the active SCREEN. Called by
+   *  the screen executor at attach time; resets on `setScreen`. */
+  setTotalLines(total: number): void;
+
+  /** Set how many LINE blocks fit vertically in the host's viewport.
+   *  Called by the screen executor (or the host, if it has a
+   *  dynamically-sized canvas) once the layout is known. */
+  setVisibleLineCount(count: number): void;
+
+  /** Index (0-based) of the first LINE block currently shown. The
+   *  screen executor reads this once per LINE-phase pass. */
+  getFirstVisibleLine(): number;
+
+  /** How many LINE blocks fit vertically in the host's viewport.
+   *  `0` means "host has no fixed viewport" (CLI streams, headless
+   *  tests) — the screen executor treats that as "run every LINE
+   *  block, no pagination". */
+  getVisibleLineCount(): number;
+
+  /** Move the visible window by `delta` LINE blocks (negative = up,
+   *  positive = down). Clamps to a valid range; no-op when total
+   *  fits in the viewport. */
+  scrollLines(delta: number): void;
+
+  /** Reset the visible window to the top of the SCREEN. */
+  scrollToTop(): void;
+
+  /** Move the visible window so the last LINE block is showing. */
+  scrollToBottom(): void;
+
   // === Menu System ===
   
   /**

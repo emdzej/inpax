@@ -85,7 +85,7 @@ export class InternalFunctions {
     this.handlers.set(SystemFunction.control, () => this.stub('control'));
     this.handlers.set(SystemFunction.start, () => this.stub('start'));
     this.handlers.set(SystemFunction.stop, () => this.stub('stop'));
-    this.handlers.set(SystemFunction.getapistring, () => this.stub('getapistring'));
+    this.handlers.set(SystemFunction.getapistring, (ctx) => this.getapistring(ctx));
     this.handlers.set(SystemFunction.togglelist, () => this.stub('togglelist'));
 
     // String Arrays (stubs)
@@ -116,6 +116,85 @@ export class InternalFunctions {
 
   private stub(name: string): void {
     log.warn({ name }, 'stub function not implemented');
+  }
+
+  /**
+   * `getapistring(argNumFlag, fullScreenFlag, out: string ApiString)` —
+   * reads back whichever argument INPA's external launcher (if any)
+   * passed when starting the script.
+   *
+   * ## Why this exists in real INPA
+   *
+   * INPA.exe runs in two modes:
+   *
+   *   1. **Interactive** — the user double-clicks an INPA shortcut or
+   *      picks an entry from the on-screen menus. No launcher arg.
+   *   2. **API-driven** — another Windows program (typically a BMW
+   *      diagnostic tool like ISTA-D's predecessor) launches INPA as
+   *      a controlled child via its own apiInit-style entry points.
+   *      INPA exposes these alongside the EDIABAS ones — Ghidra's
+   *      import table on `INPA.EXE` shows `___apiInit@4`,
+   *      `___apiInitExt@20`, `___apiJob@20`, `___apiResultText@20`,
+   *      etc., mirroring the EDIABAS API surface (api32.DLL). The
+   *      launcher passes an arg STRING and an arg NUMBER through
+   *      those entry points; the IPO script reads them back via
+   *      `getapistring`.
+   *
+   * The canonical signature is in the INPA SDK header (`ref/Inpa.h:37`):
+   *
+   *     extern getapistring( in: bool ArgNumFlag,
+   *                          in: bool FullScreenFlag,
+   *                          out: string ApiString );
+   *
+   *   - `ArgNumFlag = true`  → return the numeric variant of the
+   *     launcher arg (formatted as a decimal string).
+   *   - `ArgNumFlag = false` → return the string variant.
+   *   - `FullScreenFlag`     → INPA's render-mode hint; orthogonal to
+   *     the value being read.
+   *
+   * ## How MS43 uses it (typical pattern)
+   *
+   * `s_digital1`'s INIT block does:
+   *
+   *     getapistring(false, false, → GLOBAL[32])
+   *     INPAapiJob(handle, "STATUS_DIGITAL", GLOBAL[32], "")
+   *
+   * So the launcher's arg becomes the **EDIABAS job argument** for
+   * `STATUS_DIGITAL` — letting an external tool pre-filter the SGBD
+   * result set without touching the script. With no launcher (which
+   * is the case in inpax-web and the CLI), there's no arg → empty
+   * string → `STATUS_DIGITAL` runs with no filter and returns the
+   * full result set, which is exactly what the LINE blocks below
+   * expect when displaying every status flag.
+   *
+   * ## Why we return `""`
+   *
+   * We don't (yet) implement INPA's own apiInit surface, so there's
+   * no launcher to pass an arg in the first place. Returning `""`
+   * matches the interactive case in real INPA and lets all the
+   * standard INPA scripts work unchanged. If we later add a way to
+   * launch IPOs with a pre-set arg (CLI flag, URL hash), this is
+   * the hook to read it back from.
+   *
+   * `argNumFlag` and `fullScreenFlag` are accepted but ignored — we
+   * always resolve the string variant as `""`, and the script's
+   * subsequent `INPAapiJob` happily accepts an empty job arg.
+   *
+   * ## Stack discipline
+   *
+   * Stack at call time, after `FRAME`, in push order (matches the
+   * disassembly):
+   *
+   *     [argNumFlag: bool, fullScreenFlag: bool, ApiString: ref]
+   *
+   * We pop LIFO so reads happen in reverse declaration order, then
+   * write `""` through the out ref via `setOutParam`.
+   */
+  private getapistring(ctx: ExecutionContext): void {
+    const outRef = ctx.popRef();
+    ctx.popBool(); // fullScreenFlag — ignored
+    ctx.popBool(); // argNumFlag — ignored
+    ctx.setOutParam(outRef, Stack.createEntry(ValueType.String, ''));
   }
 
   // ============ Script Control ============
@@ -207,11 +286,18 @@ export class InternalFunctions {
       return;
     }
 
+    // `vm.setScreen` builds a fresh `ScreenExecutor` for the new SCREEN
+    // and `await`s `.start()`. `start()` is itself the canonical place
+    // that calls `ui.setScreen(handle, cyclic)` + `ui.setTotalLines(N)`
+    // — see `screen-executor.ts:start`. We used to call `ui.setScreen`
+    // here too as a sync-side "first paint" cue, but that fired AFTER
+    // the awaited `start()` resolved, which had the effect of wiping
+    // the pagination state the executor had just set (totalLines went
+    // 7 → 0 mid-cycle, and `ScrollIndicator` saw the wrong window).
+    // Trust the executor: it sets the screen + totals atomically.
     this.vm.setScreen(screenId, cyclic).catch(err => {
       log.error({ err, screenId }, 'setscreen error activating screen');
     });
-
-    this.vm.getRuntime().ui.setScreen(screenId, cyclic);
   }
 
   private findScreenByHandle(handle: number): string | null {

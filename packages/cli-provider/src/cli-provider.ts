@@ -191,6 +191,41 @@ export class CliProvider extends EventEmitter<UIEvents> implements IUIProvider {
     return { fg: this.fg, bg: this.bg };
   }
 
+  // === Pagination ===
+  //
+  // CliProvider streams LINE-block output as it arrives — there's no
+  // 2D viewport to constrain, and a scrolling terminal naturally
+  // shows the whole SCREEN. So the pagination methods are no-ops:
+  // we report "first visible = 0" so the screen executor's
+  // visibility check (`lineIndex >= firstVisible && < firstVisible +
+  // visibleCount`) passes for every block when the executor's local
+  // `VISIBLE_LINE_COUNT` is large enough to cover all blocks
+  // (which the executor sets it to be on the CLI side too — same
+  // constant, but the CLI viewport effectively has no bound).
+  setTotalLines(_total: number): void {
+    /* no-op */
+  }
+  setVisibleLineCount(_count: number): void {
+    /* no-op */
+  }
+  getFirstVisibleLine(): number {
+    return 0;
+  }
+  getVisibleLineCount(): number {
+    // 0 = no fixed viewport. The screen executor reads this to decide
+    // whether to paginate; 0 means "run every LINE block".
+    return 0;
+  }
+  scrollLines(_delta: number): void {
+    /* no-op */
+  }
+  scrollToTop(): void {
+    /* no-op */
+  }
+  scrollToBottom(): void {
+    /* no-op */
+  }
+
   async scriptSelect(iniFile: string): Promise<string | null> {
     // CLI doesn't currently surface a tree picker — log a hint and
     // resolve null (cancel). A future enhancement could read the

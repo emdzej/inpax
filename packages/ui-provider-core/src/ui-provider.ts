@@ -299,8 +299,83 @@ export abstract class UIProvider
     this._state.analogValues = [];
     this._state.digitalValues = [];
     this._state.hexDumps = [];
+    // Pagination resets on every SCREEN swap. The screen executor
+    // immediately follows with `setTotalLines` / `setVisibleLineCount`
+    // once it's inspected the new screen's LINE-block array.
+    this._state.firstVisibleLine = 0;
+    this._state.totalLines = 0;
     this.clearBufferAll();
     this.emit('screen:ready');
+    this.update();
+  }
+
+  // ============ Pagination ============
+  //
+  // INPA's SCREEN blocks can declare more LINE blocks than fit on
+  // the viewport. The screen executor reads `firstVisibleLine` each
+  // cycle and shifts every LINE block's `setLineBaseRow` by that
+  // amount; the keymap and the overlay buttons mutate it through
+  // `scrollLines` / `scrollToTop` / `scrollToBottom`. See
+  // `docs/research/screen-line-pagination.md`.
+
+  /** Snapshot of the current first-visible-line index. Mirrors
+   *  `state.firstVisibleLine` but exposed through `IUIProvider` so
+   *  callers behind the interface don't need to touch the `state`
+   *  getter. */
+  getFirstVisibleLine(): number {
+    return this._state.firstVisibleLine;
+  }
+
+  /** Mirror of `state.visibleLineCount` exposed through `IUIProvider`. */
+  getVisibleLineCount(): number {
+    return this._state.visibleLineCount;
+  }
+
+  /** Called by the screen executor at attach time. */
+  setTotalLines(total: number): void {
+    this._state.totalLines = Math.max(0, total);
+    // If the user had scrolled past the new end (script swapped to a
+    // shorter screen), clamp back into range.
+    const max = Math.max(0, this._state.totalLines - this._state.visibleLineCount);
+    if (this._state.firstVisibleLine > max) {
+      this._state.firstVisibleLine = max;
+    }
+    this.update();
+  }
+
+  /** Called by the host UI (canvas) once it knows how many LINE blocks
+   *  fit vertically. Setting this re-clamps `firstVisibleLine`. */
+  setVisibleLineCount(count: number): void {
+    this._state.visibleLineCount = Math.max(0, count);
+    const max = Math.max(0, this._state.totalLines - this._state.visibleLineCount);
+    if (this._state.firstVisibleLine > max) {
+      this._state.firstVisibleLine = max;
+    }
+    this.update();
+  }
+
+  /** Move the visible window by `delta` LINE blocks. Negative = up,
+   *  positive = down. Clamps to `[0, max]`. No-op when totalLines
+   *  fits in the visible window. */
+  scrollLines(delta: number): void {
+    if (this._state.totalLines <= this._state.visibleLineCount) return;
+    const max = Math.max(0, this._state.totalLines - this._state.visibleLineCount);
+    const next = Math.max(0, Math.min(max, this._state.firstVisibleLine + delta));
+    if (next === this._state.firstVisibleLine) return;
+    this._state.firstVisibleLine = next;
+    this.update();
+  }
+
+  scrollToTop(): void {
+    if (this._state.firstVisibleLine === 0) return;
+    this._state.firstVisibleLine = 0;
+    this.update();
+  }
+
+  scrollToBottom(): void {
+    const max = Math.max(0, this._state.totalLines - this._state.visibleLineCount);
+    if (this._state.firstVisibleLine === max) return;
+    this._state.firstVisibleLine = max;
     this.update();
   }
 

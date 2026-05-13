@@ -25,4 +25,25 @@
 
 import { UIProvider } from "@emdzej/inpax-ui-provider-core";
 
-export class WebUIProvider extends UIProvider {}
+/**
+ * How many LINE blocks fit vertically in the SPA's canvas viewport.
+ *
+ * Derived from the 25-row buffer minus the title strip (rows 0..3,
+ * for the INIT-phase `ftextout` with `fontSize > 0`) → ~21 rows for
+ * content. With `LINE_HEIGHT = 4` in the screen executor, `floor(21
+ * / 4) = 5` blocks fit. Setting this here tells the screen executor
+ * "host has a fixed viewport — please paginate" (an unset / 0 value
+ * means "no viewport, run every block", which is what the CLI uses).
+ *
+ * When the canvas gains a dynamic cell-grid size, swap this constant
+ * for a runtime measurement and call `setVisibleLineCount(...)` on
+ * resize.
+ */
+const VISIBLE_LINE_COUNT = 5;
+
+export class WebUIProvider extends UIProvider {
+  constructor() {
+    super();
+    this.setVisibleLineCount(VISIBLE_LINE_COUNT);
+  }
+}

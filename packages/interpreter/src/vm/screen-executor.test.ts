@@ -26,7 +26,18 @@ const createMockRuntime = (): IInpaRuntime => ({
   ui: {
     setScreen: vi.fn(),
     blankScreen: vi.fn(),
+    clearRect: vi.fn(),
     setLineBaseRow: vi.fn(),
+    // Pagination: report 0 visible lines so the executor's "host has
+    // no fixed viewport" branch fires and every LINE block runs —
+    // matches what real tests want to assert against.
+    setTotalLines: vi.fn(),
+    setVisibleLineCount: vi.fn(),
+    getFirstVisibleLine: vi.fn().mockReturnValue(0),
+    getVisibleLineCount: vi.fn().mockReturnValue(0),
+    scrollLines: vi.fn(),
+    scrollToTop: vi.fn(),
+    scrollToBottom: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
     emit: vi.fn(),

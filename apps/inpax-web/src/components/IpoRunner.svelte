@@ -25,6 +25,7 @@
   import UserBoxOverlay from "./UserBoxOverlay.svelte";
   import ViewerDialog from "./ViewerDialog.svelte";
   import LiveIndicator from "./LiveIndicator.svelte";
+  import ScrollIndicator from "./ScrollIndicator.svelte";
 
   let runtime = $state<RuntimeHandle | null>(null);
   let title = $state("");
@@ -74,6 +75,63 @@
     return () => {
       ui.off("script:switch", handler);
     };
+  });
+
+  // Pagination keymap — ↑ / ↓ step one LINE block, PgUp / PgDn step
+  // a full page (visibleCount - 1), Home / End jump to top / bottom.
+  // Gated on `isEditableTarget` (same predicate FKeyBar uses) so the
+  // shortcuts don't steal input from text fields. No-op if the
+  // active SCREEN doesn't overflow (`scrollLines` clamps internally).
+  // See `docs/research/screen-line-pagination.md`.
+  function isEditableTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    const tag = target.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+  }
+
+  $effect(() => {
+    if (!runtime) return;
+    const ui = runtime.ui;
+    const onKey = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+      // Only consume the key when the active SCREEN actually overflows
+      // — otherwise leave the event alone so other handlers (or the
+      // browser) can react. `state.totalLines > visibleLineCount` is
+      // the same predicate ScrollIndicator uses to decide visibility.
+      const overflowing =
+        ui.state.totalLines > ui.state.visibleLineCount &&
+        ui.state.visibleLineCount > 0;
+      if (!overflowing) return;
+      const page = Math.max(1, ui.state.visibleLineCount - 1);
+      switch (e.key) {
+        case "ArrowUp":
+          ui.scrollLines(-1);
+          e.preventDefault();
+          return;
+        case "ArrowDown":
+          ui.scrollLines(1);
+          e.preventDefault();
+          return;
+        case "PageUp":
+          ui.scrollLines(-page);
+          e.preventDefault();
+          return;
+        case "PageDown":
+          ui.scrollLines(page);
+          e.preventDefault();
+          return;
+        case "Home":
+          ui.scrollToTop();
+          e.preventDefault();
+          return;
+        case "End":
+          ui.scrollToBottom();
+          e.preventDefault();
+          return;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   });
 
   // Wire `exit()` / `exitwindows()` → clear the selection so the
@@ -201,6 +259,11 @@
                refreshing" signal that the original INPA achieved via
                per-LINE blinking dots. -->
           <LiveIndicator ui={runtime.ui} />
+          <!-- Bottom-right ▲/▼ buttons for screens whose LINE-block
+               count exceeds the viewport. Hidden entirely when
+               `totalLines <= visibleLineCount`. See
+               `docs/research/screen-line-pagination.md`. -->
+          <ScrollIndicator ui={runtime.ui} />
         </div>
       {/if}
     </section>

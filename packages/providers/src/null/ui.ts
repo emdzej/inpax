@@ -16,6 +16,20 @@ export class NullUIProvider extends EventEmitter<UIEvents> implements IUIProvide
   getCurrentColors(): { fg: number; bg: number } {
     return { fg: 1, bg: 0 };
   }
+
+  // === Pagination (no-op; `getVisibleLineCount() = 0` tells the
+  //     screen executor "no fixed viewport, run every LINE block") ===
+  setTotalLines(_total: number): void {}
+  setVisibleLineCount(_count: number): void {}
+  getFirstVisibleLine(): number {
+    return 0;
+  }
+  getVisibleLineCount(): number {
+    return 0;
+  }
+  scrollLines(_delta: number): void {}
+  scrollToTop(): void {}
+  scrollToBottom(): void {}
   async scriptSelect(_iniFile: string): Promise<string | null> {
     return null;
   }

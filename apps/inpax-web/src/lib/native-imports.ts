@@ -138,7 +138,19 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
     try {
       const handle = await findCaseInsensitive(dir, filename);
       if (!handle) {
-        logWarn(`${filename} not found in ${dir.name}/`);
+        // Surface the alphabetical neighbourhood + the .ini siblings
+        // so the user can tell at a glance whether the file is
+        // genuinely missing (no near match in either pool) or just
+        // case-mismatched in a way our compare didn't catch. We
+        // can't list the whole dir — real installs have hundreds of
+        // entries and the warning would flood the console.
+        const neighbourhood = await listDirNeighbourhood(dir, filename);
+        logWarn(
+          `${filename} not found in ${dir.name}/ — ` +
+            `nearby: ${neighbourhood.nearby.join(", ") || "(none)"}; ` +
+            `INI files: ${neighbourhood.iniFiles.join(", ") || "(none)"} ` +
+            `(${neighbourhood.totalEntries} entries total)`
+        );
         return;
       }
       const file = await handle.getFile();
@@ -158,6 +170,49 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
       logWarn(`failed to cache ${filename}`, (err as Error).message);
     }
   }
+}
+
+/**
+ * Snapshot enough of `dir`'s contents to diagnose a missing-file
+ * warning without dumping the whole directory. Returns three slices,
+ * each keeping the on-disk casing of every name so a case-mismatched
+ * file would be obvious:
+ *
+ *   - `nearby`   — files whose lowercase name starts with the same
+ *                  first three chars as the target, capped at 10.
+ *                  Catches "the file is right there with a typo".
+ *   - `iniFiles` — every `.ini` file in the directory (capped at 10).
+ *                  Catches "we're looking for the wrong filename
+ *                  entirely" (e.g. `INPA_DEFAULT.INI`).
+ *   - `totalEntries` — full entry count so the user knows whether
+ *                  the directory was empty / large.
+ *
+ * Walks `entries()` exactly once.
+ */
+async function listDirNeighbourhood(
+  dir: FileSystemDirectoryHandle,
+  target: string
+): Promise<{ nearby: string[]; iniFiles: string[]; totalEntries: number }> {
+  const prefix = target.toLowerCase().slice(0, 3);
+  const nearby: string[] = [];
+  const iniFiles: string[] = [];
+  let totalEntries = 0;
+  for await (const [name, entry] of dir.entries()) {
+    totalEntries++;
+    const display = entry.kind === "directory" ? `${name}/` : name;
+    const lower = name.toLowerCase();
+    if (lower.startsWith(prefix) && nearby.length < 10) {
+      nearby.push(display);
+    }
+    if (entry.kind === "file" && lower.endsWith(".ini") && iniFiles.length < 10) {
+      iniFiles.push(display);
+    }
+  }
+  const sortAsc = (a: string, b: string) =>
+    a.toLowerCase().localeCompare(b.toLowerCase());
+  nearby.sort(sortAsc);
+  iniFiles.sort(sortAsc);
+  return { nearby, iniFiles, totalEntries };
 }
 
 function emptyResults(call: NativeImportCall): unknown[] {

@@ -128,6 +128,32 @@ export class MockUIProvider extends EventEmitter<UIEvents> implements IUIProvide
     return { fg: this.currentFg, bg: this.currentBg };
   }
 
+  // === Pagination ===
+  // Mock provider has no viewport; record the calls and report
+  // `getVisibleLineCount() = 0` so the screen executor doesn't
+  // paginate against the mock.
+  setTotalLines(total: number): void {
+    this.record('setTotalLines', total);
+  }
+  setVisibleLineCount(count: number): void {
+    this.record('setVisibleLineCount', count);
+  }
+  getFirstVisibleLine(): number {
+    return 0;
+  }
+  getVisibleLineCount(): number {
+    return 0;
+  }
+  scrollLines(delta: number): void {
+    this.record('scrollLines', delta);
+  }
+  scrollToTop(): void {
+    this.record('scrollToTop');
+  }
+  scrollToBottom(): void {
+    this.record('scrollToBottom');
+  }
+
   async scriptSelect(iniFile: string): Promise<string | null> {
     this.record('scriptSelect', iniFile);
     return null;
