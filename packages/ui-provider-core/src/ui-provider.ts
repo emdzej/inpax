@@ -45,24 +45,74 @@ export interface InternalEvents {
 }
 
 /**
- * Mirror of the C-style numeric formatters most BMW INPA scripts
- * pass into `analogout`. Shared between subclasses so they don't
+ * Format a numeric value through `analogout`'s format-spec argument.
+ *
+ * Two flavours of spec exist in real BMW scripts:
+ *
+ *   1. **BEST2 bare spec** — `"W.D"` (width.decimals), `"W"`, or
+ *      just `".D"`. Example: MS43's `ergebnisAnalogAusgabe` passes a
+ *      literal constant `"4.2"` for every analog gauge, meaning
+ *      "render with 2 decimals, target width 4". This is the
+ *      common case and what tripped us up before: with no `%` sign
+ *      the previous regex returned the format unchanged and every
+ *      gauge displayed the literal `"4.2"`.
+ *   2. **C printf-style** — `"%.1f"`, `"%5.2f"`, `"%d"`, etc.
+ *      Less common but seen in some scripts that embed units in
+ *      the format (`"%5.1f V"`). The spec is substituted in place.
+ *
+ * `value.toString()` is the fallback when the format string is
+ * empty or doesn't parse as either of the above.
+ *
+ * Width-only specs (`"5"`) integer-format with left-padding to that
+ * width. Precision-only specs (`".2"`) use `toFixed` and no padding.
+ * Both (`"5.2"`) use `toFixed` plus padding.
+ *
+ * Shared between subclasses so the TUI / canvas / overlay don't
  * disagree on rounding.
  */
 export const formatAnalogValue = (value: number, format: string): string => {
   if (!format) return value.toString();
-  const regex = /%(\.(\d+))?[fdeg]/g;
-  const matches = format.match(regex);
-  if (!matches || matches.length === 0) return format;
-  const match = matches[0];
-  const decimals = match.match(/\.(\d+)/)?.[1];
-  let formatted = value.toString();
-  if (decimals) {
-    formatted = value.toFixed(parseInt(decimals, 10));
-  } else if (match.endsWith('d')) {
-    formatted = Math.round(value).toString();
+
+  // C printf-style spec embedded in the format string.
+  const printfRe = /%(\d+)?(?:\.(\d+))?[fdeg]/;
+  const printfMatch = format.match(printfRe);
+  if (printfMatch) {
+    const decimalsStr = printfMatch[2];
+    const widthStr = printfMatch[1];
+    const decimals = decimalsStr ? parseInt(decimalsStr, 10) : undefined;
+    const width = widthStr ? parseInt(widthStr, 10) : undefined;
+    const conv = printfMatch[0].slice(-1);
+    let rendered =
+      conv === 'd'
+        ? Math.round(value).toString()
+        : decimals !== undefined
+          ? value.toFixed(decimals)
+          : value.toString();
+    if (width !== undefined && rendered.length < width) {
+      rendered = rendered.padStart(width, ' ');
+    }
+    return format.replace(printfMatch[0], rendered);
   }
-  return format.replace(regex, formatted);
+
+  // BEST2 bare spec: `W`, `.D`, or `W.D` — width / precision pair
+  // with no `%`. Tolerates surrounding whitespace.
+  const best2Match = format.trim().match(/^(\d+)?(?:\.(\d+))?$/);
+  if (best2Match && (best2Match[1] !== undefined || best2Match[2] !== undefined)) {
+    const widthStr = best2Match[1];
+    const decimalsStr = best2Match[2];
+    const decimals = decimalsStr !== undefined ? parseInt(decimalsStr, 10) : undefined;
+    const width = widthStr !== undefined ? parseInt(widthStr, 10) : undefined;
+    let rendered =
+      decimals !== undefined ? value.toFixed(decimals) : Math.round(value).toString();
+    if (width !== undefined && rendered.length < width) {
+      rendered = rendered.padStart(width, ' ');
+    }
+    return rendered;
+  }
+
+  // Unparsed — return as-is. Better to leak the spec than to
+  // silently swallow it.
+  return format;
 };
 
 export abstract class UIProvider
