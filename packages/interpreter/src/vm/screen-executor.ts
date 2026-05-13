@@ -342,20 +342,42 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
 
   /**
    * Execute INIT phase
+   *
+   * INPA semantics split the screen-start work into two pieces:
+   *
+   *   - ALLOC: one-time setup (variable allocation, constants).
+   *     Runs once when the screen is first mounted.
+   *   - INIT:  per-cycle setup. Typically calls `INPAapiJob` to
+   *     refetch the ECU data the LINE blocks then render. Must
+   *     re-run every cycle on cyclic (`frequentFlag=true`) screens,
+   *     otherwise LINE blocks display the same stale values forever.
+   *
+   * `allocDone` is the only state that distinguishes a first-mount
+   * INIT from a cycle-restart INIT — we keep the buffer-clear on the
+   * first pass so the screen starts clean, but skip it on subsequent
+   * passes so the previous cycle's content doesn't flash blank.
    */
-  private async executeInitPhase(): Promise<void> {
-    this.log('Executing INIT phase');
+  private allocDone = false;
 
-    this.vm.getRuntime().ui.blankScreen();
-    // INIT paints absolute coords (screen title at row 1, etc.) — reset
-    // any LINE-base-row offset a previous screen may have left set.
-    this.vm.getRuntime().ui.setLineBaseRow(0);
-    // Execute alloc function if present
-    if (this.screen.allocFunc) {
-      await this.executeBlock(this.screen.allocFunc);
+  private async executeInitPhase(): Promise<void> {
+    this.log(`Executing INIT phase (allocDone=${this.allocDone})`);
+
+    const ui = this.vm.getRuntime().ui;
+
+    if (!this.allocDone) {
+      // First mount — clear the buffer (any leftover state from a
+      // previous screen) and run ALLOC.
+      ui.blankScreen();
+      if (this.screen.allocFunc) {
+        await this.executeBlock(this.screen.allocFunc);
+      }
+      this.allocDone = true;
     }
 
-    // Execute init function if present
+    // INIT paints absolute coords (screen title at row 1, etc.) so
+    // the LINE-base-row offset must be 0 here. Reset before running
+    // INIT — both on first pass and every cycle restart.
+    ui.setLineBaseRow(0);
     if (this.screen.initFunc) {
       await this.executeBlock(this.screen.initFunc);
     }
@@ -426,11 +448,16 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
     this.emit('cycle:complete');
 
     if (this.frequentFlag) {
-      // Continuous mode - restart LINE phase
+      // Continuous mode — restart at INIT so the script's per-cycle
+      // EDIABAS job re-fires and LINE blocks render fresh values.
+      // ALLOC stays skipped via the `allocDone` flag in
+      // executeInitPhase, and the buffer isn't re-blanked so the
+      // previous cycle's output stays visible until LINEs overwrite
+      // it (no inter-cycle flash).
       this.lineIndex = 0;
-      // Stay in 'line' phase
+      this.setPhase('init');
     } else {
-      // One-shot mode - go to idle
+      // One-shot mode — done, idle.
       this.setPhase('idle');
     }
   }

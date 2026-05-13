@@ -24,6 +24,7 @@
   import ConnectDialog from "./ConnectDialog.svelte";
   import UserBoxOverlay from "./UserBoxOverlay.svelte";
   import ViewerDialog from "./ViewerDialog.svelte";
+  import LiveIndicator from "./LiveIndicator.svelte";
 
   let runtime = $state<RuntimeHandle | null>(null);
   let title = $state("");
@@ -196,6 +197,10 @@
                `userboxopen`/`userboxftextout` progress dialogs (e.g.
                "Fehlerspeicher lesen") become visible. -->
           <UserBoxOverlay ui={runtime.ui} />
+          <!-- Corner pulse for cyclic screens — at-a-glance "data is
+               refreshing" signal that the original INPA achieved via
+               per-LINE blinking dots. -->
+          <LiveIndicator ui={runtime.ui} />
         </div>
       {/if}
     </section>
