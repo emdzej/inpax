@@ -2,6 +2,13 @@
 
 System functions are built-in functions provided by the INPA VM. They are called via opcode `0x0C 0x81 [ID] 00`.
 
+> Looking for the **per-function** status, semantics, and
+> implementation map (all 158 system functions, what each one does in
+> original INPA, and where the equivalent lives in inpax)? See
+> [`system-functions-reference.md`](./system-functions-reference.md).
+> This document is the **architecture** side — the call mechanism,
+> the function table layout, and a few worked examples.
+
 ## Call Mechanism
 
 ### Invocation
