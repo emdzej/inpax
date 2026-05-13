@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>INPAX — BMW INPA in the browser</title>
+    <!-- Favicon + iOS Safari home-screen icon. PWA manifest (injected
+         by vite-plugin-pwa) covers Android / Chromium installed-app
+         icons; these tags fill the browser-chrome / iOS gap. -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="description" content="BMW INPA in the browser — run diagnostic scripts against a live ECU over Web Serial." />
     <!-- Resolve the saved theme choice BEFORE the Svelte bundle paints
          so users on dark mode don't get a flash of light. App.svelte
          re-runs the same resolution as soon as it mounts and takes

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background: accent blue (matches the in-app `bg-accent` /
+       `text-accent` colour). Rounded corners ~22% radius so the
+       icon looks balanced under both round and squircle mask
+       overlays used by Android adaptive icons. -->
+  <rect width="512" height="512" rx="112" ry="112" fill="#3b82f6" />
+  <!-- "IX" monogram in white. The X overlaps the I slightly for a
+       compact wordmark feel — the goal is a recognisable badge at
+       192×192 and a square pip at 32×32 favicon size. Font is
+       hand-tuned paths so we don't depend on a font being available
+       at icon-rendering time. -->
+  <g fill="#ffffff">
+    <!-- I -->
+    <rect x="124" y="116" width="56" height="280" rx="8" />
+    <!-- X (two diagonal bars) -->
+    <path d="M 216 116 L 268 116 L 388 396 L 336 396 Z" />
+    <path d="M 388 116 L 336 116 L 216 396 L 268 396 Z" />
+  </g>
+</svg>
