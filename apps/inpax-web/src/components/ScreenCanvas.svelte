@@ -50,8 +50,22 @@
      * tests / standalone canvas previews where no runtime exists.
      */
     onFrameReady?: (cb: () => void) => () => void;
+    /**
+     * Optional callback fired once when the underlying `<canvas>`
+     * element is bound (and again with `null` on unmount). Lets the
+     * host wire up things that need the raw canvas — the screenshot
+     * button in `IpoRunner.svelte` uses it for `toBlob`.
+     */
+    bindCanvas?: (el: HTMLCanvasElement | null) => void;
   };
-  const { screen, ui, onFrameReady }: Props = $props();
+  const { screen, ui, onFrameReady, bindCanvas }: Props = $props();
+
+  // Pass the canvas ref up to the host as soon as it's bound, and
+  // again with null on unmount so the host can drop its reference.
+  $effect(() => {
+    bindCanvas?.(canvas);
+    return () => bindCanvas?.(null);
+  });
 
   const theme = classicInpaTheme;
 

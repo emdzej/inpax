@@ -32,6 +32,69 @@
   let error = $state<string | null>(null);
   let loading = $state(false);
 
+  // Reference to the ScreenCanvas's underlying `<canvas>`, wired up
+  // by the `bindCanvas` callback below. The screenshot button reads
+  // bytes off this to feed `navigator.clipboard.write` or fall back
+  // to a download.
+  let canvasEl = $state<HTMLCanvasElement | null>(null);
+  let snapshotState = $state<"idle" | "ok" | "downloaded" | "error">("idle");
+  let snapshotTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function flashSnapshot(next: typeof snapshotState): void {
+    snapshotState = next;
+    if (snapshotTimer) clearTimeout(snapshotTimer);
+    snapshotTimer = setTimeout(() => {
+      snapshotState = "idle";
+      snapshotTimer = null;
+    }, 1800);
+  }
+
+  async function takeScreenshot(): Promise<void> {
+    if (!canvasEl) return;
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvasEl!.toBlob((b) => resolve(b), "image/png"),
+    );
+    if (!blob) {
+      flashSnapshot("error");
+      return;
+    }
+    // Preferred path: copy PNG bytes to the system clipboard. Requires
+    // a secure context AND ClipboardItem (Chromium ≥ 76 / FF ≥ 127).
+    // If anything in that chain is missing or the browser denies,
+    // fall back to a download so the user still gets the bytes.
+    const Item = (window as unknown as { ClipboardItem?: typeof ClipboardItem })
+      .ClipboardItem;
+    if (
+      navigator.clipboard &&
+      typeof navigator.clipboard.write === "function" &&
+      Item
+    ) {
+      try {
+        await navigator.clipboard.write([new Item({ "image/png": blob })]);
+        flashSnapshot("ok");
+        return;
+      } catch {
+        /* fall through to download */
+      }
+    }
+    // Download fallback.
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const stamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .replace("T", "_")
+      .slice(0, 19);
+    const base = app.selectedIpo?.name.replace(/\.ipo$/i, "") ?? "inpax";
+    a.download = `${base}_${stamp}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    flashSnapshot("downloaded");
+  }
+
   // Re-snapshot the title on every WebUIProvider state:changed event.
   // settitle() is the most common UI op a script does early, so
   // pinning it gives an immediate visual confirmation the runtime
@@ -223,6 +286,33 @@
         <span class="text-faint">·</span>
         <span class="text-accent">{title}</span>
       {/if}
+      <!-- Screenshot button — pushed to the far right via `ml-auto`.
+           Tries `navigator.clipboard.write` first; on browsers
+           without image clipboard support (or when the page lacks a
+           secure context — i.e. the LAN-dev-server flow on
+           http://) falls back to triggering a PNG download. The
+           `snapshotState` flash gives feedback without a toast
+           library. -->
+      <button
+        type="button"
+        class="ml-auto flex items-center gap-1.5 rounded border border-rule px-2 py-1 text-xs text-muted transition hover:border-rule hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={!canvasEl}
+        onclick={() => void takeScreenshot()}
+        title={snapshotState === "ok"
+          ? "Copied PNG to clipboard"
+          : snapshotState === "downloaded"
+            ? "Saved PNG (clipboard write blocked)"
+            : snapshotState === "error"
+              ? "Couldn't capture canvas"
+              : "Copy canvas as PNG to clipboard (falls back to download)"}
+      >
+        <span aria-hidden="true" class="text-sm">
+          {#if snapshotState === "ok"}✓{:else if snapshotState === "downloaded"}⬇{:else if snapshotState === "error"}✕{:else}⎙{/if}
+        </span>
+        <span>
+          {#if snapshotState === "ok"}Copied{:else if snapshotState === "downloaded"}Saved{:else if snapshotState === "error"}Failed{:else}Screenshot{/if}
+        </span>
+      </button>
     </header>
 
     <section class="relative flex-1 overflow-hidden p-2">
@@ -250,7 +340,12 @@
              independent; the light/dark switch only affects the
              surrounding app chrome. -->
         <div class="relative h-full w-full" style="background: {classicInpaTheme.background};">
-          <ScreenCanvas screen={runtime.screen} ui={runtime.ui} onFrameReady={runtime.onFrameReady} />
+          <ScreenCanvas
+            screen={runtime.screen}
+            ui={runtime.ui}
+            onFrameReady={runtime.onFrameReady}
+            bindCanvas={(el) => (canvasEl = el)}
+          />
           <!-- UserBoxOverlay sits on top of the canvas so scripts'
                `userboxopen`/`userboxftextout` progress dialogs (e.g.
                "Fehlerspeicher lesen") become visible. -->
