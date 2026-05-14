@@ -15,8 +15,29 @@
     queryHandlePermission,
     requestHandlePermission,
   } from "../lib/install-storage";
+  import {
+    getInstallSource,
+    importZipToOpfs,
+    loadBundledInstall,
+    setInstallSource,
+    isOpfsSupported,
+    type ImportProgressEvent,
+  } from "../lib/bundled-install";
 
   const supported = isFileSystemAccessSupported();
+  const opfsSupported = isOpfsSupported();
+
+  // Bundled-install state. When the marker says `source: "bundled"`,
+  // the OPFS root is the install — no folder picker involved. The
+  // import flow lives inline below; the file input is hidden and
+  // triggered programmatically from the visible button.
+  let zipInput = $state<HTMLInputElement | null>(null);
+  let importProgress = $state<{
+    fileCount: number;
+    bytesWritten: number;
+    currentFile: string;
+  } | null>(null);
+  let importing = $state(false);
 
   // Stored handle from a previous session (if any), surfaced so the
   // landing screen can show a "Continue with <folder>" affordance.
@@ -29,6 +50,28 @@
 
   onMount(async () => {
     if (!supported) return;
+
+    // Bundled-install path takes priority: if a bundle was imported
+    // previously, OPFS already has the content and `discoverInpaInstall`
+    // works against the OPFS root without any permission prompt. The
+    // marker is the source of truth; the OPFS contents are read on
+    // demand below.
+    const source = getInstallSource();
+    if (source?.source === "bundled" && opfsSupported) {
+      restoring = true;
+      try {
+        const root = await loadBundledInstall();
+        if (root) {
+          await openInstall(root, { skipSave: true, source: "bundled" });
+          return;
+        }
+      } catch (err) {
+        app.error = err instanceof Error ? err.message : String(err);
+      } finally {
+        restoring = false;
+      }
+    }
+
     const handle = await loadInstallHandle();
     if (!handle) return;
     const perm = await queryHandlePermission(handle);
@@ -57,7 +100,7 @@
 
   async function openInstall(
     handle: FileSystemDirectoryHandle,
-    options: { skipSave?: boolean } = {}
+    options: { skipSave?: boolean; source?: "fs-access" | "bundled" } = {}
   ): Promise<void> {
     const install = await discoverInpaInstall(handle);
     app.install = install;
@@ -79,7 +122,66 @@
     app.view = "browse";
     if (!options.skipSave) {
       await saveInstallHandle(handle);
+      // The bundled path sets its own marker inside importZipToOpfs;
+      // only stamp the fs-access marker here so we don't overwrite a
+      // freshly-imported bundle's metadata.
+      if (options.source !== "bundled") {
+        setInstallSource({ source: "fs-access" });
+      }
     }
+  }
+
+  function chooseZip(): void {
+    zipInput?.click();
+  }
+
+  async function onZipSelected(event: Event): Promise<void> {
+    const target = event.currentTarget as HTMLInputElement;
+    const file = target.files?.[0];
+    target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+    if (!opfsSupported) {
+      app.error = "Bundled install requires OPFS, not available in this browser";
+      return;
+    }
+    app.error = null;
+    importing = true;
+    importProgress = {
+      fileCount: 0,
+      bytesWritten: 0,
+      currentFile: file.name,
+    };
+    try {
+      await importZipToOpfs(file, (ev: ImportProgressEvent) => {
+        if (ev.kind === "file") {
+          importProgress = {
+            fileCount: ev.fileIndex + 1,
+            bytesWritten: ev.bytesWritten,
+            currentFile: ev.path,
+          };
+        }
+      });
+      const root = await loadBundledInstall();
+      if (!root) {
+        throw new Error("Bundle import finished but OPFS root unavailable");
+      }
+      // Drop any saved fs-access handle — the bundled source is now
+      // the active one, and re-loading would race against the marker.
+      await clearInstallHandle();
+      await openInstall(root, { skipSave: true, source: "bundled" });
+    } catch (err) {
+      app.error = err instanceof Error ? err.message : String(err);
+    } finally {
+      importing = false;
+      importProgress = null;
+    }
+  }
+
+  function formatBytes(n: number): string {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   }
 
   async function pickRoot() {
@@ -150,15 +252,70 @@
           Pick a different folder
         </button>
       </div>
+    {:else if importing}
+      <!-- In-flight bundle import. fflate streams entries one at a
+           time so we show "N files, M MB written, currently
+           <path>" — meaningful progress on a 1+ GB bundle without
+           an exact total. -->
+      <div class="flex flex-col items-center gap-3 max-w-xl w-full">
+        <p class="text-sm font-medium text-foreground">Importing bundle…</p>
+        {#if importProgress}
+          <p class="text-xs text-faint">
+            {importProgress.fileCount} files · {formatBytes(importProgress.bytesWritten)}
+          </p>
+          <p class="text-xs text-faint truncate max-w-full">
+            {importProgress.currentFile}
+          </p>
+        {/if}
+      </div>
     {:else}
-      <button
-        class="rounded bg-accent px-6 py-3 font-medium text-zinc-950 hover:bg-accent-muted transition"
-        onclick={pickRoot}
-      >
-        Pick your INPA install folder
-      </button>
+      <!-- Two paths to onboarding. Pick folder is the original
+           File System Access flow; Import bundle extracts a
+           `bimmerz-bundle`-produced zip into OPFS. The bundle path
+           sidesteps Chrome's .ini blocklist entirely on Windows
+           and survives page reloads without permission re-grants. -->
+      <div class="flex flex-col items-stretch gap-4 max-w-xl w-full md:flex-row">
+        <button
+          class="flex flex-1 flex-col items-center gap-2 rounded border border-rule bg-surface p-4 text-center transition hover:border-accent hover:bg-elevated"
+          onclick={pickRoot}
+        >
+          <span class="font-semibold text-foreground">Pick install folder</span>
+          <span class="text-xs text-faint">
+            Use the OS folder picker. Works against your live INPA install
+            on disk. Re-grants permission each session.
+          </span>
+        </button>
+        <button
+          class="flex flex-1 flex-col items-center gap-2 rounded border border-rule bg-surface p-4 text-center transition hover:border-accent hover:bg-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+          onclick={chooseZip}
+          disabled={!opfsSupported}
+          title={opfsSupported
+            ? "Pick a zip produced by bimmerz-bundle"
+            : "OPFS not supported in this browser"}
+        >
+          <span class="font-semibold text-foreground">Import bundle zip</span>
+          <span class="text-xs text-faint">
+            One-time import. Stays available across sessions, no
+            re-grant needed.
+            <a
+              href="https://github.com/emdzej/inpax/tree/main/apps/bimmerz-bundler"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-accent underline-offset-2 hover:underline"
+              onclick={(e: Event) => e.stopPropagation()}
+            >Make one with bimmerz-bundle.</a>
+          </span>
+        </button>
+      </div>
+      <input
+        bind:this={zipInput}
+        type="file"
+        accept=".zip,application/zip"
+        class="hidden"
+        onchange={onZipSelected}
+      />
       <p class="max-w-md text-center text-sm text-faint">
-        Point at the root that contains <code class="text-muted">EC-APPS/</code> and
+        Folder pick reads from <code class="text-muted">EC-APPS/</code> and
         <code class="text-muted">EDIABAS/</code>. We auto-discover the scripts
         (SGDAT, CFGDAT) and the SGBD files under EDIABAS/Ecu.
       </p>

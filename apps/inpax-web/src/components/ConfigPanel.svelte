@@ -28,11 +28,60 @@
     applySettingsImport,
   } from "../lib/settings.svelte";
   import { clearInstallHandle } from "../lib/install-storage";
+  import {
+    getInstallSource,
+    getBundledStats,
+    evictBundledInstall,
+    type BundledStats,
+  } from "../lib/bundled-install";
 
   type Tab = "comm" | "data" | "developer";
   let activeTab = $state<Tab>("comm");
 
   let savedAt = $state<number | null>(null);
+
+  // Bundled-install management state. Refreshed whenever the Data
+  // tab is opened so the "Last imported" / "OPFS usage" lines are
+  // current — `navigator.storage.estimate()` is async.
+  let bundledStats = $state<BundledStats | null>(null);
+  let bundledStatsLoading = $state(false);
+
+  async function refreshBundledStats(): Promise<void> {
+    bundledStatsLoading = true;
+    try {
+      bundledStats = await getBundledStats();
+    } finally {
+      bundledStatsLoading = false;
+    }
+  }
+
+  $effect(() => {
+    if (activeTab === "data") {
+      void refreshBundledStats();
+    }
+  });
+
+  function formatBytes(n: number): string {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
+
+  async function evictBundle(): Promise<void> {
+    if (!confirm(
+      "Evict the bundled install? You'll need to re-import a zip " +
+        "(or pick a folder) before the app can read scripts again."
+    )) {
+      return;
+    }
+    await evictBundledInstall();
+    app.view = "welcome";
+    app.install = null;
+    app.ipoFiles = [];
+    app.selectedIpo = null;
+    app.showSettings = false;
+  }
 
   $effect(() => {
     // Touch every field we want to persist so Svelte tracks them.
@@ -404,10 +453,11 @@
             </fieldset>
           </div>
         {:else if activeTab === "data"}
+          {@const installSource = getInstallSource()}
           <div class="flex flex-col gap-4">
             <fieldset class="flex flex-col gap-2 rounded border border-divider bg-elevated/60 p-3">
               <legend class="px-1 text-xs font-bold uppercase tracking-wider text-faint">
-                INPA install
+                {installSource?.source === "bundled" ? "Bundled install (OPFS)" : "INPA install"}
               </legend>
               <p class="text-sm text-foreground">
                 {app.install?.root.name || "(no folder selected)"}
@@ -419,20 +469,80 @@
                   <li>EDIABAS/Ecu: {app.install.ecu ? "✓" : "✗"}</li>
                 </ul>
               {/if}
-              <div class="pt-2">
-                <button
-                  type="button"
-                  class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground"
-                  onclick={() => void changeFolder()}
-                >
-                  Change folder…
-                </button>
-                <p class="mt-2 text-xs text-faint">
-                  Drops the cached handle and returns to the welcome
-                  picker. INPA scripts, SGBDs and your pinned startup
-                  IPO are all re-read from the new install.
+
+              {#if installSource?.source === "bundled"}
+                <!-- Bundled stats. Pulls from the localStorage marker
+                     (cheap) plus navigator.storage.estimate() (async,
+                     ~ms). The persisted flag tells us whether OPFS
+                     survives disk pressure — set on import via
+                     navigator.storage.persist(). -->
+                {#if bundledStats}
+                  <ul class="text-xs text-faint pt-1 space-y-0.5">
+                    <li>
+                      Imported: <span class="text-muted">{new Date(bundledStats.importedAt).toLocaleString()}</span>
+                    </li>
+                    <li>
+                      Files: <span class="text-muted">{bundledStats.fileCount}</span>
+                      ·
+                      Declared size: <span class="text-muted">{formatBytes(bundledStats.declaredBytes)}</span>
+                    </li>
+                    {#if bundledStats.storageUsage !== null}
+                      <li>
+                        OPFS usage: <span class="text-muted">{formatBytes(bundledStats.storageUsage)}</span>
+                        {#if bundledStats.storageQuota !== null}
+                          / <span class="text-muted">{formatBytes(bundledStats.storageQuota)}</span>
+                        {/if}
+                      </li>
+                    {/if}
+                    {#if bundledStats.persisted !== null}
+                      <li>
+                        Persistent: <span class="text-muted">{bundledStats.persisted ? "yes (won't evict)" : "no (may evict under disk pressure)"}</span>
+                      </li>
+                    {/if}
+                  </ul>
+                {:else if bundledStatsLoading}
+                  <p class="text-xs text-faint">Loading stats…</p>
+                {/if}
+
+                <div class="flex flex-wrap gap-2 pt-2">
+                  <button
+                    type="button"
+                    class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground"
+                    onclick={() => void changeFolder()}
+                  >
+                    Switch to folder pick…
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded border border-red-300 dark:border-red-600/50 px-3 py-1 text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
+                    onclick={() => void evictBundle()}
+                  >
+                    Evict bundle…
+                  </button>
+                </div>
+                <p class="mt-1 text-xs text-faint">
+                  "Evict" wipes the OPFS copy and returns you to the
+                  welcome picker. "Switch to folder pick" leaves the
+                  OPFS data in place but takes you back to the picker
+                  so you can choose a folder for this session.
                 </p>
-              </div>
+              {:else}
+                <div class="pt-2">
+                  <button
+                    type="button"
+                    class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground"
+                    onclick={() => void changeFolder()}
+                  >
+                    Change folder…
+                  </button>
+                  <p class="mt-2 text-xs text-faint">
+                    Drops the cached handle and returns to the welcome
+                    picker. INPA scripts, SGBDs and your pinned startup
+                    IPO are all re-read from the new install (or
+                    bundle).
+                  </p>
+                </div>
+              {/if}
             </fieldset>
 
             <!-- Chrome on Windows hides `.ini` files from the File

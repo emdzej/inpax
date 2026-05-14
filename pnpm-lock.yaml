@@ -179,6 +179,9 @@ importers:
       '@emdzej/inpax-ui-provider-core':
         specifier: workspace:*
         version: link:../../packages/ui-provider-core
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.2
       workbox-window:
         specifier: ^7.4.1
         version: 7.4.1
