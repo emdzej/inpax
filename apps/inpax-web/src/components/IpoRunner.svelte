@@ -279,12 +279,19 @@
     </div>
   {:else}
     <header class="flex items-center gap-3 border-b border-divider px-4 py-2 text-sm">
-      <span class="font-semibold text-foreground">{app.selectedIpo.name}</span>
-      <span class="text-faint">·</span>
-      <span class="text-faint">{app.selectedIpo.origin}</span>
+      <!-- Lead with the script-supplied title (what the user is
+           actually looking at), trail with the on-disk source in
+           muted parens. The path uses the Windows-style separator
+           because that's what's familiar from the BMW install
+           layout (`SGDAT\MS430.IPO`). -->
       {#if title}
-        <span class="text-faint">·</span>
-        <span class="text-accent">{title}</span>
+        <span class="font-semibold text-foreground">{title}</span>
+        <span class="text-faint">({app.selectedIpo.origin}\{app.selectedIpo.name})</span>
+      {:else}
+        <!-- Pre-`settitle` (or scripts that don't call it): only
+             the path is meaningful, so promote it from "context" to
+             "label" while keeping the muted tone. -->
+        <span class="font-semibold text-foreground">{app.selectedIpo.origin}\{app.selectedIpo.name}</span>
       {/if}
       <!-- Screenshot button — pushed to the far right via `ml-auto`.
            Tries `navigator.clipboard.write` first; on browsers
