@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-ediabasx-provider",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "EdiabasX provider for INPA interpreter \u2014 uses @emdzej/ediabasx-ediabas for real ECU communication.",
   "type": "module",
   "main": "dist/index.js",

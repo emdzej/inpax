@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-cli-provider",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Simple CLI provider for INPA runtime using stdio",
   "type": "module",
   "main": "./dist/index.js",
