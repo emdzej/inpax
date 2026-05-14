@@ -319,13 +319,96 @@ class InpaTimers {
 }
 ```
 
+## Tick granularity — all LINE blocks per tick, NOT one per tick
+
+A recurring question: when frequentFlag=TRUE, does each OnIdle tick run
+**all** LINE blocks of the active screen, or does it run **one** LINE
+block per tick? Confirmed from Ghidra: **all LINE blocks per tick.**
+
+The block-phase state machine at context offset `+0xe8` is **3-way**
+(INIT=0, LINE=1, EXIT=2), not per-LINE. The +0xe8 transitions are:
+
+```
+0 (INIT) → 1 (LINE) → 2 (EXIT) → 0  (cycle restarts via the +0xe4 flag)
+```
+
+Inside `INPA_RunBlockPhase` (FUN_00420745) the LINE case looks like:
+
+```c
+case 1:  // LINE phase
+    if (ctx->lineCode != 0) {  // +0xd0
+        FUN_00460731(&vm, ctx->lineCode);  // ip = 0, code_size = sizeof(lineCode)
+        do {
+            iVar1 = INPA_VM_Interpret(&vm, ctx->lineListHead);
+        } while (iVar1 != 0 && ctx->runningFlag == 1);  // +0xdc
+    }
+    FUN_0041e0da(ctx);  // post-LINE screen hook (scroll/repaint)
+    ctx->phase++;       // → 2 (EXIT)
+```
+
+Crucially, `INPA_VM_Interpret` (FUN_004607d7) is **single-instruction**:
+
+```c
+if (ctx->code_size <= ctx->ip) return 0;   // past end → "done"
+... execute one opcode at ctx->code_ptr[ctx->ip] ...
+return 1;                                   // "more to do"
+```
+
+So the `do { Interpret } while (iVar1 != 0 && running)` loop is a
+tight single-stepper that runs the **entire** `lineCode` bytecode in
+one OnIdle call. After the first cycle, the INIT pointer (`+0xd4`)
+is zeroed, so the steady-state per tick is:
+
+```
+phase 0: lineCode INIT is null → skip → phase = 1
+phase 1: run all LINE blocks to completion → phase = 2
+phase 2: usually no EXIT → phase = 0 (cycle restarts)
+```
+
+That entire transition (0→1→2→0) happens within one `INPA_RunBlockPhase`
+call when there's no pending menu / screen / state-machine switch and
+no async system function inside the LINE block forces an early yield.
+
+### Why this matters for inpax
+
+- The `screen-executor.ts` "one tick = full cycle" model matches INPA.
+- Per-tick caches keyed by `lineIndex` are safe — each tick sees
+  every LINE block sequentially.
+- Per-LINE caches that try to short-circuit "this is the same LINE I
+  ran last tick" would be **wrong** — INPA never works in those terms.
+
+## Ghidra rename map
+
+Functions referenced in this doc, renamed in the Ghidra project for
+discoverability. Use the right-hand names when re-exploring.
+
+| Address      | Original       | Renamed                     |
+|--------------|----------------|-----------------------------|
+| `0x004607d7` | `FUN_004607d7` | `INPA_VM_Interpret`         |
+| `0x00420745` | `FUN_00420745` | `INPA_RunBlockPhase`        |
+| `0x004176fb` | `FUN_004176fb` | `INPA_RunStatusDispatcher`  |
+| `0x00402d7c` | `FUN_00402d7c` | `INPA_MainAppStateStep`     |
+| `0x004014a5` | `FUN_004014a5` | `INPA_OnIdleStep`           |
+
+Call chain (top = entry):
+
+```
+INPA_OnIdleStep            (0x004014a5)  ← MFC OnIdle handler
+  → INPA_MainAppStateStep  (0x00402d7c)  ← app-level state machine (case 5)
+    → INPA_RunStatusDispatcher (0x004176fb)  ← status dispatcher
+      → INPA_RunBlockPhase  (0x00420745)  ← INIT/LINE/EXIT executor
+        → INPA_VM_Interpret (0x004607d7)  ← single-instruction VM
+```
+
 ## References
 
-- `FUN_00420745` - Main execution loop (OnIdle handler)
+- `INPA_RunBlockPhase` (`0x00420745`) - INIT/LINE/EXIT block executor (OnIdle target)
 - `FUN_0041a4ec` - Screen activation
-- `FUN_0042e457` - State machine activation  
-- `FUN_004607d7` - Bytecode interpreter main loop
+- `FUN_0042e457` - State machine activation
+- `INPA_VM_Interpret` (`0x004607d7`) - Bytecode interpreter (single-step per call)
 - `FUN_0041fde1` - Set FrequentFlag for screen
+- `FUN_00460731` - Load bytecode block (resets ip, sets code_size)
+- `FUN_0041e0da` - Post-LINE-phase screen hook
 
 ---
 
