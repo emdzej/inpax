@@ -190,16 +190,21 @@ describe('ScreenExecutor', () => {
     it('should loop continuously when frequentFlag=true', async () => {
       const screen = createMockScreen(1);
       const executor = new ScreenExecutor(screen, true, vm, runtime, { tickInterval: 1 });
-      
+
       const cycleHandler = vi.fn();
       executor.on('cycle:complete', cycleHandler);
-      
+
       await executor.start();
       await vi.advanceTimersByTimeAsync(200);
-      
-      // Should complete multiple cycles
+
+      // Should complete multiple cycles.
       expect(cycleHandler.mock.calls.length).toBeGreaterThan(1);
-      expect(executor.getPhase()).toBe('line');
+      // In the post-refactor cycle model each tick runs INIT + LINE
+      // back to back and parks at `init` waiting for the next tick;
+      // the phase only stays in `line` *during* a tick, which the
+      // test won't observe. Still-running is the real assertion.
+      expect(executor.isRunning()).toBe(true);
+      expect(executor.getPhase()).toBe('init');
     });
   });
 

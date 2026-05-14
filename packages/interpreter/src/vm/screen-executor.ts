@@ -334,28 +334,85 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   }
 
   /**
-   * Execute one tick of the screen loop
-   * This is the core execution method called on each iteration
+   * Execute one tick of the screen loop.
+   *
+   * Each tick runs a **full cycle** — INIT + every visible LINE
+   * block back-to-back — so cycle frequency tracks `tickInterval`,
+   * not `ticksPerCycle * tickInterval`. The previous per-LINE
+   * pacing model added (visibleCount − 1) × tickInterval of latency
+   * per cycle for no benefit: the canvas only repaints on
+   * `cycle:complete` anyway, so each intermediate "one line per
+   * tick" tick was just dead time. Real INPA's `WM_TIMER` model is
+   * "one tick = one full refresh"; this lines us up with that.
+   *
+   * **Scroll fast-path**: when `firstVisibleLine` changes between
+   * ticks, we skip the INIT bytecode entirely. INIT's heavy job is
+   * `INPAapiJob` — fetching ECU data into the provider's result
+   * cache. A scroll doesn't change *which* job we need, only which
+   * slots we paint into; the cache from the previous INIT is still
+   * valid, and `INPAapiResult*` calls inside the LINE blocks read
+   * from it. We just `clearRect` the LINE content area, snapshot
+   * the new window, and run LINE phase. ALLOC is gated on
+   * `allocDone` so it never re-runs on scroll either.
+   *
+   * The phase enum is preserved for back-compat with `getPhase()`
+   * but it's no longer a state machine that takes multiple ticks
+   * to traverse — at most one transition `init → idle` happens
+   * (for non-cyclic screens after their one and only tick).
    */
   private async tick(): Promise<void> {
     if (!this.running || this.paused) {
       return;
     }
 
+    if (this.phase === 'idle') {
+      // One-shot screen already painted; nothing to do until
+      // something external (scroll, new setscreen) wakes us up.
+      return;
+    }
+
     try {
-      switch (this.phase) {
-        case 'init':
-          await this.executeInitPhase();
-          break;
+      const ui = this.vm.getRuntime().ui;
+      const firstVisible = ui.getFirstVisibleLine();
+      // Scroll fast-path activates only AFTER the first full cycle
+      // has run (we need at least one INIT to populate the EDIABAS
+      // result cache); `allocDone` flips to `true` at the end of the
+      // first executeInitPhase.
+      const scrolled = this.allocDone && firstVisible !== this.prevFirstVisibleLine;
 
-        case 'line':
-          await this.executeLinePhase();
-          break;
+      if (scrolled) {
+        this.log(
+          `Scroll fast-path: firstVisible ${this.prevFirstVisibleLine}→${firstVisible}, skipping INIT`,
+        );
+        const visibleCount = ui.getVisibleLineCount();
+        if (visibleCount > 0) {
+          ui.setLineBaseRow(0);
+          ui.clearRect(LINE_HEIGHT, 0, 80, visibleCount * LINE_HEIGHT);
+        }
+        this.cycleFirstVisibleLine = firstVisible;
+        this.prevFirstVisibleLine = firstVisible;
+      } else {
+        this.setPhase('init');
+        await this.executeInitPhase();
+        // executeInitPhase already snapshot cycleFirstVisibleLine
+        // and ran its own scroll-clear (kept for the first-cycle
+        // case where allocDone was still false on entry).
+      }
 
-        case 'idle':
-          // In idle phase, just wait
-          // This state is only reached when frequentFlag=false
-          break;
+      this.setPhase('line');
+      await this.executeLinePhase();
+
+      this.log('Cycle complete');
+      this.emit('cycle:complete');
+
+      if (!this.frequentFlag) {
+        // One-shot mode — settle and don't tick again until something
+        // external triggers a fresh run.
+        this.setPhase('idle');
+      } else {
+        // Cyclic: next tick starts fresh at INIT (the phase will be
+        // flipped back inside the tick if scroll-only fires).
+        this.setPhase('init');
       }
     } catch (error) {
       this.log(`Error in tick: ${error}`);
@@ -430,47 +487,47 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   }
 
   /**
-   * Execute LINE phase (one line per tick)
+   * Execute LINE phase — every visible LINE block, back to back,
+   * inside the same async call. No per-block ticks (see `tick()`
+   * for the rationale).
+   *
+   * Skips LINE blocks outside the visible window. INPA does the
+   * same so screens with more LINE blocks than fit on the viewport
+   * stay legible; the user steps through with arrow keys and only
+   * the on-screen ~5 blocks paint. The INIT phase already ran the
+   * per-cycle EDIABAS job, so the shared result set is in memory;
+   * skipping an out-of-view block just skips the (cheap) string
+   * pull + paint, not the data fetch. See
+   * `docs/research/screen-line-pagination.md`.
+   *
+   * `cycleFirstVisibleLine` was snapshot earlier (in either
+   * `executeInitPhase` for full cycles or the scroll fast-path in
+   * `tick()` for scroll-only redraws) so the window stays
+   * self-consistent across the pass even if the user scrolls again
+   * mid-execution. The next tick will pick the new window up.
    */
   private async executeLinePhase(): Promise<void> {
     const lines = this.screen.lines;
+    if (lines.length === 0) return;
 
-    if (lines.length === 0) {
-      // No lines - go to idle or restart
-      this.handleCycleComplete();
-      return;
-    }
-
-    if (this.lineIndex >= lines.length) {
-      // All lines executed - cycle complete
-      this.handleCycleComplete();
-      return;
-    }
-
-    // Execute current line
-    const line = lines[this.lineIndex];
-    this.log(`Executing LINE ${this.lineIndex} (${line.header.name})`);
-    this.emit('line:start', this.lineIndex, line);
-
-    // Pagination: skip LINE blocks outside the visible window. INPA
-    // does this so screens with more LINE blocks than fit on the
-    // viewport stay legible — the user steps through with arrow keys
-    // and only the on-screen 5±1 blocks paint. The INIT phase already
-    // ran the per-cycle EDIABAS job, so the shared result set is in
-    // memory; skipping a LINE block just skips the (cheap) string
-    // pull + paint, not the data fetch. See
-    // `docs/research/screen-line-pagination.md`.
     const ui = this.vm.getRuntime().ui;
     const visibleCount = ui.getVisibleLineCount();
     const firstVisible = this.cycleFirstVisibleLine;
-    // `visibleCount === 0` = host has no fixed viewport (CLI, headless
-    // tests) → no pagination, run every block.
-    const inView =
-      visibleCount === 0 ||
-      (this.lineIndex >= firstVisible &&
-        this.lineIndex < firstVisible + visibleCount);
 
-    if (inView) {
+    for (let i = 0; i < lines.length; i++) {
+      this.lineIndex = i;
+
+      // `visibleCount === 0` = host has no fixed viewport (CLI,
+      // headless tests) → no pagination, run every block.
+      const inView =
+        visibleCount === 0 ||
+        (i >= firstVisible && i < firstVisible + visibleCount);
+      if (!inView) continue;
+
+      const line = lines[i];
+      this.log(`Executing LINE ${i} (${line.header.name})`);
+      this.emit('line:start', i, line);
+
       // Stack the visible LINE blocks vertically starting at row
       // LINE_HEIGHT — each LINE writes inside its own coordinate
       // space (label at relative row 1, LED/value at relative row
@@ -481,45 +538,19 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
       // rows 0..3 stay free for whatever the INIT block painted
       // there — typically the screen title via a `fontSize > 0`
       // `ftextout` that takes ~2 cell rows visually.
-      const slot = this.lineIndex - firstVisible; // 0..visibleCount-1
+      const slot = i - firstVisible; // 0..visibleCount-1
       ui.setLineBaseRow((slot + 1) * LINE_HEIGHT);
 
-      // Execute line's function block
       if (line.func) {
         await this.executeBlock(line.func);
       }
-
-      // Execute control blocks within line
       for (const control of line.controls) {
         if (control.func) {
           await this.executeBlock(control.func);
         }
       }
-    }
 
-    this.emit('line:complete', this.lineIndex);
-    this.lineIndex++;
-  }
-
-  /**
-   * Handle completion of one LINE cycle
-   */
-  private handleCycleComplete(): void {
-    this.log('Cycle complete');
-    this.emit('cycle:complete');
-
-    if (this.frequentFlag) {
-      // Continuous mode — restart at INIT so the script's per-cycle
-      // EDIABAS job re-fires and LINE blocks render fresh values.
-      // ALLOC stays skipped via the `allocDone` flag in
-      // executeInitPhase, and the buffer isn't re-blanked so the
-      // previous cycle's output stays visible until LINEs overwrite
-      // it (no inter-cycle flash).
-      this.lineIndex = 0;
-      this.setPhase('init');
-    } else {
-      // One-shot mode — done, idle.
-      this.setPhase('idle');
+      this.emit('line:complete', i);
     }
   }
 
