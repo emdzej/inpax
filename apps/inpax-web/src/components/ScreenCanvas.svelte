@@ -25,7 +25,8 @@
     type ScreenBuffer,
     type UIProvider,
   } from "@emdzej/inpax-ui-provider-core";
-  import { classicInpaTheme, paletteColor } from "../lib/theme";
+  import { classicInpaTheme, darkInpaTheme, paletteColor } from "../lib/theme";
+  import { isDarkTheme } from "../lib/settings.svelte";
 
   type Props = {
     screen: ScreenBuffer;
@@ -67,7 +68,11 @@
     return () => bindCanvas?.(null);
   });
 
-  const theme = classicInpaTheme;
+  // Active palette tracks the app theme. `isDarkTheme()` reads from
+  // the reactive `settings.theme` store, so toggling Light/Dark/System
+  // re-runs this derivation and the next paint picks up the new
+  // palette and background.
+  const theme = $derived(isDarkTheme() ? darkInpaTheme : classicInpaTheme);
 
   // Cell aspect ratio (width / height) for the chosen monospace font.
   // A bit smaller than 1.0 — typical monospace glyphs are ~0.55-0.6×
@@ -263,44 +268,44 @@
         // min .. minValid (low invalid)
         const xMinValid = px(v.minValid);
         if (xMinValid > x0) {
-          ctx.fillStyle = paletteColor(4 /* red */, "#ff0000");
+          ctx.fillStyle = theme.gauge.invalid;
           ctx.fillRect(x0, barY, xMinValid - x0, barH);
         }
         // minValid .. maxValid (valid)
         const xMaxValid = px(v.maxValid);
         if (xMaxValid > xMinValid) {
-          ctx.fillStyle = paletteColor(10 /* green */, "#00ff00");
+          ctx.fillStyle = theme.gauge.valid;
           ctx.fillRect(xMinValid, barY, xMaxValid - xMinValid, barH);
         }
         // maxValid .. max (high invalid)
         const xMax = x0 + barW;
         if (xMax > xMaxValid) {
-          ctx.fillStyle = paletteColor(4 /* red */, "#ff0000");
+          ctx.fillStyle = theme.gauge.invalid;
           ctx.fillRect(xMaxValid, barY, xMax - xMaxValid, barH);
         }
 
         // Needle / fill: clamp the value into the bar range, then
-        // paint a black bar from x0 to the value's pixel position.
-        // This is what makes the gauge look like a horizontal bar
-        // graph — the black extent shows the current value level
-        // against the zone-coloured backdrop.
+        // paint the theme's gauge-needle colour from x0 to the
+        // value's pixel position. Needle contrast is tuned against
+        // the zone backdrop in each theme — black against vibrant
+        // red/green in light mode; near-white against saturated
+        // dark-red/dark-green zones in dark mode.
         const clamped = Math.min(Math.max(v.value, v.min), v.max);
         const xValue = px(clamped);
-        ctx.fillStyle = paletteColor(1 /* black */, "#000000");
+        ctx.fillStyle = theme.gauge.needle;
         ctx.fillRect(x0, barY, xValue - x0, barH);
       }
 
-      // Outline so the bar reads even when fully red or fully green.
-      ctx.strokeStyle = paletteColor(1 /* black */, "#000000");
+      // Outline so the bar boundary reads against the canvas
+      // background even when fully red or fully green.
+      ctx.strokeStyle = theme.gauge.outline;
       ctx.lineWidth = 1;
       ctx.strokeRect(x0 + 0.5, barY + 0.5, barW - 1, barH - 1);
 
-      // Numeric value to the right of the bar, in the script's
-      // current fg colour. We reuse the cell font here — sizing the
-      // value text to match the cell row keeps it aligned with the
-      // surrounding row labels (Battery / Ignition rows etc.).
+      // Numeric value to the right of the bar. Uses the gauge
+      // outline colour so label + outline stay visually paired.
       const formatted = formatAnalogValue(v.value, v.format);
-      ctx.fillStyle = paletteColor(1 /* default text colour */, "#000000");
+      ctx.fillStyle = theme.gauge.outline;
       ctx.font = `${Math.max(8, cell.h - 2)}px ${theme.font.family}`;
       ctx.textBaseline = "top";
       ctx.fillText(formatted, x0 + barW + Math.floor(cell.w / 2), y0 + 1);
@@ -335,19 +340,19 @@
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.fillStyle = v.value
-        ? paletteColor(10 /* green */, "#00ff00")
-        : paletteColor(5 /* dark red */, "#800000");
+        ? paletteColor(theme, 10 /* green */)
+        : paletteColor(theme, 5 /* dark red */);
       ctx.fill();
-      ctx.strokeStyle = paletteColor(1 /* black */, "#000000");
+      ctx.strokeStyle = paletteColor(theme, 1 /* default text colour */);
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Label to the right of the disc, in the row's existing text
+      // Label to the right of the disc, in the theme's default text
       // colour. Empty labels (the UTILITY case where the script writes
       // its own "on"/"off" via ftextout) leave the slot blank — the
       // ftextout text still renders via the regular text pass.
       if (label) {
-        ctx.fillStyle = paletteColor(1, "#000000");
+        ctx.fillStyle = paletteColor(theme, 1);
         ctx.font = `${Math.max(8, cell.h - 2)}px ${theme.font.family}`;
         ctx.textBaseline = "top";
         ctx.fillText(label, x0 + cell.w + Math.floor(cell.w / 4), y0 + 1);
@@ -382,7 +387,7 @@
       ctx.fillStyle = theme.background;
       ctx.fillRect(x, y, approxW, cell.h);
 
-      ctx.fillStyle = paletteColor(line.fg, "#000000");
+      ctx.fillStyle = paletteColor(theme, line.fg);
       ctx.font = `${fontPx}px ${theme.font.family}`;
       ctx.textBaseline = "top";
       ctx.fillText(line.text, x, y);

@@ -15,7 +15,8 @@
   import { app } from "../lib/state.svelte";
   import { getActiveTransport } from "../lib/connection.svelte";
   import { startInpaRuntime, type RuntimeHandle } from "../lib/runtime.svelte";
-  import { classicInpaTheme } from "../lib/theme";
+  import { classicInpaTheme, darkInpaTheme } from "../lib/theme";
+  import { isDarkTheme } from "../lib/settings.svelte";
   import ScreenCanvas from "./ScreenCanvas.svelte";
   import FKeyBar from "./FKeyBar.svelte";
   import MenuTitleBar from "./MenuTitleBar.svelte";
@@ -31,6 +32,11 @@
   let title = $state("");
   let error = $state<string | null>(null);
   let loading = $state(false);
+
+  // Active canvas theme — same derivation as inside ScreenCanvas, so
+  // the wrapper's letter-box background matches the canvas's own fill
+  // when the cell grid is letter-boxed inside its container.
+  const canvasTheme = $derived(isDarkTheme() ? darkInpaTheme : classicInpaTheme);
 
   // Reference to the ScreenCanvas's underlying `<canvas>`, wired up
   // by the `bindCanvas` callback below. The screenshot button reads
@@ -340,13 +346,14 @@
              per full LINE-block cycle) so the canvas never catches a
              half-rewritten line — that was the Battery/Ignition
              flicker root cause.
-             Wrapper takes the INPA canvas background (which the script
-             chose — usually white) so the "letter-box" area around the
-             cell grid (caused by aspect-ratio fitting) blends with the
-             canvas. The script paints its own colours and is theme-
-             independent; the light/dark switch only affects the
-             surrounding app chrome. -->
-        <div class="relative h-full w-full" style="background: {classicInpaTheme.background};">
+             Wrapper takes the active INPA-canvas background so the
+             "letter-box" area around the cell grid (caused by aspect-
+             ratio fitting) blends with the canvas. The canvas itself
+             selects between `classicInpaTheme` (light) and
+             `darkInpaTheme` (dark) via `isDarkTheme()`; the script's
+             explicit colour codes get mapped through the active
+             palette so both themes stay readable. -->
+        <div class="relative h-full w-full" style="background: {canvasTheme.background};">
           <ScreenCanvas
             screen={runtime.screen}
             ui={runtime.ui}

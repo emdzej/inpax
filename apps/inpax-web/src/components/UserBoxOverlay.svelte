@@ -18,14 +18,15 @@
    */
 
   import type { UIProvider, UserBox } from "@emdzej/inpax-ui-provider-core";
-  import { classicInpaTheme, paletteColor } from "../lib/theme";
-
-  // INPA defaults: C_BLACK foreground on C_WHITE background.
-  const DEFAULT_FG = classicInpaTheme.palette[1];
-  const DEFAULT_BG = classicInpaTheme.palette[0];
+  import { classicInpaTheme, darkInpaTheme, paletteColor } from "../lib/theme";
+  import { isDarkTheme } from "../lib/settings.svelte";
 
   type Props = { ui: UIProvider };
   const { ui }: Props = $props();
+
+  // Active palette tracks the app theme — mirrors ScreenCanvas so the
+  // progress dialog blends with the canvas it overlays.
+  const theme = $derived(isDarkTheme() ? darkInpaTheme : classicInpaTheme);
 
   let boxes = $state<UserBox[]>([]);
 
@@ -39,8 +40,8 @@
   });
 
   function boxStyle(box: UserBox): string {
-    const fg = paletteColor(box.fg, DEFAULT_FG);
-    const bg = paletteColor(box.bg, DEFAULT_BG);
+    const fg = paletteColor(theme, box.fg);
+    const bg = paletteColor(theme, box.bg);
     return [`color:${fg}`, `background:${bg}`].join(";");
   }
 </script>
