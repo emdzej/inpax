@@ -27,6 +27,10 @@ program
     "<input-dir>",
     "BMW install root (e.g. C:\\, ~/inpa, ~/ncs)",
   )
+  .argument(
+    "[output]",
+    "Output zip path — positional alias for --output. Wins when both are given.",
+  )
   .option(
     "-o, --output <file>",
     "Path to the output zip",
@@ -48,16 +52,27 @@ program
     "--verbose",
     "Log every kept and skipped file (slow on large installs; pipe through less or > log.txt)",
   )
-  .action(async (inputDir: string, opts: BundleCliOptions) => {
+  .action(
+    async (
+      inputDir: string,
+      outputArg: string | undefined,
+      opts: BundleCliOptions,
+    ) => {
     try {
       const start = Date.now();
       let lastTick = start;
       let keptSinceTick = 0;
       let bytesSinceTick = 0;
 
+      // Positional `output` arg wins over the `--output` flag so
+      // `bimmerz-bundle install.dir my-bundle.zip` does the
+      // intuitive thing without -o. Falls back to the flag's value
+      // (which has a default itself).
+      const outputPath = outputArg ?? opts.output;
+
       const summary = await bundle({
         input: inputDir,
-        output: opts.output,
+        output: outputPath,
         ignoreFile: opts.ignore,
         noDefaultIgnore: opts.defaultIgnore === false,
         dryRun: opts.dryRun ?? false,
@@ -133,7 +148,8 @@ program
       );
       process.exitCode = 1;
     }
-  });
+  },
+  );
 
 // ---- `init` ----
 //
