@@ -32,8 +32,14 @@
     getInstallSource,
     getBundledStats,
     evictBundledInstall,
+    importZipToOpfs,
+    isOpfsSupported,
+    clearInstallSource,
     type BundledStats,
+    type ImportProgressEvent,
   } from "../lib/bundled-install";
+
+  const opfsSupported = isOpfsSupported();
 
   type Tab = "comm" | "data" | "developer";
   let activeTab = $state<Tab>("comm");
@@ -66,6 +72,69 @@
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
     if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
     return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
+
+  // Bundle import in settings — mirrors the InstallPicker flow but
+  // happens against an already-active install. On success we close
+  // the modal and bounce through `view = "welcome"` so InstallPicker
+  // remounts, sees the new bundled marker, and loads OPFS root.
+  // Simpler than duplicating the full openInstall pipeline here.
+  let bundleZipInput = $state<HTMLInputElement | null>(null);
+  let bundleImporting = $state(false);
+  let bundleImportProgress = $state<{
+    fileCount: number;
+    bytesWritten: number;
+    currentFile: string;
+  } | null>(null);
+  let bundleImportError = $state<string | null>(null);
+
+  function chooseBundleZip(): void {
+    bundleImportError = null;
+    bundleZipInput?.click();
+  }
+
+  async function onBundleZipSelected(event: Event): Promise<void> {
+    const target = event.currentTarget as HTMLInputElement;
+    const file = target.files?.[0];
+    target.value = "";
+    if (!file) return;
+    if (!opfsSupported) {
+      bundleImportError = "OPFS not supported in this browser";
+      return;
+    }
+    bundleImporting = true;
+    bundleImportProgress = {
+      fileCount: 0,
+      bytesWritten: 0,
+      currentFile: file.name,
+    };
+    try {
+      await importZipToOpfs(file, (ev: ImportProgressEvent) => {
+        if (ev.kind === "file") {
+          bundleImportProgress = {
+            fileCount: ev.fileIndex + 1,
+            bytesWritten: ev.bytesWritten,
+            currentFile: ev.path,
+          };
+        }
+      });
+      // Drop any saved fs-access handle so InstallPicker doesn't
+      // race when it re-mounts.
+      await clearInstallHandle();
+      // Reset to welcome — InstallPicker sees the bundled marker
+      // and loads OPFS automatically. The runtime + selection are
+      // reset so the new install takes hold cleanly.
+      app.view = "welcome";
+      app.install = null;
+      app.ipoFiles = [];
+      app.selectedIpo = null;
+      app.showSettings = false;
+    } catch (err) {
+      bundleImportError = err instanceof Error ? err.message : String(err);
+    } finally {
+      bundleImporting = false;
+      bundleImportProgress = null;
+    }
   }
 
   async function evictBundle(): Promise<void> {
@@ -189,10 +258,13 @@
   }
 
   async function changeFolder(): Promise<void> {
-    // Drop the persisted install handle and reset selection state so
-    // the welcome screen comes back clean. The Settings panel itself
-    // closes so the user lands on the picker.
+    // Drop the persisted install handle, clear the source marker
+    // (otherwise a bundled-active user clicking "Switch to folder
+    // pick" reloads straight back into the bundle), and reset
+    // selection state so the welcome screen comes back clean. The
+    // Settings panel itself closes so the user lands on the picker.
     await clearInstallHandle();
+    clearInstallSource();
     app.view = "welcome";
     app.install = null;
     app.ipoFiles = [];
@@ -454,13 +526,19 @@
           </div>
         {:else if activeTab === "data"}
           {@const installSource = getInstallSource()}
+          {@const isBundled = installSource?.source === "bundled"}
           <div class="flex flex-col gap-4">
+            <!-- Fieldset 1: Active install — shows what's currently
+                 mounted regardless of source. Bundled source shows
+                 stats inline since they're directly relevant; the
+                 evict / switch actions live in the dedicated
+                 bundled fieldset below. -->
             <fieldset class="flex flex-col gap-2 rounded border border-divider bg-elevated/60 p-3">
               <legend class="px-1 text-xs font-bold uppercase tracking-wider text-faint">
-                {installSource?.source === "bundled" ? "Bundled install (OPFS)" : "INPA install"}
+                Active install · {isBundled ? "bundled (OPFS)" : "folder pick"}
               </legend>
               <p class="text-sm text-foreground">
-                {app.install?.root.name || "(no folder selected)"}
+                {app.install?.root.name || "(none active)"}
               </p>
               {#if app.install}
                 <ul class="text-xs text-faint">
@@ -470,80 +548,155 @@
                 </ul>
               {/if}
 
-              {#if installSource?.source === "bundled"}
-                <!-- Bundled stats. Pulls from the localStorage marker
-                     (cheap) plus navigator.storage.estimate() (async,
-                     ~ms). The persisted flag tells us whether OPFS
-                     survives disk pressure — set on import via
-                     navigator.storage.persist(). -->
-                {#if bundledStats}
-                  <ul class="text-xs text-faint pt-1 space-y-0.5">
-                    <li>
-                      Imported: <span class="text-muted">{new Date(bundledStats.importedAt).toLocaleString()}</span>
-                    </li>
-                    <li>
-                      Files: <span class="text-muted">{bundledStats.fileCount}</span>
-                      ·
-                      Declared size: <span class="text-muted">{formatBytes(bundledStats.declaredBytes)}</span>
-                    </li>
-                    {#if bundledStats.storageUsage !== null}
+              <div class="flex flex-wrap gap-2 pt-2">
+                <button
+                  type="button"
+                  class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground"
+                  onclick={() => void changeFolder()}
+                >
+                  {isBundled ? "Switch to folder pick…" : "Change folder…"}
+                </button>
+                {#if !isBundled && app.install}
+                  <!-- "Forget" = the same drop-and-return-to-welcome
+                       action, but labeled for the user who doesn't
+                       want to pick another folder right away. Useful
+                       when wiping the saved handle before, say,
+                       importing a bundle from the welcome screen. -->
+                  <button
+                    type="button"
+                    class="rounded px-3 py-1 text-xs text-faint hover:text-foreground hover:underline underline-offset-2"
+                    onclick={() => void changeFolder()}
+                    title="Drops the saved folder handle and returns to the welcome picker without auto-restoring next session."
+                  >
+                    Forget folder
+                  </button>
+                {/if}
+              </div>
+              <p class="mt-2 text-xs text-faint">
+                {isBundled
+                  ? "Drops the bundled handle for this session and returns to the welcome picker. The OPFS copy stays in place — see below to fully evict it."
+                  : "“Change folder…” takes you back to the welcome picker so you can choose a different folder or import a bundle. “Forget folder” does the same drop but signals you don't intend to re-pick — close the tab or stay on welcome."}
+              </p>
+            </fieldset>
+
+            <!-- Fieldset 2: Bundled install (OPFS). Always visible
+                 when OPFS is supported, regardless of currently-
+                 active source. Two states:
+                   - bundled active → stats + Evict button.
+                   - not active     → "Import a bundle zip" entry
+                                      point so the user can switch
+                                      from fs-access without going
+                                      back through the welcome
+                                      screen.
+                 See docs/proposals/bundled-install.md. -->
+            {#if opfsSupported}
+              <fieldset class="flex flex-col gap-2 rounded border border-divider bg-elevated/60 p-3">
+                <legend class="px-1 text-xs font-bold uppercase tracking-wider text-faint">
+                  Bundled install (OPFS)
+                </legend>
+
+                {#if isBundled}
+                  <p class="text-sm text-foreground">Active.</p>
+                  {#if bundledStats}
+                    <ul class="text-xs text-faint pt-1 space-y-0.5">
                       <li>
-                        OPFS usage: <span class="text-muted">{formatBytes(bundledStats.storageUsage)}</span>
-                        {#if bundledStats.storageQuota !== null}
-                          / <span class="text-muted">{formatBytes(bundledStats.storageQuota)}</span>
-                        {/if}
+                        Imported: <span class="text-muted">{new Date(bundledStats.importedAt).toLocaleString()}</span>
                       </li>
-                    {/if}
-                    {#if bundledStats.persisted !== null}
                       <li>
-                        Persistent: <span class="text-muted">{bundledStats.persisted ? "yes (won't evict)" : "no (may evict under disk pressure)"}</span>
+                        Files: <span class="text-muted">{bundledStats.fileCount}</span>
+                        ·
+                        Declared size: <span class="text-muted">{formatBytes(bundledStats.declaredBytes)}</span>
                       </li>
-                    {/if}
-                  </ul>
-                {:else if bundledStatsLoading}
-                  <p class="text-xs text-faint">Loading stats…</p>
+                      {#if bundledStats.storageUsage !== null}
+                        <li>
+                          OPFS usage: <span class="text-muted">{formatBytes(bundledStats.storageUsage)}</span>
+                          {#if bundledStats.storageQuota !== null}
+                            / <span class="text-muted">{formatBytes(bundledStats.storageQuota)}</span>
+                          {/if}
+                        </li>
+                      {/if}
+                      {#if bundledStats.persisted !== null}
+                        <li>
+                          Persistent: <span class="text-muted">{bundledStats.persisted ? "yes (won't evict)" : "no (may evict under disk pressure)"}</span>
+                        </li>
+                      {/if}
+                    </ul>
+                  {:else if bundledStatsLoading}
+                    <p class="text-xs text-faint">Loading stats…</p>
+                  {/if}
+                  <div class="flex flex-wrap gap-2 pt-2">
+                    <button
+                      type="button"
+                      class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                      onclick={chooseBundleZip}
+                      disabled={bundleImporting}
+                    >
+                      {bundleImporting ? "Re-importing…" : "Re-import bundle…"}
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded border border-red-300 dark:border-red-600/50 px-3 py-1 text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onclick={() => void evictBundle()}
+                      disabled={bundleImporting}
+                    >
+                      Evict bundle…
+                    </button>
+                  </div>
+                  <p class="text-xs text-faint">
+                    Re-import replaces the OPFS contents wholesale (no
+                    merge). Evict wipes the OPFS copy and returns to
+                    the welcome picker.
+                  </p>
+                {:else}
+                  <p class="text-sm text-foreground">Not active.</p>
+                  <p class="text-xs text-faint">
+                    Import a <code>bimmerz-bundle</code>-produced zip
+                    to switch this session to OPFS-backed storage.
+                    Faster startup (no permission re-grant per
+                    session), and sidesteps Chrome's
+                    <code>.ini</code> blocklist on Windows entirely.
+                    <a
+                      href="https://github.com/emdzej/inpax/tree/main/apps/bimmerz-bundler"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-accent underline-offset-2 hover:underline"
+                    >Make a bundle with bimmerz-bundle.</a>
+                  </p>
+                  <div class="pt-1">
+                    <button
+                      type="button"
+                      class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                      onclick={chooseBundleZip}
+                      disabled={bundleImporting}
+                    >
+                      {bundleImporting ? "Importing…" : "Import bundle zip…"}
+                    </button>
+                  </div>
                 {/if}
 
-                <div class="flex flex-wrap gap-2 pt-2">
-                  <button
-                    type="button"
-                    class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground"
-                    onclick={() => void changeFolder()}
-                  >
-                    Switch to folder pick…
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded border border-red-300 dark:border-red-600/50 px-3 py-1 text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
-                    onclick={() => void evictBundle()}
-                  >
-                    Evict bundle…
-                  </button>
-                </div>
-                <p class="mt-1 text-xs text-faint">
-                  "Evict" wipes the OPFS copy and returns you to the
-                  welcome picker. "Switch to folder pick" leaves the
-                  OPFS data in place but takes you back to the picker
-                  so you can choose a folder for this session.
-                </p>
-              {:else}
-                <div class="pt-2">
-                  <button
-                    type="button"
-                    class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground"
-                    onclick={() => void changeFolder()}
-                  >
-                    Change folder…
-                  </button>
-                  <p class="mt-2 text-xs text-faint">
-                    Drops the cached handle and returns to the welcome
-                    picker. INPA scripts, SGBDs and your pinned startup
-                    IPO are all re-read from the new install (or
-                    bundle).
+                {#if bundleImporting && bundleImportProgress}
+                  <p class="mt-1 text-xs text-faint">
+                    {bundleImportProgress.fileCount} files ·
+                    {formatBytes(bundleImportProgress.bytesWritten)} ·
+                    <span class="truncate inline-block max-w-xs align-bottom">{bundleImportProgress.currentFile}</span>
                   </p>
-                </div>
-              {/if}
-            </fieldset>
+                {/if}
+
+                {#if bundleImportError}
+                  <p class="mt-1 text-xs text-red-700 dark:text-red-300">
+                    Import failed: {bundleImportError}
+                  </p>
+                {/if}
+
+                <input
+                  bind:this={bundleZipInput}
+                  type="file"
+                  accept=".zip,application/zip"
+                  class="hidden"
+                  onchange={onBundleZipSelected}
+                />
+              </fieldset>
+            {/if}
 
             <!-- Chrome on Windows hides `.ini` files from the File
                  System Access API, so INPAX can't read INPA.INI /
