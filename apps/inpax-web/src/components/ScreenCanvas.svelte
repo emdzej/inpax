@@ -426,12 +426,17 @@
       };
       requestAnimationFrame(loop);
     }
-    // Repaint when the container resizes — the ResizeObserver updates
-    // `containerSize`, but that doesn't directly fire a repaint when
-    // we're event-driven, so re-schedule explicitly.
+    // Repaint when the container resizes or the theme changes — the
+    // ResizeObserver and the theme `$derived` both update reactive
+    // state, but neither fires a paint by itself when we're driven by
+    // `onFrameReady`. Without this watcher, toggling Light/Dark with
+    // no active cycle (paused script, no cable connected, …) leaves
+    // the canvas displaying its pre-toggle frame with the wrong
+    // colours until the next runtime cycle.
     const sizeWatcher = $effect.root(() => {
       $effect(() => {
         void containerSize;
+        void theme;
         schedule();
       });
     });
@@ -443,6 +448,17 @@
   });
 </script>
 
-<div bind:this={container} class="flex h-full w-full items-center justify-center">
-  <canvas bind:this={canvas} style="background: {theme.background};"></canvas>
+<!-- Background lives on the container, NOT on the canvas. Svelte 5
+     replaces the canvas's whole `style` attribute when `theme` changes;
+     that wipes out the `style.width`/`style.height` that `paint()` sets
+     imperatively, and the canvas snaps to its native backing-pixel
+     resolution (visible as a sudden zoom-in on theme toggle). Putting
+     the background on the wrapper avoids the conflict — the wrapper
+     has no imperative sizing to lose. -->
+<div
+  bind:this={container}
+  class="flex h-full w-full items-center justify-center"
+  style="background: {theme.background};"
+>
+  <canvas bind:this={canvas}></canvas>
 </div>
