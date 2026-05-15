@@ -116,15 +116,16 @@ export interface UIProviderState {
   userBoxes: Map<number, UserBox>;
 
   // Pagination — INPA SCREEN blocks can declare more LINE blocks than
-  // fit on a 25-row viewport. Real INPA paginates with a small green
-  // ▲/▼ corner glyph and the user steps with arrow keys / PgUp /
-  // PgDn (Win32 `WM_VSCROLL` with `SB_LINE*` / `SB_PAGE*`). The
-  // screen executor reads `firstVisibleLine` each cycle and shifts
-  // every LINE block's `setLineBaseRow` by that amount, so visible
-  // blocks land in rows 4..24 and invisible ones write off-screen
-  // (cropped silently by the cell-grid buffer and ignored by the
-  // canvas overlays via row clipping). See
-  // `docs/research/screen-line-pagination.md` for the algorithm.
+  // fit on the 30-row viewport. Real INPA paginates with a small
+  // green ▲/▼ corner glyph and the user steps with arrow keys /
+  // PgUp / PgDn (Win32 `WM_VSCROLL` with `SB_LINE*` / `SB_PAGE*`).
+  // The screen executor reads `firstVisibleLine` each cycle and
+  // shifts every LINE block's `setLineBaseRow` by that amount, so
+  // visible blocks land within the chrome-bounded viewport and
+  // invisible ones write off-screen (cropped silently by the cell-
+  // grid buffer and ignored by the canvas overlays via row
+  // clipping). See `docs/research/screen-line-pagination.md` for
+  // the algorithm.
   /** Index (0-based) of the first LINE block currently shown. */
   firstVisibleLine: number;
   /** How many LINE blocks fit on screen at once. ~5 with the default

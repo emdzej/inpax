@@ -9,7 +9,7 @@ const defaultCell = (): ScreenCell => ({ char: ' ', fg: 7, bg: 0 });
 export class ScreenBuffer {
   private cells: ScreenCell[][] = [];
 
-  constructor(public width: number = 80, public height: number = 25) {
+  constructor(public width: number = 80, public height: number = 30) {
     this.clear();
   }
 
