@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/bimmerz-bundler",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Curate a BMW software install (INPA / EDIABAS / NCS) into a small zip web tools (inpax-web, future ediabasx-web, future ncsx) can import into OPFS. Uses gitignore-style exclude patterns.",
   "type": "module",
   "main": "dist/cli.js",

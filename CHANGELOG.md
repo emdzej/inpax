@@ -6,6 +6,50 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.3.0] — 2026-05-15
+
+### Added
+
+- **IPO patch system** (`@emdzej/inpax-ipo-editor`) — YAML-based patch
+  files for translating or overriding constants in compiled `.IPO`
+  scripts. Two new subcommands:
+  - `ipo-editor patch init <ipo>` — dump filtered constants into a
+    starter patch, with optional per-entry usage notes.
+  - `ipo-editor patch apply <ipo> <patch>…` — apply one or more
+    patches with SHA-256 verification, type-match enforcement,
+    conflict policy (`refuse` | `last-wins`), and `--dry-run`.
+  - TUI gets a new `P` keystroke that exports the current edit set
+    as `<file>.patch.yaml`, leaving the source IPO untouched.
+  - Strong encoding-safety guarantees: characters not representable
+    in the patch's `target_encoding` are rejected at apply time
+    rather than silently substituted. Non-cp1252 targets trigger
+    a loud "stock INPA will misrender" warning.
+  - 46 vitest tests cover schema validation, serialization
+    round-trips, init filtering, and every apply path.
+- **`docs/research/ipo-encoding.md`** — full explanation of why
+  stock INPA hard-codes cp1252 and what would be needed to support
+  other codepages end-to-end.
+
+### Fixed
+
+- **Screen height default corrected to 30 rows** (was 25) — matches
+  the documented INPA model in `docs/reference/ui-system.md`. The
+  prior default silently clipped any LINE-block content writing to
+  rows 25-29 across all three runtimes (web canvas, TUI, headless CLI).
+- **Canvas no longer zooms on theme toggle** — Svelte 5 was
+  rewriting the canvas's whole `style` attribute when the reactive
+  `background` binding changed, wiping the imperatively-set
+  `width`/`height` and leaving the canvas displaying at its native
+  backing-pixel resolution (visible as a sudden DPR-multiple zoom).
+  Background moved to the wrapping container; a theme-change repaint
+  trigger added so any container-side layout shift from Tailwind
+  `dark:` variants gets picked up.
+
+### Docs
+
+- PayPal donate button added to the README Support section,
+  alongside Buy Me A Coffee and GitHub Sponsors.
+
 ## [0.2.0] — 2026-05-14
 
 First public release. Earlier `0.1.0` package versions existed in-tree but
@@ -155,4 +199,5 @@ than the maintainer should rely on.
   inpax, but coverage on F-chassis (gateway-translated) modules is
   thinner than on E-chassis direct-K-bus modules.
 
+[0.3.0]: https://github.com/emdzej/inpax/releases/tag/v0.3.0
 [0.2.0]: https://github.com/emdzej/inpax/releases/tag/v0.2.0

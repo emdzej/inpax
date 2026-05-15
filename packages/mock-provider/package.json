@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-mock-provider",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Mock providers for INPA unit testing",
   "type": "module",
   "main": "./dist/index.js",
