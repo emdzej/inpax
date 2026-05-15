@@ -84,7 +84,11 @@ export default defineConfig({
       "@emdzej/inpax-ini-parser",
       "@emdzej/inpax-logger",
       "@emdzej/ediabasx-ediabas",
-      "@emdzej/ediabasx-interfaces",
+      // Browser-safe subpath: pulls in `GatewayClient` only, skipping
+      // the gateway server (which statically requires `node:net` /
+      // `node:http` / `ws` and would break the bundle). Mirrors the
+      // pattern ediabasx/apps/web uses.
+      "@emdzej/ediabasx-interfaces/client",
       "@emdzej/ediabasx-interface-base",
       "@emdzej/ediabasx-interface-serial",
     ],

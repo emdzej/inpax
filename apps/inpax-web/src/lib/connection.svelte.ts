@@ -18,7 +18,7 @@ import {
   WebSerialTransport,
   type WebSerialPortLike,
 } from "@emdzej/ediabasx-interface-serial";
-import { SimulationInterface } from "@emdzej/ediabasx-interface-base";
+import { GatewayClient } from "@emdzej/ediabasx-interfaces/client";
 import type { EdiabasConfig } from "@emdzej/ediabasx-ediabas";
 import { app } from "./state.svelte.js";
 
@@ -47,7 +47,6 @@ export const connection = $state<ConnectionUiState>({
 // trapped method calls break the interfaces' `this` references.
 let activeTransport: EdiabasConfig["transport"] | null = null;
 let serialPort: WebSerialPortLike | null = null;
-let isSimulation = false;
 
 function setStatus(phase: ConnectionPhase, message: string): void {
   connection.phase = phase;
@@ -82,16 +81,6 @@ export async function connect(): Promise<void> {
   connection.errorMessage = null;
 
   try {
-    if (config.interface === "simulation") {
-      // Cast through `unknown` — `SimulationInterface extends EdiabasInterface`
-      // but the protected `connected` field defeats structural compat in
-      // TS's eyes. Same pattern ediabasx-web uses.
-      activeTransport = new SimulationInterface() as unknown as EdiabasConfig["transport"];
-      isSimulation = true;
-      setStatus("connected", "Connected · simulation");
-      return;
-    }
-
     if (config.interface === "webserial") {
       const serial = getSerial();
       if (!serial) {
@@ -119,9 +108,27 @@ export async function connect(): Promise<void> {
         transport: webTransport,
       });
       activeTransport = iface as unknown as EdiabasConfig["transport"];
-      isSimulation = false;
       const baud = config.serial?.baudRate ?? 115200;
       setStatus("connected", `Connected · Web Serial @ ${baud}`);
+      return;
+    }
+
+    if (config.interface === "gateway") {
+      const url = config.gateway?.url?.trim();
+      if (!url) {
+        throw new Error("Gateway URL is empty — set ws://host:port in Settings");
+      }
+      if (!/^wss?:\/\//i.test(url)) {
+        throw new Error("Gateway URL must start with ws:// or wss://");
+      }
+      // The remote ediabasx gateway owns the actual hardware link; we
+      // just speak JSON-RPC to it. `GatewayClient.connect()` does the
+      // WebSocket handshake AND issues a `connect` RPC that opens the
+      // far-side cable — same lifecycle the SerialInterface above
+      // runs locally.
+      const client = new GatewayClient({ transport: "websocket", url });
+      activeTransport = client as unknown as EdiabasConfig["transport"];
+      setStatus("connected", `Connected · Gateway · ${url}`);
       return;
     }
 
@@ -148,19 +155,21 @@ export async function disconnect(): Promise<void> {
   }
   activeTransport = null;
   serialPort = null;
-  isSimulation = false;
   setStatus("disconnected", "Disconnected");
   connection.errorMessage = null;
 }
 
 /**
- * Snapshot of the active transport and its flags for the runtime
- * builder. Returns null when no transport is live — the runtime
- * loader uses that to gate IPO startup behind a Connect prompt.
+ * Snapshot of the active transport for the runtime builder. Returns
+ * null when no transport is live — the runtime loader uses that to
+ * gate IPO startup behind a Connect prompt.
  */
 export function getActiveTransport(): { transport: EdiabasConfig["transport"]; simulation: boolean } | null {
   if (!activeTransport) return null;
-  return { transport: activeTransport, simulation: isSimulation };
+  // `simulation` is kept in the shape for API compatibility with
+  // callers that still consult it; it's always `false` now that the
+  // browser only exposes real interfaces (WebSerial / WS gateway).
+  return { transport: activeTransport, simulation: false };
 }
 
 export function isConnected(): boolean {

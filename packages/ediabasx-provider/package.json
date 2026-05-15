@@ -22,7 +22,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@emdzej/ediabasx-ediabas": "^0.1.3",
+    "@emdzej/ediabasx-ediabas": "^0.2.0",
     "@emdzej/inpax-core": "workspace:*",
     "@emdzej/inpax-interfaces": "workspace:*",
     "eventemitter3": "^5.0.1"

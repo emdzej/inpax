@@ -6,6 +6,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [Unreleased]
+
+### Changed
+
+- **Bumped all `@emdzej/ediabasx-*` deps to `^0.2.0`** (was `^0.1.3`) in
+  `@emdzej/inpax-ediabasx-provider`, `@emdzej/inpax-cli`, and
+  `@emdzej/inpax-web`. Picks up the gateway WebSocket transport, the
+  transparent `setCommParameter` / `setAnswerLength` / `setRepeatCounter`
+  / `transmitData` forwarding, and the browser-safe
+  `@emdzej/ediabasx-interfaces/client` subpath.
+
+### Added
+
+- **Web app: remote gateway over WebSocket.** Communication settings now
+  expose two interfaces — `Web Serial (local cable)` and `Remote gateway
+  (WebSocket)`. The gateway pane takes a single `ws://` / `wss://` URL,
+  shows the matching CLI invocation (`ediabasx gateway --transport
+  websocket …`) for copy-paste, and warns on mixed-content (HTTPS page →
+  plain `ws://`). Connection lifecycle is unchanged: same Connect /
+  Disconnect controls, same `INPAapiInit` script-driven open. (`@emdzej/inpax-web`)
+
+### Removed
+
+- **Web app: simulation and ENET interfaces dropped from the picker.** Both
+  needed Node-only APIs to do anything real in a browser. Older
+  localStorage entries that still record `interface: "simulation"` or
+  `"enet"` coerce back to the default (`webserial`) on load. (`@emdzej/inpax-web`)
+- **Web app: `enet.host` / `enet.port` fields removed from the config
+  schema.** Settings-export JSON written by older builds keeps those
+  fields harmlessly under `config.enet`; new exports omit them.
+
 ## [0.3.0] — 2026-05-15
 
 ### Added
