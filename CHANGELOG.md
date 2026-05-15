@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
-## [Unreleased]
+## [0.3.1] — 2026-05-15
 
 ### Changed
 

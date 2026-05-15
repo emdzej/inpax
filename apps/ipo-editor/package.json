@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-ipo-editor",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Terminal UI for editing constants in compiled INPA .ipo files",
   "type": "module",
   "main": "dist/index.js",
