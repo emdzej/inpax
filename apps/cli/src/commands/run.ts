@@ -111,8 +111,8 @@ interface RunOptions {
 }
 
 export const runCommand = new Command('run')
-    .description('Execute IPO bytecode or IPS script file')
-    .argument('<file>', 'IPO/IPS file to execute')
+    .description('Execute an IPO bytecode file')
+    .argument('<file>', 'IPO file to execute')
     .option('-f, --function <name>', 'Entry function', 'inpainit')
     .option('-d, --debug', 'Enable debug mode')
     .option('--trace', 'Trace VM execution')
@@ -131,18 +131,17 @@ export const runCommand = new Command('run')
             }
 
             const ext = filePath.toLowerCase();
-            const isSource = ext.endsWith('.ips');
             const isBytecode = ext.endsWith('.ipo');
 
-            if (!isSource && !isBytecode) {
-                console.error(chalk.red('Error: File must be .ipo (bytecode) or .ips (source)'));
-                process.exit(1);
-            }
-
-            // For now, only bytecode is supported
-            if (isSource) {
-                console.error(chalk.yellow('Source compilation not yet integrated'));
-                console.error(chalk.gray('Use: inpax compile <file.ips> first'));
+            if (!isBytecode) {
+                console.error(chalk.red('Error: file must be a .ipo bytecode file'));
+                if (ext.endsWith('.ips')) {
+                    console.error(
+                        chalk.gray(
+                            'Compile IPS sources with `@emdzej/inpax-compiler` first, then pass the resulting .ipo here.',
+                        ),
+                    );
+                }
                 process.exit(1);
             }
 
