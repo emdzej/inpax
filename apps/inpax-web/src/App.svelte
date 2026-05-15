@@ -45,7 +45,7 @@
         class="text-xs text-faint transition hover:text-foreground"
         title="View release notes on GitHub"
       >
-        v{__APP_VERSION__}
+        {__APP_VERSION__}
       </a>
       <!-- GitHub repo link. The 16×16 mark is GitHub's official
            public-domain octocat SVG (https://github.com/logos);
