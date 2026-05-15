@@ -1,6 +1,6 @@
 # BEST2 system functions — reference & implementation status
 
-Companion to [`system-functions.md`](./system-functions.md) (which
+Companion to [`system-functions.md`](./guides/developer/inpa/system-functions.md) (which
 covers the **call mechanism** — opcode 0x0C dispatch, FRAME / RET
 discipline, the IFH table layout from `FUN_004607d7` /
 `FUN_0041fc3f`). This file is the **per-function reference**: what
