@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-ini-parser",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "INI file parser for INPA configuration files",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-providers",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Provider implementations for INPA runtime",
   "type": "module",
   "main": "./dist/index.js",

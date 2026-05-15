@@ -6,6 +6,71 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.3.2] — 2026-05-15
+
+### Fixed
+
+- **`bimmerz-bundler` was silently truncating large bundles.** The zip
+  writer's `ondata` handler was firing `fileHandle.appendFile(chunk)`
+  with no await, so hundreds of writes raced on the same fd and the
+  outer `await writeFd.close()` could run before pending writes flushed.
+  Result: a corrupt zip whose central directory referenced offsets that
+  no longer matched the data. fflate's importer silently stopped at the
+  first bad header — a 1.5 GB INPA bundle round-tripped as ~700 MB with
+  no error reported. Replaced the async `FileHandle.appendFile` chain
+  with synchronous `openSync` / `writeSync` / `closeSync` on a raw fd so
+  fflate's emit loop blocks per chunk and ordering is preserved.
+  Verified by round-tripping 100 MB across 50 files byte-perfect.
+  **Anyone who ran an earlier `bimmerz-bundle` against a non-trivial
+  INPA install should re-bundle with this build — old bundles are
+  quietly missing content.** (`@emdzej/bimmerz-bundler`)
+- **`inpax-web`: bundle import was masking dropped files.** Two layers
+  swallowed failures:
+  - `fflate.Unzip`'s per-entry `ondata` callback throws weren't
+    propagating out (fflate's internal loop caught them and moved on),
+    so a malformed entry was a silent drop.
+  - Each per-file OPFS write was queued as a fire-and-forget promise;
+    a Windows reserved basename (`CON`, `PRN`, `NUL`, `COM1`–`COM9`,
+    `LPT1`–`LPT9`) or illegal char (`< > : " | ? *`) would reject the
+    promise, and `Promise.all` aborted the whole batch — so one bad
+    name took the rest of the import with it.
+
+  Each write now has its own `.catch()` that records the failure
+  without poisoning siblings. The unzip handler records into a
+  failures array instead of throwing. The install marker now reflects
+  what actually landed in OPFS (write-side counters), not what fflate
+  decoded (decode-side counters). `importZipToOpfs` returns a new
+  `ImportResult` with `failures: ImportFailure[]`; `ConfigPanel`
+  surfaces the list as an expandable amber callout with the common
+  causes spelled out. DevTools console gets a structured summary log
+  on every import. (`@emdzej/inpax-web`)
+
+### Added
+
+- **`inpax-web`: build version + GitHub link, in two places.** A faint
+  `0.3.2` label sits next to the INPAX title in the in-app header, and
+  the same version + GitHub link pair appears under the tagline on
+  the welcome / source-selection screen so a first-time visitor has
+  somewhere to land. The version is sourced from `package.json` via
+  Vite's `define` (`__APP_VERSION__` declared in `vite-env.d.ts`) so
+  the bundle contains a literal string — no runtime fetch, no bundled
+  package.json. Both labels link to the matching
+  `releases/tag/{version}` GitHub release. (`@emdzej/inpax-web`)
+
+### Documentation
+
+- **`bimmerz-bundler` README — "Gotcha: re-including from an excluded
+  directory".** The intuitive `EDIABAS/` + `!EDIABAS/Ecu` doesn't work
+  (and won't in any gitignore-style matcher); documented why, with
+  the correct `EDIABAS/*` + `!EDIABAS/Ecu/` form and a multi-level
+  drill-down example. Git's own docs cited for the underlying reason.
+- **WIP "Resurrecting BMW Diagnostics in the Browser"** Medium-style
+  draft committed under `docs/article-medium-draft.md`. Long-form
+  origin story; not yet linked from the README.
+- **Docs reorganisation:** five `docs/reference/*.md` files moved to
+  `docs/guides/developer/inpa/` as part of the wider user-vs-developer
+  / INPA-vs-INPAX docs split.
+
 ## [0.3.1] — 2026-05-15
 
 ### Changed
