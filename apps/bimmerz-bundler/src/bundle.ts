@@ -1,6 +1,11 @@
-import { open, readFile, stat, writeFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { existsSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  openSync,
+  writeSync,
+} from "node:fs";
 
 import { Zip, ZipPassThrough } from "fflate";
 
@@ -72,21 +77,33 @@ export async function bundle(options: BundleOptions): Promise<BundleSummary> {
   // and stream each file's bytes through as we discover them. The
   // zip's central directory is flushed by `zip.end()` after the last
   // file is in.
-  let writeFd: Awaited<ReturnType<typeof open>> | null = null;
+  //
+  // We use the **synchronous** fs API on a raw fd here, not the
+  // promise-based `FileHandle.appendFile`. fflate's `ondata` fires
+  // synchronously and immediately moves on to the next chunk — so a
+  // fire-and-forget `appendFile().then()` chain races itself: writes
+  // can interleave on the same fd, and the `close()` in the outer
+  // `finally` can run before pending writes flush. The result is a
+  // zip whose central directory references offsets that no longer
+  // match the data, which fflate's importer silently truncates at the
+  // first bad offset. `writeSync` blocks fflate's emission loop until
+  // each chunk lands on disk, so ordering is preserved and close
+  // happens only after the last write returns.
+  let fd: number | null = null;
   let zip: Zip | null = null;
   if (!options.dryRun) {
-    writeFd = await open(summary.outputPath!, "w");
-    const fileHandle = writeFd;
+    fd = openSync(summary.outputPath!, "w");
+    const writeFd = fd;
     zip = new Zip();
     zip.ondata = (err, chunk, final) => {
       if (err) throw err;
-      // fflate emits chunks synchronously; we hold the fd open and
-      // append. `final` true means central directory written —
-      // closing the fd is the caller's job after `zip.end()`.
-      // Best-effort write (fflate doesn't await callbacks); errors
-      // surface on the close below.
-      void fileHandle.appendFile(Buffer.from(chunk));
-      void final; // intentionally ignored; close happens below
+      if (chunk && chunk.length > 0) {
+        // Synchronous, ordering-preserving write. Throws on disk
+        // errors — that propagates out through fflate's emit loop
+        // and aborts the bundle, which is what we want.
+        writeSync(writeFd, chunk);
+      }
+      void final; // close happens below after `zip.end()` returns
     };
   }
 
@@ -126,7 +143,13 @@ export async function bundle(options: BundleOptions): Promise<BundleSummary> {
 
     if (zip) zip.end();
   } finally {
-    if (writeFd) await writeFd.close();
+    if (fd !== null) {
+      try {
+        closeSync(fd);
+      } catch {
+        /* best-effort — if close fails the writes already landed */
+      }
+    }
   }
 
   return summary;
