@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { writeFileSync } from 'node:fs';
+import { basename } from 'node:path';
 import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import { ValueType } from '@emdzej/inpax-core';
 import type { ConstantRecord, ConstValue, WalkResult } from '../lib/walker.js';
 import { saveEdited } from '../lib/save.js';
 import { looksLikeFfiDescriptor } from '../lib/format.js';
+import { patchFromEdits } from '../patch/from-edits.js';
+import { patchToYaml } from '../patch/serialize.js';
+import { canonicalCodepage } from '../lib/codepage.js';
 import { ConstantsList } from './ConstantsList.js';
 import { FilterPrompt } from './FilterPrompt.js';
 import { HelpOverlay } from './HelpOverlay.js';
@@ -203,6 +208,10 @@ export function App(props: AppProps): React.ReactElement {
         handleSave();
         return;
       }
+      if (input === 'P') {
+        handleSaveAsPatch();
+        return;
+      }
     },
     { isActive: listInputActive },
   );
@@ -228,6 +237,39 @@ export function App(props: AppProps): React.ReactElement {
     },
     { isActive: filterInputActive },
   );
+
+  function handleSaveAsPatch(): void {
+    if (edits.size === 0) {
+      setToast({ text: 'nothing to save — no edits made yet', tone: 'info' });
+      return;
+    }
+    try {
+      const doc = patchFromEdits(walk, edits, {
+        name: basename(filePath),
+        // Location is metadata only — we don't know the install-tree
+        // from the file path without heuristics, and asking via a
+        // prompt would be a bigger UX. Default to 'unknown'; the user
+        // can edit the YAML afterwards if they care.
+        location: 'unknown',
+        targetEncoding: canonicalCodepage(walk.codepage),
+        description: `Saved from ipo-editor — ${edits.size} edit${edits.size === 1 ? '' : 's'}`,
+      });
+      const yaml = patchToYaml(doc);
+      const outputPath = `${filePath}.patch.yaml`;
+      writeFileSync(outputPath, yaml, 'utf8');
+
+      const encWarn =
+        canonicalCodepage(walk.codepage) !== 'cp1252'
+          ? ` · ⚠ ${walk.codepage} not cp1252 — see docs/research/ipo-encoding.md`
+          : '';
+      setToast({
+        text: `✓ patch saved · ${edits.size} entr${edits.size === 1 ? 'y' : 'ies'} · ${outputPath}${encWarn}`,
+        tone: 'info',
+      });
+    } catch (err) {
+      setToast({ text: `patch save failed: ${(err as Error).message}`, tone: 'error' });
+    }
+  }
 
   function handleSave(): void {
     if (readonly) {

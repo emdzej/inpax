@@ -25,7 +25,8 @@ export function HelpOverlay(): React.ReactElement {
         <HelpKey k="u / U">undo / undo all</HelpKey>
       </HelpSection>
       <HelpSection title="File">
-        <HelpKey k="s">save</HelpKey>
+        <HelpKey k="s">save (overwrites the .ipo)</HelpKey>
+        <HelpKey k="P">save edits as a patch (.patch.yaml)</HelpKey>
         <HelpKey k="q">quit</HelpKey>
         <HelpKey k="?">toggle this help</HelpKey>
       </HelpSection>
