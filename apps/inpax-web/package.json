@@ -12,10 +12,10 @@
     "typecheck": "tsc --noEmit && svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
-    "@emdzej/ediabasx-ediabas": "^0.2.0",
-    "@emdzej/ediabasx-interface-base": "^0.2.0",
-    "@emdzej/ediabasx-interface-serial": "^0.2.0",
-    "@emdzej/ediabasx-interfaces": "^0.2.0",
+    "@emdzej/ediabasx-ediabas": "^0.2.1",
+    "@emdzej/ediabasx-interface-base": "^0.2.1",
+    "@emdzej/ediabasx-interface-serial": "^0.2.1",
+    "@emdzej/ediabasx-interfaces": "^0.2.1",
     "@emdzej/inpax-core": "workspace:*",
     "@emdzej/inpax-dispatcher": "workspace:*",
     "@emdzej/inpax-ediabasx-provider": "workspace:*",

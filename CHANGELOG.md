@@ -10,12 +10,18 @@ bumps may carry new features and small breaking changes until 1.0.
 
 ### Changed
 
-- **Bumped all `@emdzej/ediabasx-*` deps to `^0.2.0`** (was `^0.1.3`) in
+- **Bumped all `@emdzej/ediabasx-*` deps to `^0.2.1`** (was `^0.1.3`) in
   `@emdzej/inpax-ediabasx-provider`, `@emdzej/inpax-cli`, and
-  `@emdzej/inpax-web`. Picks up the gateway WebSocket transport, the
-  transparent `setCommParameter` / `setAnswerLength` / `setRepeatCounter`
-  / `transmitData` forwarding, and the browser-safe
-  `@emdzej/ediabasx-interfaces/client` subpath.
+  `@emdzej/inpax-web`. Picks up:
+  - the gateway WebSocket transport,
+  - the transparent `setCommParameter` / `setAnswerLength` /
+    `setRepeatCounter` / `transmitData` forwarding so a remote
+    `INITIALISIERUNG` runs cleanly,
+  - the browser-safe `@emdzej/ediabasx-interfaces/client` subpath,
+  - the 0.2.1 gateway-server fix that makes `ediabasx gateway` actually
+    exit on `SIGINT` / `SIGTERM` instead of hanging on the open backend
+    cable handle (affects anyone running the gateway as a server in
+    front of inpax-web).
 
 ### Added
 
