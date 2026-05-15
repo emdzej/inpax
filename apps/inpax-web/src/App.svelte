@@ -39,7 +39,7 @@
            Linked to the matching git tag so users can pop the changelog
            in one click. Faint styling keeps it as metadata, not chrome. -->
       <a
-        href="https://github.com/emdzej/inpax/releases/tag/v{__APP_VERSION__}"
+        href="https://github.com/emdzej/inpax/releases/tag/{__APP_VERSION__}"
         target="_blank"
         rel="noopener noreferrer"
         class="text-xs text-faint transition hover:text-foreground"
