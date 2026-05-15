@@ -6,6 +6,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.3.3] — 2026-05-15
+
+### Fixed
+
+- **`inpax-interpreter`: setscreen no longer leaves the previous
+  screen's labels and result values bleeding through the new
+  layout.** `ScreenExecutor.stop()` only set a `running = false` flag;
+  the in-flight `executeLinePhase` loop didn't check it between LINE
+  blocks, so when a LINE block called `setscreen` the surrounding
+  `for` loop happily continued running `line[i+1..N]` against the
+  *new* screen's freshly-cleared state. Many LINE blocks await
+  internally (INPAapiResult, etc.), giving the new executor's
+  setTimeout-scheduled first tick a chance to interleave — the visible
+  result was two screens' worth of text overlaid in the same paint.
+  The screen executor now checks `this.running` after every block
+  boundary (between ALLOC/INIT, after INIT, after each LINE block,
+  after each control block, and between phases inside `tick()`), and
+  suppresses the `cycle:complete` emit when a mid-cycle swap happened
+  so the canvas paint coalescer doesn't snapshot a half-built frame.
+  Doesn't yet address the narrower case of a LINE block calling
+  `setscreen` and then itself continuing to emit writes after the
+  dispatcher returns — that would need cancellation plumbed down into
+  `vm.execute`'s instruction loop. In practice `setscreen` is almost
+  always the last meaningful op in its containing block, so this
+  covers the visible leak. (`@emdzej/inpax-interpreter`)
+
 ## [0.3.2] — 2026-05-15
 
 ### Fixed

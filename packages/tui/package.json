@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-tui",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Terminal UI renderer for INPA runtime using ink",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-interfaces",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "TypeScript interfaces for INPA runtime providers",
   "type": "module",
   "main": "./dist/index.js",
