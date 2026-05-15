@@ -397,10 +397,19 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
         // executeInitPhase already snapshot cycleFirstVisibleLine
         // and ran its own scroll-clear (kept for the first-cycle
         // case where allocDone was still false on entry).
+        // If INIT triggered a setscreen, the replacement executor
+        // owns the UI now — don't paint anything else on top.
+        if (!this.running) return;
       }
 
       this.setPhase('line');
       await this.executeLinePhase();
+
+      // Suppress the cycle:complete emit if a setscreen mid-cycle
+      // pulled the rug — the canvas paint driver listens on that
+      // event and would snapshot a half-built frame mixing this
+      // executor's residue with the new screen's content.
+      if (!this.running) return;
 
       this.log('Cycle complete');
       this.emit('cycle:complete');
@@ -450,6 +459,9 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
       ui.blankScreen();
       if (this.screen.allocFunc) {
         await this.executeBlock(this.screen.allocFunc);
+        // If ALLOC fired a setscreen (rare but legal), bail before
+        // touching INIT — the replacement executor owns the UI now.
+        if (!this.running) return;
       }
       this.allocDone = true;
     }
@@ -460,6 +472,7 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
     ui.setLineBaseRow(0);
     if (this.screen.initFunc) {
       await this.executeBlock(this.screen.initFunc);
+      if (!this.running) return;
     }
 
     // Transition to LINE phase
@@ -543,10 +556,26 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
 
       if (line.func) {
         await this.executeBlock(line.func);
+        // A LINE block can call `setscreen` mid-cycle (typical menu
+        // dispatch pattern: read user input, decide next screen).
+        // That triggers `vm.setScreen` → `this.stop()` → `running =
+        // false`. Without this check we'd continue running line[i+1..N]
+        // and emit ftextout writes that land on the new screen's
+        // already-cleared buffer — visible as the old screen's labels
+        // bleeding through the new layout. See discussion in
+        // `setscreen` race notes.
+        if (!this.running) {
+          this.log(`Line phase aborted at index ${i} — executor stopped mid-cycle`);
+          return;
+        }
       }
       for (const control of line.controls) {
         if (control.func) {
           await this.executeBlock(control.func);
+          if (!this.running) {
+            this.log(`Line phase aborted at index ${i} (control) — executor stopped`);
+            return;
+          }
         }
       }
 
