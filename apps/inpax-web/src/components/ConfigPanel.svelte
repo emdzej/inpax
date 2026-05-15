@@ -43,6 +43,7 @@
     clearInstallSource,
     type BundledStats,
     type ImportProgressEvent,
+    type ImportFailure,
   } from "../lib/bundled-install";
 
   const opfsSupported = isOpfsSupported();
@@ -91,11 +92,18 @@
     fileCount: number;
     bytesWritten: number;
     currentFile: string;
+    failureCount: number;
   } | null>(null);
   let bundleImportError = $state<string | null>(null);
+  // Post-import failure summary. Each entry is one file the importer
+  // couldn't write to OPFS (Windows reserved name, illegal character,
+  // fflate decode error, …). Surfaced as an expandable list so the
+  // user can see what's missing without spelunking through DevTools.
+  let bundleImportFailures = $state<ImportFailure[]>([]);
 
   function chooseBundleZip(): void {
     bundleImportError = null;
+    bundleImportFailures = [];
     bundleZipInput?.click();
   }
 
@@ -113,17 +121,30 @@
       fileCount: 0,
       bytesWritten: 0,
       currentFile: file.name,
+      failureCount: 0,
     };
+    bundleImportFailures = [];
     try {
-      await importZipToOpfs(file, (ev: ImportProgressEvent) => {
+      const result = await importZipToOpfs(file, (ev: ImportProgressEvent) => {
         if (ev.kind === "file") {
           bundleImportProgress = {
             fileCount: ev.fileIndex + 1,
             bytesWritten: ev.bytesWritten,
             currentFile: ev.path,
+            failureCount: bundleImportProgress?.failureCount ?? 0,
           };
+        } else if (ev.kind === "fileFailed") {
+          // Bump the running failure counter; the full list lands in
+          // `result.failures` and is captured below.
+          if (bundleImportProgress) {
+            bundleImportProgress = {
+              ...bundleImportProgress,
+              failureCount: bundleImportProgress.failureCount + 1,
+            };
+          }
         }
       });
+      bundleImportFailures = [...result.failures];
       // Drop any saved fs-access handle so InstallPicker doesn't
       // race when it re-mounts.
       await clearInstallHandle();
@@ -134,7 +155,12 @@
       app.install = null;
       app.ipoFiles = [];
       app.selectedIpo = null;
-      app.showSettings = false;
+      // Keep the Settings modal open when the import had failures —
+      // otherwise the user never sees the warning summary. Clean
+      // imports close the modal as before.
+      if (result.failures.length === 0) {
+        app.showSettings = false;
+      }
     } catch (err) {
       bundleImportError = err instanceof Error ? err.message : String(err);
     } finally {
@@ -703,6 +729,9 @@
                     {bundleImportProgress.fileCount} files ·
                     {formatBytes(bundleImportProgress.bytesWritten)} ·
                     <span class="truncate inline-block max-w-xs align-bottom">{bundleImportProgress.currentFile}</span>
+                    {#if bundleImportProgress.failureCount > 0}
+                      · <span class="text-amber-700 dark:text-amber-300">{bundleImportProgress.failureCount} failed</span>
+                    {/if}
                   </p>
                 {/if}
 
@@ -710,6 +739,31 @@
                   <p class="mt-1 text-xs text-red-700 dark:text-red-300">
                     Import failed: {bundleImportError}
                   </p>
+                {/if}
+
+                {#if bundleImportFailures.length > 0 && !bundleImporting}
+                  <details class="mt-2 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-2 text-xs text-amber-800 dark:text-amber-200">
+                    <summary class="cursor-pointer font-semibold">
+                      Imported with {bundleImportFailures.length} skipped file{bundleImportFailures.length === 1 ? "" : "s"}
+                    </summary>
+                    <p class="mt-2 text-amber-700 dark:text-amber-300">
+                      These paths in the bundle couldn't be written to OPFS.
+                      Common causes: Windows reserved basenames
+                      (<code>CON</code>, <code>PRN</code>, <code>NUL</code>,
+                      <code>COM1</code>–<code>COM9</code>, <code>LPT1</code>–<code>LPT9</code>),
+                      illegal characters
+                      (<code>&lt; &gt; : " | ? *</code>), trailing
+                      dots/spaces in path segments. Re-bundle excluding
+                      these or rename them upstream.
+                    </p>
+                    <ul class="mt-2 max-h-48 overflow-auto font-mono text-[11px] leading-tight">
+                      {#each bundleImportFailures as failure (failure.path)}
+                        <li class="truncate" title={`${failure.path} — ${failure.error}`}>
+                          {failure.path} <span class="text-amber-700 dark:text-amber-400">— {failure.error}</span>
+                        </li>
+                      {/each}
+                    </ul>
+                  </details>
                 {/if}
 
                 <input

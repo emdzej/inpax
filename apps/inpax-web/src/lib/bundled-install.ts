@@ -194,7 +194,37 @@ export async function evictBundledInstall(): Promise<void> {
 export type ImportProgressEvent =
   | { kind: "start"; totalBytesEstimate: number }
   | { kind: "file"; path: string; fileIndex: number; bytesWritten: number }
-  | { kind: "done"; fileCount: number; bytes: number };
+  | { kind: "fileFailed"; path: string; error: string }
+  | {
+      kind: "done";
+      fileCount: number;
+      bytes: number;
+      decodedFileCount: number;
+      decodedBytes: number;
+      failures: ReadonlyArray<ImportFailure>;
+    };
+
+/** One file the importer couldn't write to OPFS. */
+export interface ImportFailure {
+  /** The path inside the zip — POSIX, no leading slash. */
+  path: string;
+  /** Error message from the underlying write attempt. */
+  error: string;
+}
+
+/** Summary returned by `importZipToOpfs`. */
+export interface ImportResult {
+  /** Files that successfully landed in OPFS. */
+  fileCount: number;
+  /** Bytes that successfully landed in OPFS (sum of written file sizes). */
+  bytes: number;
+  /** Entries fflate handed us — includes ones that later failed to write. */
+  decodedFileCount: number;
+  /** Sum of decoded entry sizes — should equal `bytes` if all writes succeeded. */
+  decodedBytes: number;
+  /** Per-file write failures. Empty array means a clean import. */
+  failures: ReadonlyArray<ImportFailure>;
+}
 
 /**
  * Stream a zip into OPFS. Each entry's bytes are buffered (per
@@ -216,7 +246,7 @@ export type ImportProgressEvent =
 export async function importZipToOpfs(
   zip: File | Blob,
   onProgress?: (event: ImportProgressEvent) => void,
-): Promise<{ fileCount: number; bytes: number }> {
+): Promise<ImportResult> {
   if (!isOpfsSupported()) {
     throw new Error("OPFS is not supported in this browser");
   }
@@ -228,11 +258,23 @@ export async function importZipToOpfs(
 
   onProgress?.({ kind: "start", totalBytesEstimate: zip.size });
 
+  // Decode-side counters — bumped immediately when fflate hands us a
+  // finalised entry. Tells us what the zip claimed to contain.
+  let decodedFileCount = 0;
+  let decodedBytes = 0;
+  // Write-side counters — bumped only when the OPFS write resolves.
+  // These are the numbers we actually trust for the install marker.
   let fileCount = 0;
   let bytesWritten = 0;
+  const failures: ImportFailure[] = [];
+
   // Per-entry write promises so we can await all of them at the end
   // before reporting `done`. Without this, callers see "done" while
   // the last few entries are still flushing to OPFS.
+  //
+  // Each promise is wrapped in `.catch()` so one bad filename doesn't
+  // reject `Promise.all` and abort everything else. The failure is
+  // recorded for the caller to surface.
   const writePromises: Array<Promise<void>> = [];
 
   const unzipper = new Unzip((entry) => {
@@ -245,29 +287,53 @@ export async function importZipToOpfs(
     let entrySize = 0;
     entry.ondata = (err, chunk, final) => {
       if (err) {
-        throw new Error(`unzip ${entry.name}: ${err.message}`);
+        // fflate calls ondata from its own internal loop. Throwing
+        // here gets swallowed by fflate and silently drops the
+        // entry — exactly the bug we're trying to surface. Record
+        // and continue instead.
+        const message = err.message || String(err);
+        console.warn(`[bundled-install] unzip failed: ${entry.name} — ${message}`);
+        failures.push({ path: entry.name, error: `unzip: ${message}` });
+        onProgress?.({ kind: "fileFailed", path: entry.name, error: message });
+        return;
       }
       if (chunk && chunk.length > 0) {
         chunks.push(chunk);
         entrySize += chunk.length;
       }
       if (final) {
-        // Concat once, write once. Promise added to the queue so
-        // the outer await waits for all entries to flush.
         const data = concatUint8Arrays(chunks, entrySize);
-        const index = fileCount;
-        fileCount++;
-        bytesWritten += data.length;
-        writePromises.push(
-          writeOpfsFile(root, entry.name, data).then(() => {
+        decodedFileCount++;
+        decodedBytes += data.length;
+
+        const path = entry.name;
+        const writePromise = writeOpfsFile(root, path, data).then(
+          () => {
+            fileCount++;
+            bytesWritten += data.length;
             onProgress?.({
               kind: "file",
-              path: entry.name,
-              fileIndex: index,
+              path,
+              fileIndex: fileCount - 1,
               bytesWritten,
             });
-          }),
+          },
+          (writeErr: unknown) => {
+            // Swallow at this layer so a bad filename (Windows
+            // reserved name, illegal character, etc.) doesn't abort
+            // the rest of the import. Console.warn so the offending
+            // path is visible in DevTools; record for the caller's
+            // summary.
+            const message =
+              writeErr instanceof Error ? writeErr.message : String(writeErr);
+            console.warn(
+              `[bundled-install] write failed: ${path} — ${message}`,
+            );
+            failures.push({ path, error: message });
+            onProgress?.({ kind: "fileFailed", path, error: message });
+          },
         );
+        writePromises.push(writePromise);
       }
     };
     entry.start();
@@ -294,6 +360,8 @@ export async function importZipToOpfs(
   }
 
   // Wait for every per-entry write to flush before marking done.
+  // Each write promise already swallows its own rejection into
+  // `failures`, so this never throws.
   await Promise.all(writePromises);
 
   // Best-effort persistent-storage request — flips OPFS to
@@ -307,6 +375,9 @@ export async function importZipToOpfs(
     }
   }
 
+  // Marker reflects what actually landed in OPFS, not what fflate
+  // decoded. If decode > written, the user has a real problem and
+  // the failures array tells them which paths.
   setInstallSource({
     source: "bundled",
     importedAt: new Date().toISOString(),
@@ -314,9 +385,42 @@ export async function importZipToOpfs(
     bytes: bytesWritten,
   });
 
-  onProgress?.({ kind: "done", fileCount, bytes: bytesWritten });
+  // Summary log — visible in DevTools regardless of whether the
+  // UI surfaces the failures array. Lets a user dig in even if the
+  // host SPA forgets to render the warning.
+  if (failures.length > 0) {
+    console.warn(
+      `[bundled-install] import completed with ${failures.length} failure(s)`,
+      {
+        decodedFiles: decodedFileCount,
+        decodedBytes,
+        writtenFiles: fileCount,
+        writtenBytes: bytesWritten,
+        failures,
+      },
+    );
+  } else {
+    console.info(
+      `[bundled-install] import clean: ${fileCount} files / ${bytesWritten} bytes`,
+    );
+  }
 
-  return { fileCount, bytes: bytesWritten };
+  onProgress?.({
+    kind: "done",
+    fileCount,
+    bytes: bytesWritten,
+    decodedFileCount,
+    decodedBytes,
+    failures,
+  });
+
+  return {
+    fileCount,
+    bytes: bytesWritten,
+    decodedFileCount,
+    decodedBytes,
+    failures,
+  };
 }
 
 // ============ internal helpers ============
