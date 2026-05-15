@@ -105,6 +105,56 @@ installs use mixed casing, Linux mirrors may be all lowercase, and
 macOS-imported copies sometimes shuffle case in unicode-
 normalisation-sensitive paths.
 
+### Gotcha: re-including from an excluded directory
+
+This **does not work**:
+
+```gitignore
+EDIABAS/
+!EDIABAS/Ecu
+```
+
+It looks intuitive — "exclude EDIABAS, but bring back Ecu" — but
+gitignore explicitly disallows re-including a path whose parent
+directory is excluded. From git's own docs:
+
+> It is not possible to re-include a file if a parent directory of
+> that file is excluded. Git doesn't list excluded directories for
+> performance reasons, so any patterns on contained files have no
+> effect.
+
+The bundler's walker enforces the same rule — once a directory is
+excluded it never descends, so the negation never gets a chance to
+fire on anything inside.
+
+**Correct form** — exclude the *children* of the parent instead of
+the parent itself, so the walker still descends and the negation
+can match:
+
+```gitignore
+EDIABAS/*
+!EDIABAS/Ecu/
+```
+
+The `EDIABAS/*` glob (no trailing slash) excludes everything
+immediately under `EDIABAS/` *without marking `EDIABAS/` itself as
+excluded*. The walker still enters the directory, sees `Ecu/`, and
+the `!EDIABAS/Ecu/` negation re-includes it.
+
+If you want to drill deeper — say, exclude all of `EDIABAS/` except
+one specific file under `EDIABAS/Ecu/` — you have to repeat the
+dance at every level:
+
+```gitignore
+EDIABAS/*
+!EDIABAS/Ecu/
+EDIABAS/Ecu/*
+!EDIABAS/Ecu/MS43.prg
+```
+
+Annoying, but consistent with every gitignore-style matcher in
+existence.
+
 ## Defaults shipped
 
 See [`src/default-ignore.ts`](./src/default-ignore.ts) for the
