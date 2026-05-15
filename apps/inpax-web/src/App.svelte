@@ -35,6 +35,18 @@
   {#if app.view === "browse" && app.install}
     <header class="flex items-center gap-4 border-b border-divider bg-surface px-4 py-2 text-sm">
       <span class="font-semibold text-accent">INPAX</span>
+      <!-- Build version surfaced from package.json via Vite `define`.
+           Linked to the matching git tag so users can pop the changelog
+           in one click. Faint styling keeps it as metadata, not chrome. -->
+      <a
+        href="https://github.com/emdzej/inpax/releases/tag/v{__APP_VERSION__}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-xs text-faint transition hover:text-foreground"
+        title="View release notes on GitHub"
+      >
+        v{__APP_VERSION__}
+      </a>
       <!-- GitHub repo link. The 16×16 mark is GitHub's official
            public-domain octocat SVG (https://github.com/logos);
            we inline rather than reference an asset so the icon
