@@ -5,8 +5,8 @@
     discoverInpaInstall,
     isCompleteInstall,
     isFileSystemAccessSupported,
-  } from "../lib/inpa-install";
-  import { listIpoFiles } from "../lib/ipo-browser";
+    listIpoFiles,
+  } from "@emdzej/inpax-web-provider";
   import { settings, isStartupIpo } from "../lib/settings.svelte";
   import {
     saveInstallHandle,

@@ -1,7 +1,17 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  content: ["./index.html", "./src/**/*.{ts,svelte}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{ts,svelte}",
+    // The web-provider library ships Svelte source that uses
+    // Tailwind utilities (flex, gap-x-2, …). Tailwind's JIT only
+    // emits classes it finds in the content glob, so the library
+    // source has to be scanned here too — otherwise its components
+    // render unstyled (e.g. FKeyBar stacks vertically because
+    // `flex` never made it into the CSS bundle).
+    "../../packages/web-provider/src/**/*.{ts,svelte}",
+  ],
   // Class-based dark mode so the theme switcher can toggle by toggling
   // a `dark` class on <html>. App.svelte writes that class based on
   // the user's chosen theme (light / dark / system).

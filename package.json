@@ -1,7 +1,7 @@
 {
   "name": "inpax",
   "private": true,
-  "version": "0.3.3",
+  "version": "0.4.0",
   "packageManager": "pnpm@10.33.1",
   "scripts": {
     "build": "turbo run build",
@@ -16,7 +16,10 @@
     "disassembler": "node packages/disassembler/dist/cli.js",
     "compile": "node apps/inpax-compiler/dist/index.js",
     "compile:debug": "node --inspect-brk apps/inpax-compiler/dist/index.js",
-    "editor": "node apps/ipo-editor/dist/index.js"
+    "editor": "node apps/ipo-editor/dist/index.js",
+    "dev:web": "pnpm --filter @emdzej/inpax-web dev",
+    "dev:web:host": "pnpm --filter @emdzej/inpax-web dev -- --host 0.0.0.0",
+    "build:web": "pnpm --filter @emdzej/inpax-web build"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

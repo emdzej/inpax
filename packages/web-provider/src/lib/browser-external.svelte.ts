@@ -12,13 +12,13 @@
  * no-ops — there's no shell-execute in the browser, and original INPA
  * uses them only for context-help / launching external tools.
  */
-import type { IExternalProvider } from "@emdzej/inpax-interfaces";
-
-export interface ViewerState {
-  fileName: string;
-  title: string;
-  content: string;
-}
+// Svelte's `.svelte.ts` module parser is JS-only — it rejects
+// `interface` declarations and the `type` keyword in import
+// specifiers. `ViewerState` lives in a sibling regular `.ts` file;
+// imports use plain `import { X }` (TS elides the type-only ones
+// since `verbatimModuleSyntax` is off in this package).
+import { IExternalProvider } from "@emdzej/inpax-interfaces";
+import { ViewerState } from "./browser-external-types.js";
 
 export class BrowserExternalProvider implements IExternalProvider {
   private files = new Map<string, string>();

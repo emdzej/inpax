@@ -17,15 +17,30 @@
    */
 
   import type { UIProvider, InputDialog } from "@emdzej/inpax-ui-provider-core";
-  import { app } from "../lib/state.svelte";
   import {
-    loadScriptSelect,
     type ScriptSelectNode,
     type ScriptSelectEntry,
-  } from "../lib/script-select";
+  } from "../lib/script-select.js";
 
-  type Props = { ui: UIProvider };
-  const { ui }: Props = $props();
+  /**
+   * Loader contract — given the file name the BEST2 `scriptselect`
+   * opcode supplied (`E46.ENG`, `Antrieb.GER`, …), return the parsed
+   * tree (or `null` if the file can't be found). The host owns the
+   * I/O: typically a `FileSystemDirectoryHandle.entries()` walk piped
+   * through `parseScriptSelect(content)`, but any source works — an
+   * OPFS lookup, a fetch from a static asset bundle, an in-memory
+   * fixture for tests.
+   */
+  export type ScriptSelectLoader = (
+    filename: string,
+  ) => Promise<ScriptSelectNode | null>;
+
+  type Props = {
+    ui: UIProvider;
+    /** How to fetch the parsed scriptselect tree for a given filename. */
+    loader: ScriptSelectLoader;
+  };
+  const { ui, loader }: Props = $props();
 
   let dialog = $state<InputDialog | null>(null);
   let tree = $state<ScriptSelectNode | null>(null);
@@ -72,7 +87,7 @@
   let lastLoadedFile: string | null = null;
   $effect(() => {
     const filename = dialog?.scriptSelectFile;
-    if (!filename || !app.install?.cfgdat) {
+    if (!filename) {
       tree = null;
       lastLoadedFile = null;
       return;
@@ -81,11 +96,11 @@
     lastLoadedFile = filename;
 
     let cancelled = false;
-    loadScriptSelect(app.install.cfgdat, filename)
+    loader(filename)
       .then((parsed) => {
         if (cancelled) return;
         if (!parsed) {
-          loadError = `Could not load ${filename} from CFGDAT/`;
+          loadError = `Could not load ${filename}`;
           return;
         }
         tree = parsed;

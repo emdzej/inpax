@@ -15,18 +15,23 @@
   import { app } from "../lib/state.svelte";
   import { getActiveTransport } from "../lib/connection.svelte";
   import { startInpaRuntime, type RuntimeHandle } from "../lib/runtime.svelte";
-  import { classicInpaTheme, darkInpaTheme } from "../lib/theme";
   import { isDarkTheme } from "../lib/settings.svelte";
-  import ScreenCanvas from "./ScreenCanvas.svelte";
-  import FKeyBar from "./FKeyBar.svelte";
-  import MenuTitleBar from "./MenuTitleBar.svelte";
-  import DialogOverlay from "./DialogOverlay.svelte";
-  import ScriptSelectDialog from "./ScriptSelectDialog.svelte";
+  import {
+    ScreenCanvas,
+    FKeyBar,
+    MenuTitleBar,
+    DialogOverlay,
+    ScriptSelectDialog,
+    UserBoxOverlay,
+    ViewerDialog,
+    LiveIndicator,
+    ScrollIndicator,
+    classicInpaTheme,
+    darkInpaTheme,
+    loadScriptSelect,
+    type ScriptSelectNode,
+  } from "@emdzej/inpax-web-provider";
   import ConnectDialog from "./ConnectDialog.svelte";
-  import UserBoxOverlay from "./UserBoxOverlay.svelte";
-  import ViewerDialog from "./ViewerDialog.svelte";
-  import LiveIndicator from "./LiveIndicator.svelte";
-  import ScrollIndicator from "./ScrollIndicator.svelte";
 
   let runtime = $state<RuntimeHandle | null>(null);
   let title = $state("");
@@ -393,7 +398,18 @@
           <FKeyBar ui={runtime.ui} />
         </footer>
         <DialogOverlay ui={runtime.ui} />
-        <ScriptSelectDialog ui={runtime.ui} />
+        <ScriptSelectDialog
+          ui={runtime.ui}
+          loader={(filename: string): Promise<ScriptSelectNode | null> => {
+            // The library component is host-agnostic; we own the I/O.
+            // INPA's scriptselect files live in CFGDAT/, but our
+            // install state surfaces the directory handle directly so
+            // we just pass it through to `loadScriptSelect`.
+            const cfgdat = app.install?.cfgdat;
+            if (!cfgdat) return Promise.resolve(null);
+            return loadScriptSelect(cfgdat, filename);
+          }}
+        />
         <ConnectDialog ui={runtime.ui} />
         <ViewerDialog external={runtime.external} />
       {/key}

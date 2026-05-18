@@ -25,8 +25,8 @@
     type ScreenBuffer,
     type UIProvider,
   } from "@emdzej/inpax-ui-provider-core";
-  import { classicInpaTheme, darkInpaTheme, paletteColor } from "../lib/theme";
-  import { isDarkTheme } from "../lib/settings.svelte";
+  import { paletteColor } from "../lib/theme.js";
+  import { getLibTheme } from "../lib/theme-context.svelte.js";
 
   type Props = {
     screen: ScreenBuffer;
@@ -68,11 +68,11 @@
     return () => bindCanvas?.(null);
   });
 
-  // Active palette tracks the app theme. `isDarkTheme()` reads from
-  // the reactive `settings.theme` store, so toggling Light/Dark/System
-  // re-runs this derivation and the next paint picks up the new
-  // palette and background.
-  const theme = $derived(isDarkTheme() ? darkInpaTheme : classicInpaTheme);
+  // Active palette comes from the lib's theme context. The host calls
+  // `setLibTheme(...)` once at the root (typically inside an $effect
+  // that tracks Light/Dark/System); a `$derived` here re-runs on every
+  // change so the next paint picks the new palette + background up.
+  const theme = $derived(getLibTheme());
 
   // Cell aspect ratio (width / height) for the chosen monospace font.
   // A bit smaller than 1.0 — typical monospace glyphs are ~0.55-0.6×

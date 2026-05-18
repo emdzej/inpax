@@ -18,15 +18,17 @@
    */
 
   import type { UIProvider, UserBox } from "@emdzej/inpax-ui-provider-core";
-  import { classicInpaTheme, darkInpaTheme, paletteColor } from "../lib/theme";
-  import { isDarkTheme } from "../lib/settings.svelte";
+  import { paletteColor } from "../lib/theme.js";
+  import { getLibTheme } from "../lib/theme-context.svelte.js";
 
   type Props = { ui: UIProvider };
   const { ui }: Props = $props();
 
-  // Active palette tracks the app theme — mirrors ScreenCanvas so the
-  // progress dialog blends with the canvas it overlays.
-  const theme = $derived(isDarkTheme() ? darkInpaTheme : classicInpaTheme);
+  // Active palette comes from the lib theme context — see
+  // `ScreenCanvas` for the contract. The host installs the theme once
+  // at the root via `setLibTheme(...)`; this `$derived` picks up the
+  // current value reactively.
+  const theme = $derived(getLibTheme());
 
   let boxes = $state<UserBox[]>([]);
 

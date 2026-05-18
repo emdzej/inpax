@@ -1,8 +1,16 @@
 /**
- * Parser for INPA's script-select INI files (`E46.ENG`, `E60.ENG`,
- * `Antrieb.GER`, …). These drive the `scriptselect` system function:
- * a tree-like menu where each tree node is an INI section and each
- * entry under it picks a `.IPO` script in `SGDAT/`.
+ * Parser + `FileSystemDirectoryHandle`-backed loader for INPA's
+ * script-select INI files (`E46.ENG`, `E60.ENG`, `Antrieb.GER`, …).
+ * These drive the `scriptselect` system function: a tree-like menu
+ * where each tree node is an INI section and each entry under it
+ * picks a `.IPO` script in `SGDAT/`.
+ *
+ * Hosts that resolve their CFGDAT directory through the File System
+ * Access API (or OPFS — same `FileSystemDirectoryHandle` shape) can
+ * use `loadScriptSelect(cfgdat, filename)` directly. Hosts whose
+ * source isn't a directory handle (bundled fixtures, asset fetch,
+ * test mocks) build their own loader and call `parseScriptSelect`
+ * on the raw content.
  *
  * ## File shape
  *
@@ -114,8 +122,6 @@ export function parseScriptSelect(content: string): ScriptSelectNode | null {
 function firstValue(ini: IniFile, section: string, key: string): string | undefined {
   const sec = ini[section];
   if (!sec) return undefined;
-  // IniFile values are typed as `Record<string, string | string[]>`;
-  // pick the first occurrence if it's an array.
   const v = sec[key];
   if (v === undefined) return undefined;
   return Array.isArray(v) ? v[0] : v;
@@ -138,15 +144,20 @@ function parseEntries(ini: IniFile, section: string): ScriptSelectEntry[] {
 }
 
 /**
- * Locate the .ENG/.GER file in CFGDAT by name (case-insensitive),
- * read it, and parse the tree. Returns null if the file can't be
- * found. INPA scripts pass uppercase names (`E46.ENG`) but real
- * installs often have mixed-case filenames after a Windows → macOS
- * rsync; the lookup matches either way.
+ * Locate the `.ENG` / `.GER` / `.CPS` file inside a CFGDAT directory
+ * handle by case-insensitive name, read it, and parse the tree.
+ * Returns `null` when the file can't be found.
+ *
+ * INPA scripts pass uppercase names (`E46.ENG`) but real installs
+ * often have mixed-case filenames after a Windows → macOS rsync — the
+ * lookup matches either way. Drop in as the `<ScriptSelectDialog
+ * loader={...}>` callback when your host has a `FileSystemDirectoryHandle`
+ * for CFGDAT (the case for both `apps/inpax-web` and any future
+ * inpax-style browser app using the File System Access API or OPFS).
  */
 export async function loadScriptSelect(
   cfgdat: FileSystemDirectoryHandle,
-  filename: string
+  filename: string,
 ): Promise<ScriptSelectNode | null> {
   const target = filename.toLowerCase();
   let handle: FileSystemFileHandle | null = null;

@@ -41,6 +41,7 @@ provider).
 | `packages/dispatcher` | INPA system-function table, routes opcodes to provider methods |
 | `packages/ui-provider-core` | Abstract `UIProvider` — screen buffer, menu state, dialogs, cell-grid writes |
 | `packages/tui-provider` + `packages/cli-provider` | TUI / CLI implementations of `UIProvider` |
+| `packages/web-provider` | Svelte 5 `WebUIProvider` + reusable browser components (ScreenCanvas, FKeyBar, MenuTitleBar, DialogOverlay, UserBoxOverlay, ViewerDialog, ScriptSelectDialog, LiveIndicator, ScrollIndicator) + theme palette/context + `BrowserExternalProvider` + `BrowserNativeImportProvider` + INPA install primitives (`discoverInpaInstall`, `listIpoFiles`, `makeBrowserSgbdResolver`, `loadScriptSelect`, `parseScriptSelect`). Ships source `.svelte`/`.ts` — consumers compile via their own Vite + svelte plugin |
 | `packages/ediabasx-provider` | Diagnostic provider — wraps `@emdzej/ediabasx-ediabas` |
 | `packages/providers` | Mock / null providers used in tests + when a real one is absent |
 | `packages/mock-provider` | Headless mock for unit tests |
@@ -74,6 +75,66 @@ Bump the pins together when picking up a new ediabasx release; the
 of `@emdzej/ediabasx-interfaces` is what `inpax-web` imports
 (`@emdzej/ediabasx-interfaces/client`) to avoid pulling the
 `node:net` / `node:http` / `ws` baggage into the browser bundle.
+
+### Embedding INPAX in a new app
+
+Full guide: [`docs/guides/developer/embedding.md`](docs/guides/developer/embedding.md).
+Covers the VM + provider protocol + real-ECU transports
+(Web Serial / ENET / Gateway) + the browser-specific config quirks +
+worked examples in `apps/cli` and `apps/inpax-web`. The browser-side
+TL;DR follows.
+
+### Embedding the browser UI in a new app
+
+`@emdzej/inpax-web-provider` is the one-stop dependency. It bundles
+everything an inpax-style browser app needs to render the BEST2
+runtime against a `FileSystemDirectoryHandle`-backed INPA install:
+
+- **`WebUIProvider`** — concrete `UIProvider` subclass.
+- **9 Svelte 5 components** — `ScreenCanvas`, `FKeyBar`,
+  `MenuTitleBar`, `DialogOverlay`, `UserBoxOverlay`, `ViewerDialog`,
+  `ScriptSelectDialog`, `LiveIndicator`, `ScrollIndicator`.
+- **INPA install primitives** — `discoverInpaInstall(root)`,
+  `isCompleteInstall`, `isFileSystemAccessSupported`,
+  `listIpoFiles(dir, origin)`, `makeBrowserSgbdResolver(ecuDir)`.
+- **Native import + viewer providers** — `BrowserNativeImportProvider`
+  (BEST2 CALLE shim — kernel32 INI / system / strings, api32
+  `__apiGetConfig`, …) and `BrowserExternalProvider` (backs
+  `viewopen` / `viewclose`).
+- **Scriptselect** — `parseScriptSelect(content)` parser +
+  `loadScriptSelect(cfgdat, filename)` directory-handle loader.
+- **Theme** — `classicInpaTheme` + `darkInpaTheme` palettes and
+  `setLibTheme` / `getLibTheme` context API.
+
+Three contracts the host has to satisfy:
+
+- **Theme context.** Call `setLibTheme(theme)` once near the root of
+  your app (typically inside an `$effect` that tracks your own
+  light/dark preference). Library components read the active theme
+  via `getLibTheme()`. Without a `setLibTheme` call, components fall
+  back to `classicInpaTheme`.
+- **ScriptSelectDialog loader prop.** `<ScriptSelectDialog ui={ui}
+  loader={(filename) => Promise<ScriptSelectNode | null>} />`.
+  Hosts with a `FileSystemDirectoryHandle` for CFGDAT pass
+  `(name) => loadScriptSelect(cfgdat, name)` as a one-liner; hosts
+  with a different source (asset fetch, in-memory fixtures, test
+  mocks) build their own loader on top of `parseScriptSelect`.
+- **`ScreenCanvas` `onFrameReady` prop.** A subscribe function for
+  the runtime's `cycle:complete` event so paints land on SCREEN
+  cycle boundaries. Without it the canvas falls back to a free RAF
+  loop (fine for previews, jittery against a live runtime).
+
+The package ships Svelte 5 source — no precompiled `dist/`. Three
+consumer-side config items are necessary because of that (also
+documented in the package's README):
+
+- `tsconfig.json`: `verbatimModuleSyntax: false` (Svelte's `.svelte.ts`
+  parser rejects the `type` keyword in imports).
+- `vite.config.ts`: don't add the package to `optimizeDeps.include`
+  (esbuild can't TS-preprocess `.svelte.ts`).
+- `tailwind.config.ts`: add the package's source to the `content`
+  glob (Tailwind JIT only emits classes it finds in scanned files;
+  without this `FKeyBar` and friends render unstyled).
 
 ### Browser-app interface model
 

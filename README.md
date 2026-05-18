@@ -21,6 +21,12 @@ Three runtimes share the same VM, parser, dispatcher, and provider graph:
 - ✏️ **IPO editor** — TUI for editing constants inside compiled `.ipo` files.
 - 🔌 **Provider system** — pluggable UI, EDIABAS, INP1, simulation, print, external surfaces.
 
+## Embedding INPAX in your own app
+
+→ **[Integration guide](docs/guides/developer/embedding.md)** — VM,
+providers, real-ECU transports, browser quirks. Worked examples for
+Node CLI and Svelte 5 / Vite browser embeds.
+
 ## Quick Start
 
 ```bash

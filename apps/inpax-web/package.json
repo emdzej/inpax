@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-web",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Browser SPA for INPAX — pick an INPA install root, browse IPO scripts, run them against a live ECU via Web Serial. Pure client-side; no server.",
   "private": true,
   "type": "module",
@@ -26,6 +26,7 @@
     "@emdzej/inpax-parser": "workspace:*",
     "@emdzej/inpax-providers": "workspace:*",
     "@emdzej/inpax-ui-provider-core": "workspace:*",
+    "@emdzej/inpax-web-provider": "workspace:*",
     "fflate": "^0.8.2",
     "workbox-window": "^7.4.1"
   },

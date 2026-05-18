@@ -93,6 +93,12 @@ export default defineConfig({
       "@emdzej/inpax-dispatcher",
       "@emdzej/inpax-interfaces",
       "@emdzej/inpax-ui-provider-core",
+      // Intentionally NOT in optimizeDeps: `@emdzej/inpax-web-provider`
+      // ships `.svelte.ts` source files. esbuild (Vite's pre-bundler)
+      // doesn't run the svelte plugin's TS preprocessor, so it choke on
+      // TS-specific syntax. Leaving the package out of the include
+      // list lets Vite's main transformation pipeline (which DOES
+      // include the svelte plugin) handle it on-demand.
       "@emdzej/inpax-ediabasx-provider",
       "@emdzej/inpax-ini-parser",
       "@emdzej/inpax-logger",

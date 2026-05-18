@@ -6,6 +6,89 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.4.0] — 2026-05-18
+
+### Added
+
+- **New package `@emdzej/inpax-web-provider`** — Svelte 5 UI provider +
+  reusable browser components, extracted from `apps/inpax-web` so future
+  apps that embed the INPA runtime in a browser can consume them
+  without duplicating the rendering layer. Ships:
+  - `WebUIProvider` (concrete `UIProvider` subclass).
+  - 9 components: `ScreenCanvas` (canvas-based BEST2 screen renderer,
+    ~460 LOC), `FKeyBar` (F1–F10 input bar), `MenuTitleBar`,
+    `DialogOverlay`, `UserBoxOverlay`, `ViewerDialog` (backs
+    `viewopen`), `ScriptSelectDialog` (host-agnostic via a `loader`
+    prop), `LiveIndicator`, `ScrollIndicator`.
+  - INPA theme palettes (`classicInpaTheme` + `darkInpaTheme`),
+    `paletteColor()` helper, and a `setLibTheme()` / `getLibTheme()`
+    Svelte context API so components stay app-agnostic and react to
+    the host's light/dark toggle.
+  - `BrowserExternalProvider` — the `external` provider that backs
+    `viewopen` / `viewclose` with a Svelte-reactive viewer slot.
+  - `parseScriptSelect` parser, `loadScriptSelect(cfgdat, filename)`
+    `FileSystemDirectoryHandle`-backed loader, and `ScriptSelectNode`
+    / `ScriptSelectEntry` types for INPA's `.ENG` / `.GER` / `.CPS`
+    scriptselect catalogue files. Hosts with a directory handle wire
+    the picker with a one-liner; hosts using OPFS / asset fetch / test
+    fixtures still get the `loader` prop on `<ScriptSelectDialog>` for
+    custom sources.
+  - **INPA install primitives** —
+    `discoverInpaInstall(root)` + `isCompleteInstall` +
+    `isFileSystemAccessSupported` (walks the canonical
+    `EC-APPS/INPA/{CFGDAT,SGDAT}` + `EDIABAS/{Ecu,Bin}` tree
+    case-insensitively), `listIpoFiles(dir, origin)` (`.ipo`
+    enumerator), `makeBrowserSgbdResolver(ecuDir)` (drop-in for
+    Ediabas's `loadSgbdResolver` — handles both initial loads and
+    the post-IDENT `.grp → .prg` variant swap).
+  - **`BrowserNativeImportProvider`** + `BrowserNativeImportConfig`
+    type — concrete `INativeImportProvider` for browser hosts. Wires
+    INPA's CALLE imports (kernel32 INI / system / strings, api32
+    `__apiGetConfig`, …) to a `FileSystemDirectoryHandle`-backed
+    install with up-front INI prefetch for the synchronous CALLE
+    dispatcher. (`@emdzej/inpax-web-provider`)
+- **Root-level dev scripts.** `pnpm dev:web` runs the inpax-web Vite
+  dev server; `pnpm dev:web:host` exposes it on `0.0.0.0` for LAN
+  testing; `pnpm build:web` produces the production bundle.
+
+### Changed
+
+- **`apps/inpax-web` consumes `@emdzej/inpax-web-provider`** instead of
+  hosting the components inline. `App.svelte` installs the theme
+  context once at the root via `setLibTheme(...)` inside an `$effect`
+  that tracks the existing `isDarkTheme()` store; `IpoRunner.svelte`
+  imports components from the new package and wires the
+  `<ScriptSelectDialog>`'s `loader` prop to its existing
+  `loadScriptSelect(cfgdat, filename)` adapter. The 9 component files
+  + 3 lib modules previously in `apps/inpax-web/src/` are gone — same
+  rendering, code lives in the library now. (`@emdzej/inpax-web`)
+- **`apps/inpax-web/tsconfig.json`: `verbatimModuleSyntax: false`.**
+  Required because the library ships `.svelte.ts` source whose Svelte
+  module parser rejects the `type` keyword in import specifiers; the
+  consumer's tsc was descending into the package source and forcing
+  the keyword. TS still elides type-only imports automatically.
+  (`@emdzej/inpax-web`)
+- **`apps/inpax-web/vite.config.ts`: removed `@emdzej/inpax-web-provider`
+  from `optimizeDeps.include`.** Vite's pre-bundling step uses esbuild
+  which doesn't run the Svelte plugin's TS preprocessor, so a `.svelte.ts`
+  source file fails to parse at pre-bundle time. Leaving the package
+  out of the include list routes it through the main transformation
+  pipeline (which does include the plugin). (`@emdzej/inpax-web`)
+- **`apps/inpax-web/tailwind.config.ts`: scan the library's source.**
+  Tailwind's JIT only emits classes it finds in `content` paths;
+  utilities used inside `packages/web-provider/src/**` weren't ending
+  up in the CSS bundle, so library components rendered unstyled
+  (FKeyBar stacked vertically because `flex` never made it in).
+  Added the library's source to the glob. (`@emdzej/inpax-web`)
+
+### Documentation
+
+- **AGENTS.md gains an "Embedding the browser UI in a new app" section**
+  covering the `setLibTheme` context API, the `ScriptSelectDialog`
+  loader prop, and the `onFrameReady` paint-coalescer contract — the
+  three things a downstream consumer needs to wire up. The workspace
+  map table also picks up the new package.
+
 ## [0.3.3] — 2026-05-15
 
 ### Fixed

@@ -179,6 +179,9 @@ importers:
       '@emdzej/inpax-ui-provider-core':
         specifier: workspace:*
         version: link:../../packages/ui-provider-core
+      '@emdzej/inpax-web-provider':
+        specifier: workspace:*
+        version: link:../../packages/web-provider
       fflate:
         specifier: ^0.8.2
         version: 0.8.2
@@ -543,6 +546,34 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.10)(terser@5.47.1)
+
+  packages/web-provider:
+    dependencies:
+      '@emdzej/inpax-core':
+        specifier: workspace:*
+        version: link:../core
+      '@emdzej/inpax-ini-parser':
+        specifier: workspace:*
+        version: link:../ini-parser
+      '@emdzej/inpax-interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
+      '@emdzej/inpax-ui-provider-core':
+        specifier: workspace:*
+        version: link:../ui-provider-core
+    devDependencies:
+      '@tsconfig/svelte':
+        specifier: ^5.0.4
+        version: 5.0.8
+      svelte:
+        specifier: ^5.0.0
+        version: 5.55.5(@typescript-eslint/types@8.54.0)
+      svelte-check:
+        specifier: ^4.0.0
+        version: 4.4.8(picomatch@4.0.3)(svelte@5.55.5(@typescript-eslint/types@8.54.0))(typescript@5.9.3)
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
 
 packages:
 

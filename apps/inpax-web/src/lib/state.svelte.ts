@@ -12,8 +12,7 @@
  * in ediabasx.
  */
 
-import type { InpaInstall } from "./inpa-install.js";
-import type { IpoEntry } from "./ipo-browser.js";
+import type { InpaInstall, IpoEntry } from "@emdzej/inpax-web-provider";
 import { loadConfig, type WebConfig } from "./config.js";
 
 export type AppView = "welcome" | "install" | "browse";

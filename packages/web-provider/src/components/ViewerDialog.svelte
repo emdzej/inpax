@@ -10,7 +10,7 @@
    * clicks Close (which calls `viewClose()`).
    */
 
-  import type { BrowserExternalProvider } from "../lib/browser-external.svelte";
+  import type { BrowserExternalProvider } from "../lib/browser-external.svelte.js";
 
   type Props = { external: BrowserExternalProvider };
   const { external }: Props = $props();

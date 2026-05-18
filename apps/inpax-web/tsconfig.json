@@ -8,7 +8,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": true,
+    // Off — `@emdzej/inpax-web-provider` ships `.svelte.ts` source
+    // whose Svelte parser rejects the `type` keyword in import
+    // specifiers, so the package's source can't use `import type`.
+    // With `verbatimModuleSyntax: false` TS elides type-only bindings
+    // automatically and stops descending into the consumed package
+    // with the strict rule.
+    "verbatimModuleSyntax": false,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": false,

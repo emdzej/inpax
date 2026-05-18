@@ -13,7 +13,7 @@
 import { parseIpo } from "@emdzej/inpax-parser";
 import { VM, MainScheduler } from "@emdzej/inpax-interpreter";
 import type { ScreenBuffer } from "@emdzej/inpax-ui-provider-core";
-import { WebUIProvider } from "./web-ui-provider.svelte.js";
+import { WebUIProvider } from "@emdzej/inpax-web-provider";
 import {
   NullSimulationProvider,
   NullPrintProvider,
@@ -22,13 +22,15 @@ import {
   NullSpsProvider,
 } from "@emdzej/inpax-providers/null";
 import { EdiabasXProvider, Inp1Adapter } from "@emdzej/inpax-ediabasx-provider";
-import { BrowserExternalProvider } from "./browser-external.svelte.js";
+import {
+  BrowserExternalProvider,
+  BrowserNativeImportProvider,
+  makeBrowserSgbdResolver,
+  type InpaInstall,
+  type IpoEntry,
+} from "@emdzej/inpax-web-provider";
 import { settings, RUNTIME_TICK_MS_FAST, debugLog } from "./settings.svelte.js";
 import { Ediabas, type EdiabasConfig } from "@emdzej/ediabasx-ediabas";
-import { BrowserNativeImportProvider } from "./native-imports.js";
-import { makeBrowserSgbdResolver } from "./sgbd-loader.js";
-import type { InpaInstall } from "./inpa-install.js";
-import type { IpoEntry } from "./ipo-browser.js";
 
 export interface RuntimeOptions {
   install: InpaInstall;

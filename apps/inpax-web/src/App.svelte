@@ -2,11 +2,24 @@
   import { app } from "./lib/state.svelte";
   import { connection } from "./lib/connection.svelte";
   import { settings, isDarkTheme } from "./lib/settings.svelte";
+  import {
+    setLibTheme,
+    classicInpaTheme,
+    darkInpaTheme,
+  } from "@emdzej/inpax-web-provider";
   import InstallPicker from "./components/InstallPicker.svelte";
   import IpoSidebar from "./components/IpoSidebar.svelte";
   import IpoRunner from "./components/IpoRunner.svelte";
   import ConfigPanel from "./components/ConfigPanel.svelte";
   import ThemeToggle from "./components/ThemeToggle.svelte";
+
+  // Install the web-provider theme context at the root. Components
+  // inside `@emdzej/inpax-web-provider` (ScreenCanvas, UserBoxOverlay,
+  // …) call `getLibTheme()` reactively, so this `$effect` re-running
+  // when the user toggles Light/Dark/System propagates immediately.
+  $effect(() => {
+    setLibTheme(isDarkTheme() ? darkInpaTheme : classicInpaTheme);
+  });
 
   // Apply / clear the `dark` class on <html> based on the resolved
   // theme. We watch both the user's explicit choice and (when set to
