@@ -139,6 +139,47 @@ describe('VM.execute', () => {
     expect(ctx.stack.pop().value).toBe(10);
   });
 
+  describe('ALU boolean ops', () => {
+    const runBoolBinary = async (op: AluOp, lhs: boolean, rhs: boolean) => {
+      const block = createFunctionBlock([
+        createInstruction(Opcode.PUSHIMM, 0x50, lhs ? 1 : 0),
+        createInstruction(Opcode.PUSHIMM, 0x50, rhs ? 1 : 0),
+        createInstruction(Opcode.ALU, op, 0),
+        createInstruction(Opcode.RET, 0, 0),
+      ]);
+      const ipo = createIpoFile(block);
+      const vm = new VM(ipo);
+      const ctx = new ExecutionContext([entry(ValueType.Int, 0)], []);
+      await vm.execute(block, ctx);
+      return { vm, ctx };
+    };
+
+    it('AND pushes a Bool and updates the condition register', async () => {
+      const { vm, ctx } = await runBoolBinary(AluOp.AND, true, false);
+      const top = ctx.stack.peek();
+      expect(top.type).toBe(ValueType.Bool);
+      expect(top.value).toBe(false);
+      expect(vm.getState().condition).toBe(0);
+    });
+
+    it('OR sets condition=1 when either operand is true', async () => {
+      const { vm, ctx } = await runBoolBinary(AluOp.OR, false, true);
+      expect(ctx.stack.peek().value).toBe(true);
+      expect(vm.getState().condition).toBe(1);
+    });
+
+    it('XOR is logical xor on booleans and updates the condition register', async () => {
+      const { vm: vmTrue, ctx: ctxTrue } = await runBoolBinary(AluOp.XOR, true, false);
+      expect(ctxTrue.stack.peek().type).toBe(ValueType.Bool);
+      expect(ctxTrue.stack.peek().value).toBe(true);
+      expect(vmTrue.getState().condition).toBe(1);
+
+      const { vm: vmFalse, ctx: ctxFalse } = await runBoolBinary(AluOp.XOR, true, true);
+      expect(ctxFalse.stack.peek().value).toBe(false);
+      expect(vmFalse.getState().condition).toBe(0);
+    });
+  });
+
   it('stores values to global and local scopes', async () => {
     const block = createFunctionBlock([
       createInstruction(Opcode.FRAME, 0, 0),

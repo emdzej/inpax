@@ -25,6 +25,7 @@
     UserBoxOverlay,
     ViewerDialog,
     LiveIndicator,
+    EdiabasBusyIndicator,
     ScrollIndicator,
     classicInpaTheme,
     darkInpaTheme,
@@ -373,6 +374,13 @@
                refreshing" signal that the original INPA achieved via
                per-LINE blinking dots. -->
           <LiveIndicator ui={runtime.ui} />
+          <!-- Sibling indicator: amber pulse for in-flight EDIABAS
+               work (INPAapiJob / INPAapiFsLesen / INPAapiInit). The
+               green LiveIndicator says "this screen is cyclic"; this
+               one says "the script is actually talking to the ECU
+               right now". They tell different stories and overlap in
+               common cases. -->
+          <EdiabasBusyIndicator ediabas={runtime.ediabas} />
           <!-- Bottom-right ▲/▼ buttons for screens whose LINE-block
                count exceeds the viewport. Hidden entirely when
                `totalLines <= visibleLineCount`. See

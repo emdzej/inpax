@@ -76,7 +76,7 @@ function inpaTypeToValueType(typeName: string): ValueType {
         case 'screen':
         case 'statemachine':
         case 'state':
-            return ValueType.Handle1;
+            return ValueType.ULong;
         default:
             return ValueType.Int; // fallback
     }

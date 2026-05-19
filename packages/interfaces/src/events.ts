@@ -76,6 +76,19 @@ export interface FsLesenCompleteEvent {
   faultCount: number;
 }
 
+/**
+ * Fired when the ediabas provider's in-flight async-call count changes
+ * (init / end / job / fsLesen / fsLesen2). `busy === inFlight > 0`.
+ * Consumers use this to drive a "background processing" UI indicator —
+ * the count lets the UI distinguish a single in-flight call from a
+ * burst of overlapping ones if it ever wants to, but most consumers
+ * just care about the boolean.
+ */
+export interface EdiabasBusyChangedEvent {
+  busy: boolean;
+  inFlight: number;
+}
+
 // === Event Maps ===
 
 export interface UIEvents {
@@ -130,6 +143,7 @@ export interface EdiabasEvents {
   'fs:complete': (event: FsLesenCompleteEvent) => void;
   'connection:lost': () => void;
   'connection:restored': () => void;
+  'busy:changed': (event: EdiabasBusyChangedEvent) => void;
 }
 
 export interface Inp1Events {

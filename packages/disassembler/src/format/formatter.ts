@@ -54,8 +54,8 @@ export const SCOPE_NAMES: Record<Scope, string> = {
 export const VALUE_TYPE_NAMES: Record<ValueType, string> = {
   [ValueType.Void]: 'void', [ValueType.Bool]: 'bool', [ValueType.Byte]: 'byte',
   [ValueType.Int]: 'int', [ValueType.Long]: 'long', [ValueType.Real]: 'real',
-  [ValueType.String]: 'string', [ValueType.Handle1]: 'handle1',
-  [ValueType.Handle2]: 'handle2', [ValueType.Handle3]: 'handle3',
+  [ValueType.String]: 'string', [ValueType.ULong]: 'ulong',
+  [ValueType.Numeric]: 'numeric', [ValueType.Object]: 'object',
 };
 
 /** Color scheme for syntax highlighting */
@@ -184,6 +184,16 @@ export function formatInstruction(
     : mnemonicColor(mnemonic));
 
   if (opts.showComments) {
+    // When the parser remapped a v1.x opcode (`instr.opcode` ≠ raw
+    // byte-0), surface the original byte so a reader looking at the
+    // raw bytes can reconcile them with the mnemonic — otherwise
+    // a v1.x `RET` rendering as `[0D ...]` looks like a bug (v5.x
+    // `0x0D` is CALLE). See `V1_OPCODE_TO_V5_OPCODE` in the parser
+    // for the table and reverse-engineering notes.
+    const rawByte0 = instr.raw & 0xff;
+    if (rawByte0 !== instr.opcode) {
+      parts.push(c.comment(`; v1.x op 0x${rawByte0.toString(16)}`));
+    }
     const comment = getComment(instr.opcode);
     if (comment) parts.push(c.comment(`; ${comment}`));
   }

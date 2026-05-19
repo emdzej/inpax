@@ -24,7 +24,7 @@ describe('ExecutionContext UI handle scopes', () => {
       const ctx = makeCtx();
       const result = ctx.getVariable(scope, 3);
 
-      expect(result.type).toBe(ValueType.Handle1);
+      expect(result.type).toBe(ValueType.ULong);
       expect(result.value).toBe(3);
       expect(result.refInfo).toEqual({ scope, index: 3 });
     });

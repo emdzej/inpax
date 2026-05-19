@@ -10,9 +10,9 @@ export function typeLabel(type: ValueType): string {
     case ValueType.Long: return 'long';
     case ValueType.Real: return 'real';
     case ValueType.String: return 'string';
-    case ValueType.Handle1: return 'h1';
-    case ValueType.Handle2: return 'h2';
-    case ValueType.Handle3: return 'h3';
+    case ValueType.ULong: return 'ulong';
+    case ValueType.Numeric: return 'numeric';
+    case ValueType.Object: return 'object';
     default: return '?';
   }
 }

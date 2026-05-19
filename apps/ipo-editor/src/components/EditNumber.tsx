@@ -25,10 +25,10 @@ function rangeFor(type: ValueType): Range {
     case ValueType.Byte:  return { label: 'byte (u8)',  min: 0,           max: 0xff,       hexWidth: 2 };
     case ValueType.Int:   return { label: 'int (s16)',  min: -32768,      max: 32767,      hexWidth: 4 };
     case ValueType.Long:  return { label: 'long (s32)', min: -2147483648, max: 2147483647, hexWidth: 8 };
-    case ValueType.Handle1:
-    case ValueType.Handle2:
-    case ValueType.Handle3:
-      return { label: 'handle (s32)', min: -2147483648, max: 2147483647, hexWidth: 8 };
+    case ValueType.ULong: return { label: 'ulong (u32)', min: 0, max: 0xffffffff, hexWidth: 8 };
+    case ValueType.Numeric:
+    case ValueType.Object:
+      return { label: 'numeric (s32)', min: -2147483648, max: 2147483647, hexWidth: 8 };
     default:
       throw new Error(`EditNumber: unsupported type 0x${(type as number).toString(16)}`);
   }

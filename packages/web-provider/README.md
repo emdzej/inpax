@@ -29,7 +29,14 @@ What's in the box:
 - **`ScriptSelectDialog`** — `scriptselect` picker. Takes a `loader`
   prop so the dialog stays host-agnostic; pair with `loadScriptSelect`
   for the common CFGDAT-directory case.
-- **`LiveIndicator`** — pulsing dot for cyclic screens.
+- **`LiveIndicator`** — green pulsing dot for cyclic screens (the
+  `setscreen(handle, true)` case — "this screen is on a refresh cycle").
+- **`EdiabasBusyIndicator`** — amber pulsing dot that lights up whenever
+  the EDIABAS bridge has any `INPAapi*` async call in flight (init /
+  end / job / fsLesen / fsLesen2). Subscribes to the
+  `busy:changed` event on `IEdiabasProvider`. Complementary to
+  `LiveIndicator`: green = screen-level refresh, amber = per-call ECU
+  I/O. Both can be lit simultaneously.
 - **`ScrollIndicator`** — pagination hint when a SCREEN has more LINE
   blocks than the viewport.
 

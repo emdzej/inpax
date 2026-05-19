@@ -118,14 +118,46 @@ export class EdiabasXProvider
     jobName: 'FS_LESEN',
   };
 
+  /**
+   * In-flight async-call counter. Bumped on entry to every public
+   * async method (init/end/job/fsLesen/fsLesen2) and decremented in
+   * the matching finally. The counter, rather than a boolean, lets
+   * overlapping calls (e.g. a script that fires two jobs before the
+   * first one resolves) coalesce naturally: the indicator stays on
+   * until the *last* outstanding call settles.
+   */
+  private inFlight = 0;
+
   constructor(config: EdiabasXProviderConfig = {}) {
     super();
     this.providerConfig = config;
   }
 
+  /**
+   * Snapshot of the in-flight busy state. Useful for hosts that mount
+   * an indicator after some calls have already started.
+   */
+  isBusy(): boolean {
+    return this.inFlight > 0;
+  }
+
+  private beginBusy(): void {
+    this.inFlight++;
+    this.emit('busy:changed', { busy: true, inFlight: this.inFlight });
+  }
+
+  private endBusy(): void {
+    if (this.inFlight > 0) this.inFlight--;
+    this.emit('busy:changed', {
+      busy: this.inFlight > 0,
+      inFlight: this.inFlight,
+    });
+  }
+
   // === Lifecycle ===
 
   async init(): Promise<void> {
+    this.beginBusy();
     try {
       if (this.providerConfig.instance) {
         this.ediabas = this.providerConfig.instance;
@@ -170,22 +202,29 @@ export class EdiabasXProvider
       const message = err instanceof Error ? err.message : String(err);
       this.emit('job:error', { code: -1, message: `Init failed: ${message}` });
       throw err;
+    } finally {
+      this.endBusy();
     }
   }
 
   async end(): Promise<void> {
-    if (this.ediabas) {
-      try {
-        await this.ediabas.disconnect();
-      } catch {
-        /* ignore — we're tearing down anyway */
+    this.beginBusy();
+    try {
+      if (this.ediabas) {
+        try {
+          await this.ediabas.disconnect();
+        } catch {
+          /* ignore — we're tearing down anyway */
+        }
+        this.ediabas = null;
       }
-      this.ediabas = null;
+      this.currentEcu = null;
+      this.lastResults = [];
+      this.lastJobStatus = '';
+      this.emit('connection:lost');
+    } finally {
+      this.endBusy();
     }
-    this.currentEcu = null;
-    this.lastResults = [];
-    this.lastJobStatus = '';
-    this.emit('connection:lost');
   }
 
   // === Job Execution ===
@@ -196,6 +235,7 @@ export class EdiabasXProvider
       return;
     }
 
+    this.beginBusy();
     try {
       // Load the SGBD on the first hit and whenever the script switches
       // ECUs. INPA scripts often hit multiple ECUs in sequence
@@ -259,6 +299,8 @@ export class EdiabasXProvider
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.emit('job:error', { code: -1, message });
+    } finally {
+      this.endBusy();
     }
   }
 

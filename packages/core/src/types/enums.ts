@@ -1,17 +1,35 @@
 /**
- * IPO Value Types
+ * IPO Value Types — canonical v5.x / v4.4 vocabulary.
+ *
+ * Verified against INPA.exe's type-name table at `FUN_0046456b` and
+ * its constants reader at `FUN_00463bd7`. See
+ * `docs/ipo-format-versions.md` for the reverse-engineering notes.
+ *
+ * Older `Handle1` / `Handle2` / `Handle3` names (used for slots
+ * `0x07` / `0x08` / `0x09` before 2026-05) were wrong — the actual
+ * type names INPA uses internally are `ULONG`, `NUMERIC`, `OBJECT`.
+ * They are not opaque handles.
+ *
+ * `Numeric` is special: it's a 4-byte numeric value the runtime can
+ * coerce through ASCII-LONG conversion (see `TryConversion from both
+ * ASCII-LONG` MessageBoxA path at `INPA.exe!FUN_0045ffdc`).
+ *
+ * v1.x scripts (NCSEXPERT) use a different, smaller type-byte
+ * vocabulary that doesn't map cleanly onto this enum — those are
+ * decoded via a version-conditional parser path. Don't reuse this
+ * enum for v1.x type bytes.
  */
 export enum ValueType {
     Void = 0x00,
     Bool = 0x01,
     Byte = 0x02,
-    Int = 0x03, // s16
-    Long = 0x04, // s32
-    Real = 0x05, // f64
-    String = 0x06,
-    Handle1 = 0x07,
-    Handle2 = 0x08,
-    Handle3 = 0x09,
+    Int = 0x03,     // s16 LE
+    Long = 0x04,    // s32 LE
+    Real = 0x05,    // f64 LE
+    String = 0x06,  // newline-terminated, max 1023 bytes
+    ULong = 0x07,   // u32 LE
+    Numeric = 0x08, // 4 bytes, ASCII-LONG coercible
+    Object = 0x09,
 }
 
 /**
@@ -103,7 +121,19 @@ export enum CallTarget {
 }
 
 /**
- * Type markers in bytecode (for CAST)
+ * Type markers in bytecode (for ALLOC/PUSHIMM opcodes).
+ *
+ * Verified against INPA.exe's TypeMarker→ValueType mapper at
+ * `FUN_00460f29`. Used by:
+ *   - ALLOC (opcode 0x08): all eight markers initialize a local var
+ *   - PUSHIMM (opcode 0x11): only 0x50–0x53 (the inline-byte forms)
+ *
+ * Note: there is no marker for `Numeric` (ValueType 8). NUMERIC values
+ * arrive from constants/loads and are coerced to BOOL/BYTE/INT/LONG
+ * via `FUN_0045ffdc` → `FUN_0046014a` at load time, before the ALU
+ * dispatcher sees them. INPA.exe's CAST opcode (originally 0x04) is a
+ * no-op — type coercion happens through these markers and the
+ * load-time NUMERIC path, not via an explicit CAST opcode.
  */
 export enum TypeMarker {
     Bool = 0x50,
@@ -112,6 +142,6 @@ export enum TypeMarker {
     Long = 0x53,
     Real = 0x54,
     String = 0x55,
-    Handle1 = 0x56,
-    Handle2 = 0x57,
+    Object = 0x56,
+    ULong = 0x57,
 }

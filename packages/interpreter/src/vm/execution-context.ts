@@ -88,7 +88,7 @@ export class ExecutionContext {
         // back to the IPO block by index. value mirrors the index so
         // popInt() also works for system functions that read the raw int.
         return {
-          type: ValueType.Handle1,
+          type: ValueType.ULong,
           flags: StackEntryFlags.ByValue,
           value: index,
           refInfo: { scope, index },

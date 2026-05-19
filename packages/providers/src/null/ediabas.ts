@@ -53,6 +53,10 @@ export class NullEdiabasProvider
     return true;
   }
 
+  isBusy(): boolean {
+    return false;
+  }
+
   async fsLesen(_ecu: string, _fileName: string): Promise<void> {}
   async fsLesen2(_ecu: string, _fileName: string): Promise<void> {}
 

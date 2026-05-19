@@ -163,9 +163,9 @@ export function walkIpo(bytes: Uint8Array, codepage = 'cp1252'): WalkResult {
           case ValueType.String:
             value = decode(r.bytesUntilSep(), codepage);
             break;
-          case ValueType.Handle1:
-          case ValueType.Handle2:
-          case ValueType.Handle3:
+          case ValueType.ULong:
+          case ValueType.Numeric:
+          case ValueType.Object:
             value = r.s32LE();
             break;
           default:

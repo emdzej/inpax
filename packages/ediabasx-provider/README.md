@@ -103,6 +103,11 @@ Mirrors the `EdiabasEvents` map from `@emdzej/inpax-interfaces`:
 - `job:error` — `{ code, message }`
 - `fs:complete` — `{ ecu, fileName, faultCount }`
 - `connection:lost` / `connection:restored`
+- `busy:changed` — `{ busy, inFlight }` — fired every time the in-flight
+  async-call counter (init / end / job / fsLesen / fsLesen2)
+  transitions. `busy === inFlight > 0`. Pair with `isBusy()` for the
+  current snapshot. Used by `@emdzej/inpax-web-provider`'s
+  `<EdiabasBusyIndicator />` to drive a background-processing UI signal.
 
 ## Requirements
 

@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-cli",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "INPAX CLI - IPO toolchain",
   "type": "module",
   "bin": {

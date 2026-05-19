@@ -191,6 +191,11 @@ export class MockEdiabasProvider extends EventEmitter<EdiabasEvents> implements 
     return true;
   }
 
+  isBusy(): boolean {
+    // Mock has no async surface — calls resolve synchronously.
+    return false;
+  }
+
   async fsLesen(ecu: string, fileName: string): Promise<void> {
     await this.job(ecu, 'FS_LESEN', fileName, '');
   }

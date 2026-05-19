@@ -173,9 +173,9 @@ export class VM {
             case ValueType.Byte:
             case ValueType.Int:
             case ValueType.Long:
-            case ValueType.Handle1:
-            case ValueType.Handle2:
-            case ValueType.Handle3:
+            case ValueType.ULong:
+            case ValueType.Numeric:
+            case ValueType.Object:
                 return 0;
             case ValueType.Real:
                 return 0.0;
@@ -460,12 +460,12 @@ export class VM {
                 value = '';
                 break;
             case 0x56:
-                type = ValueType.Handle1;
-                value = null;
+                type = ValueType.Object;
+                value = 0;
                 break;
             case 0x57:
-                type = ValueType.Handle2;
-                value = null;
+                type = ValueType.ULong;
+                value = 0;
                 break;
             default:
                 type = ValueType.Void;
@@ -545,9 +545,18 @@ export class VM {
                 break;
             case AluOp.AND:
                 result = Boolean(lhs.value) && Boolean(rhs.value);
+                this.state.condition = result ? 1 : 0;
                 break;
             case AluOp.OR:
                 result = Boolean(lhs.value) || Boolean(rhs.value);
+                this.state.condition = result ? 1 : 0;
+                break;
+            case AluOp.XOR:
+                // INPA's FUN_00460faf case 0x6c: BOOL-only logical XOR
+                // implemented as `lhs != rhs`. Updates the condition
+                // register, same as AND/OR.
+                result = Boolean(lhs.value) !== Boolean(rhs.value);
+                this.state.condition = result ? 1 : 0;
                 break;
             case AluOp.BAND:
                 result = (lhs.value as number) & (rhs.value as number);
@@ -577,7 +586,8 @@ export class VM {
             op === AluOp.EQ ||
             op === AluOp.NE ||
             op === AluOp.AND ||
-            op === AluOp.OR;
+            op === AluOp.OR ||
+            op === AluOp.XOR;
         const resultType = isBoolResult ? ValueType.Bool : lhs.type;
         ctx.stack.push({ type: resultType, flags: 1, value: result });
     }

@@ -80,6 +80,13 @@ export interface IEdiabasProvider extends EventEmitter<EdiabasEvents> {
    */
   checkJobStatus(refStr: string): boolean;
 
+  /**
+   * Whether any async `INPAapi*` call (init / end / job / fsLesen) is
+   * currently in flight. UI hosts use this to drive a background-I/O
+   * indicator; pair with the `busy:changed` event for live updates.
+   */
+  isBusy(): boolean;
+
   // === Fault Storage ===
   
   /**

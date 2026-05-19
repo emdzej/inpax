@@ -293,9 +293,9 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
       case ValueType.Byte:
       case ValueType.Int:
       case ValueType.Long:
-      case ValueType.Handle1:
-      case ValueType.Handle2:
-      case ValueType.Handle3:
+      case ValueType.ULong:
+      case ValueType.Numeric:
+      case ValueType.Object:
         return 0;
       case ValueType.Real:
         return 0.0;

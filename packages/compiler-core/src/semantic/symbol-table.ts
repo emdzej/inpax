@@ -113,9 +113,9 @@ const TYPE_MAP: Record<ValueTypeName, ValueType> = {
   real: ValueType.Real,
   string: ValueType.String,
   // `structure` only ever appears in import32 signatures — we treat it
-  // as the first handle type so it round-trips through the type table
-  // even though no IPS code uses it as a variable type.
-  structure: ValueType.Handle1,
+  // as ULONG (the first non-primitive type) so it round-trips through
+  // the type table even though no IPS code uses it as a variable type.
+  structure: ValueType.ULong,
 };
 
 export function typeNameToValueType(name: ValueTypeName): ValueType {

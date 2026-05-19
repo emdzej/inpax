@@ -6,6 +6,125 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.5.0] — 2026-05-19
+
+### Added
+
+- **v1.x IPO format support.** The parser now reads BMW INPA's older v1.x
+  binary format alongside v5.x. v1.x files are produced by NCSEXPERT and
+  found in `EC-APPS/NCS_EXPER/SGDAT/` on real BMW installs (~3,250 scripts
+  across BMW E-series ECUs). Coverage:
+  - **Version-aware constants block.** `parseConstantV1()` reads the 5-type
+    v1.x vocabulary (`0x01` BOOL / `0x02` INT s16 / `0x03` REAL f64 /
+    `0x04` STRING / `0x05` LONG s32) and translates each byte into the
+    canonical v5.x `ValueType` enum so disassembler / interpreter /
+    dispatcher need no version-aware code paths. Authoritative source:
+    `NCSEXPERT.exe!FUN_0046a9a0(kind=1)`. (`@emdzej/inpax-parser`)
+  - **Version-aware globals block.** `parseGlobals()` accepts the broader
+    v1.x globals vocabulary (`0x00`–`0x06`, including the reserved Void
+    slot at index 0 and a `0x06` handle slot for state-machine / screen
+    references which maps to `ValueType.ULong`). Authoritative source:
+    `NCSEXPERT.exe!FUN_0046a9a0(kind=0)`. (`@emdzej/inpax-parser`)
+  - **Parse-time opcode remap.** v5.x renumbered the four trailing
+    opcodes when LOGTABLE was inserted at `0x10`, so v1.x bytes
+    `0x0D`–`0x10` carry different semantics than the same bytes in v5.x:
+
+    | v1.x byte | v1.x op | v5.x byte (canonical) |
+    |---|---|---|
+    | `0x0D`    | RET     | `0x0E`                |
+    | `0x0E`    | FRAME   | `0x0F`                |
+    | `0x0F`    | CALLE   | `0x0D`                |
+    | `0x10`    | PUSHIMM | `0x11`                |
+
+    `parseFunction()` remaps these bytes when `header.versionHi === 1`,
+    storing the canonical opcode in `Instruction.opcode` while preserving
+    the original 32-bit on-disk word in `Instruction.raw`. The first 12
+    opcodes (`0x01`–`0x0C`) and all ALU sub-codes (`0x60`–`0x71`) are
+    bit-identical between versions and pass through unchanged.
+    Authoritative source: NCSEXPERT's `CInterpreter::DoInterpret` at
+    `FUN_0045d830`, cross-checked against INPA's `INPA_VM_Interpret` at
+    `0x004607d7`. See `docs/ipo-format-versions.md` for the complete
+    reverse-engineering trail. (`@emdzej/inpax-parser`)
+  - **Disassembler hint for remapped instructions.** When
+    `instr.opcode !== (instr.raw & 0xff)` (i.e. the parser remapped a
+    v1.x byte into its v5.x slot), the formatter appends a
+    `; v1.x op 0x__` trailing comment so a reader cross-checking the
+    raw bytes can reconcile them with the displayed mnemonic. Hidden
+    when `showComments: false`. (`@emdzej/inpax-dis`)
+  - **Real-world coverage**: 1,588 / 1,591 NCSEXPERT v1.x files parse and
+    disassemble cleanly. The 3 outliers are non-IPO files mis-extensioned
+    `.ipo` (a 2-byte stub, a TSV log, a text source).
+- **`@emdzej/inpax-ediabasx-provider`: background-I/O indicator support.**
+  The provider now tracks an in-flight counter across `init` / `end` /
+  `job` / `fsLesen` / `fsLesen2` and emits a `busy:changed` event on
+  every transition. `IEdiabasProvider` gains an `isBusy()` accessor. A
+  new component `<EdiabasBusyIndicator />` (in
+  `@emdzej/inpax-web-provider`) lights an amber pulse in the canvas
+  corner whenever the script is currently talking to the ECU —
+  complements the existing green `LiveIndicator` (cyclic-screen signal)
+  with a per-call background-processing signal.
+  (`@emdzej/inpax-ediabasx-provider`, `@emdzej/inpax-interfaces`,
+  `@emdzej/inpax-web-provider`, `@emdzej/inpax-web`,
+  `@emdzej/inpax-mock-provider`, `@emdzej/inpax-providers`)
+- **`AluOp.XOR` (`0x6C`) handler in the VM.** The enum entry already
+  existed; the dispatcher's switch was missing it (would have thrown
+  `Unknown ALU op: 0x6c` on any boolean `xor` expression). Now matches
+  INPA's `FUN_00460faf` case `0x6c`: `result = Boolean(lhs) !== Boolean(rhs)`,
+  result tagged `Bool`, condition register updated.
+  (`@emdzej/inpax-interpreter`)
+
+### Changed
+
+- **`ValueType` enum**: `Handle1` / `Handle2` / `Handle3` renamed to
+  **`ULong`** / **`Numeric`** / **`Object`** (slots `0x07` / `0x08` /
+  `0x09` unchanged — only the symbolic names move). The previous names
+  were guesses; the actual INPA-internal names were confirmed via the
+  type-name table at `INPA.exe!FUN_0046456b` and the constants reader
+  at `FUN_00463bd7`. **Breaking** for any external consumer that
+  referenced `ValueType.Handle1`/`Handle2`/`Handle3` directly; in-tree
+  callers across parser, interpreter, dispatcher, compiler-core,
+  disassembler, mock-provider, and ipo-editor have all been updated.
+  (`@emdzej/inpax-core`)
+- **`TypeMarker` enum**: `Handle1` / `Handle2` renamed to **`Object`**
+  / **`ULong`** (bytecode bytes `0x56` / `0x57` unchanged). Authoritative
+  source: `INPA.exe!FUN_00460f29` — the marker→ValueType mapper. The
+  rename also fixes a latent bug in `opAlloc` where `0x56` was previously
+  mapping to `ValueType.ULong` (should be `ValueType.Object`) and `0x57`
+  was mapping to `ValueType.Numeric` (should be `ValueType.ULong`),
+  with both initial values set to `null` instead of `0`.
+  (`@emdzej/inpax-core`, `@emdzej/inpax-interpreter`)
+- **`opAlu` — `AND`/`OR`/`XOR` now update `state.condition`.** INPA's
+  `FUN_00460faf` writes `*(this+8) = result` for all three logical
+  binary ops, not just the comparison ops. Without this fix, a
+  `JMPNZ` after a compound boolean (e.g. `(a == b) && (c == d)`)
+  could read a stale condition register from the last comparison
+  instead of the AND/OR/XOR result. (`@emdzej/inpax-interpreter`)
+
+### Fixed
+
+- **Disassembler CALLE rendering for v1.x files**: pre-remap, every v1.x
+  byte `0x0D` was being labeled `CALLE dll[constants[0]]` (which in
+  `A_AKMB46.ipo` happened to evaluate to `"cabi.h"` — bogus). Post-remap,
+  these correctly render as `RET ; v1.x op 0xd ; return`. The
+  `dll[cabi.h]` text seen across every CALLE in v1.x disassemblies was
+  a symptom of the v5.x opcode interpretation mis-firing on a v1.x file.
+  (`@emdzej/inpax-dis`)
+
+### Reverse-engineering
+
+The format-versioning work is fully documented in
+`docs/ipo-format-versions.md` with anchor addresses and decompiled
+behaviour for:
+- NCSEXPERT's binary IPO reader (`FUN_0046bae0`), block-header reader
+  (`FUN_0046b7b0`), constants/globals reader (`FUN_0046a9a0`), function
+  body reader (`FUN_0046ae20`).
+- NCSEXPERT's VM dispatcher `CInterpreter::DoInterpret` at
+  `FUN_0045d830`, ALU sub-dispatcher `FUN_0045d030`, TypeMarker mapper
+  `FUN_0045cdc0`.
+- INPA's VM dispatcher `INPA_VM_Interpret` at `0x004607d7`, ALU
+  dispatcher `FUN_00460faf`, TypeMarker mapper `FUN_00460f29`, NUMERIC
+  coercion path `FUN_0045ffdc` → `FUN_0046014a`.
+
 ## [0.4.0] — 2026-05-18
 
 ### Added

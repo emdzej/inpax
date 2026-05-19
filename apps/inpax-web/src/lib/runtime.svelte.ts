@@ -61,6 +61,12 @@ export interface RuntimeHandle {
    * `ViewerDialog.svelte` to render the modal that backs `viewopen`.
    */
   external: BrowserExternalProvider;
+  /**
+   * EDIABAS bridge provider. Exposed so UI components (e.g. the
+   * background-I/O indicator) can subscribe to `busy:changed` and
+   * other bridge-level events.
+   */
+  ediabas: EdiabasXProvider;
   /** Buffer the canvas reads each frame. */
   screen: ScreenBuffer;
   /** Stop the scheduler + tear down providers. Idempotent. */
@@ -286,6 +292,7 @@ export async function startInpaRuntime(
   return {
     ui,
     external: externalProvider,
+    ediabas: ediabasProvider,
     screen,
     isRunning: () => !disposed && scheduler.isRunning(),
     onFrameReady: (cb) => {

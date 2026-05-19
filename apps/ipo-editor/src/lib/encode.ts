@@ -74,9 +74,9 @@ function encodeOne(out: number[], type: ValueType, value: ConstValue, codepage: 
       out.push(SEPARATOR);
       return;
     }
-    case ValueType.Handle1:
-    case ValueType.Handle2:
-    case ValueType.Handle3:
+    case ValueType.ULong:
+    case ValueType.Numeric:
+    case ValueType.Object:
       pushS32LE(out, Number(value));
       return;
     default:

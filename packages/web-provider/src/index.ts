@@ -82,4 +82,5 @@ export { default as UserBoxOverlay } from "./components/UserBoxOverlay.svelte";
 export { default as ViewerDialog } from "./components/ViewerDialog.svelte";
 export { default as ScriptSelectDialog } from "./components/ScriptSelectDialog.svelte";
 export { default as LiveIndicator } from "./components/LiveIndicator.svelte";
+export { default as EdiabasBusyIndicator } from "./components/EdiabasBusyIndicator.svelte";
 export { default as ScrollIndicator } from "./components/ScrollIndicator.svelte";
