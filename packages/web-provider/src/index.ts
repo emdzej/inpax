@@ -63,7 +63,7 @@ export {
 // .grp → .prg variant swap with case-insensitive matching.
 export { makeBrowserSgbdResolver } from "./lib/sgbd-loader.js";
 
-// ─── Native imports provider (BEST2 CALLE shim) ─────────────────────
+// ─── Native imports provider (INPA CALLE shim) ─────────────────────
 // Wires INPA's CALLE imports (kernel32 INI / system / strings, api32
 // __apiGetConfig, etc.) to the browser. Constructor takes an
 // `InpaInstall`; `prefetchIniFiles()` populates the INI cache the

@@ -7,7 +7,7 @@ import { EventEmitter } from 'eventemitter3';
 import type { UIEvents } from './events.js';
 
 /**
- * One candidate row for the `togglelist` dialog (BEST2 sysfunc `0x16`).
+ * One candidate row for the `togglelist` dialog (INPA sysfunc `0x16`).
  *
  * INPA scripts declare these via "empty" LineFunc sub-blocks of the
  * active SCREEN — each item carries:
@@ -347,7 +347,7 @@ export interface IUIProvider extends EventEmitter<UIEvents> {
   /**
    * Show INPA's toggle-list dialog — the "Please select the objects
    * to be controlled" multi-select picker real INPA pops on
-   * `togglelist` (BEST2 system function `0x16`). Used by control
+   * `togglelist` (INPA system functions `0x16`). Used by control
    * menus (e.g. KOMBI's "Ansteuern Digital → Auswahl: Kontrollampen
    * ansteuern") to let the user pick which lamps / indicators /
    * actuators to drive.

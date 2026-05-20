@@ -158,7 +158,7 @@ NCSEXPERT.exe's import table:
 - Only ECU communication imports (`__api*` family from `api32.dll`).
 - No INPA-specific imports.
 - The bytecode loader / executor is `FUN_00464c50` @ 0x00464c50 (LALR-
-  style table-driven state machine; semantic actions execute BEST2 ops
+  style table-driven state machine; semantic actions execute INPA ops
   inline).
 - The constants writer that gave us the Old type-byte table is
   `FUN_0046b240` @ 0x0046b240 — confirmed via Ghidra decompilation.

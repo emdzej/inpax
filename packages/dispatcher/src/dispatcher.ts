@@ -484,7 +484,7 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
                     inputs[2] as number, inputs[3] as number
                 ));
             case SystemFunction.select: {
-                // BEST2 sig: (in: bool MultipleSelectFlag) — no out-string.
+                // INPA sig: (in: bool MultipleSelectFlag) — no out-string.
                 //
                 // INPA's `select` opens the same multi-select picker as
                 // `togglelist` (we route through `ui.togglelist`) but
@@ -531,7 +531,7 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
                 return;
             }
             case SystemFunction.togglelist: {
-                // BEST2 sig: (in: bool MultipleSelectFlag, in: bool ArgNumFlag,
+                // INPA sig: (in: bool MultipleSelectFlag, in: bool ArgNumFlag,
                 //             out: string ApiToggleString)
                 //
                 // Candidates come from the active SCREEN's "empty"

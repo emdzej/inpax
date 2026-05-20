@@ -21,7 +21,7 @@ import type { ToggleItem } from '@emdzej/inpax-interfaces';
  *   bec0   cycleTicks    — INPA cycle counter; 60 on start, 0 on stop
  *   e960   cancelled     — user closed picker via Cancel (1=cancel, 0=OK)
  *
- * Driven by these BEST2 system functions (handler anchors in INPA.exe):
+ * Driven by these INPA system functions (handler anchors in INPA.exe):
  *
  *   0x10  select(MultipleSelectFlag)  → 0x004138a9  (FUN_0041a646)
  *   0x11  deselect()                  → 0x00413916  (FUN_0041b080)

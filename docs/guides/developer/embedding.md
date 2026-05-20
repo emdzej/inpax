@@ -62,7 +62,7 @@ interfaces**, a **runtime builder**, and at least one **UI provider**:
 | `@emdzej/inpax-interfaces` | `IUIProvider`, `IEdiabasProvider`, … type contracts | Types only |
 | `@emdzej/inpax-ui-provider-core` | Abstract `UIProvider` base for your renderer | Yes (you'll extend it) |
 | `@emdzej/inpax-core` | CP1252 + shared helpers (`formatMany`, `SystemFunction` enum) | Yes (transitive) |
-| `@emdzej/inpax-dispatcher` | System-function dispatcher (BEST2 syscall router) | Yes (transitive) |
+| `@emdzej/inpax-dispatcher` | System-function dispatcher (INPA syscall router) | Yes (transitive) |
 
 Add the provider implementations you need:
 
@@ -89,7 +89,7 @@ monorepo and ship to npm under the same scope:
 ## 3. The provider protocol
 
 `createRuntime(config)` (from `@emdzej/inpax-providers`) takes a
-config object whose keys map onto the BEST2 subsystems. Pass in what
+config object whose keys map onto the INPA subsystem. Pass in what
 you implement; the builder fills the rest with Null providers:
 
 ```typescript
@@ -343,7 +343,7 @@ await ediabas.disconnect(); // closes the cable / WebSocket
 
 ## 8. Scripts that need INPA's CALLE imports
 
-INPA's BEST2 bytecode can call out to Windows DLL entry points
+INPA's IPO bytecode can call out to Windows DLL entry points
 (`kernel32::GetPrivateProfileStringA`, `api32::__apiGetConfig`,
 `user32::wvsprintfA`, …) via the CALLE opcode. The dispatcher routes
 these to an `INativeImportProvider`. Browser hosts use

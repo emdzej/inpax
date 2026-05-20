@@ -23,8 +23,8 @@
   } from "../lib/script-select.js";
 
   /**
-   * Loader contract — given the file name the BEST2 `scriptselect`
-   * opcode supplied (`E46.ENG`, `Antrieb.GER`, …), return the parsed
+   * Loader contract — given the file name the INPA `scriptselect`
+   * system function supplied (`E46.ENG`, `Antrieb.GER`, …), return the parsed
    * tree (or `null` if the file can't be found). The host owns the
    * I/O: typically a `FileSystemDirectoryHandle.entries()` walk piped
    * through `parseScriptSelect(content)`, but any source works — an

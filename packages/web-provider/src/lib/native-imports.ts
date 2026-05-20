@@ -1,5 +1,5 @@
 /**
- * Browser-side INativeImportProvider — handles the BEST2 CALLE
+ * Browser-side INativeImportProvider — handles the INPA CALLE
  * imports that inpax scripts use, reading via FileSystemDirectoryHandle
  * instead of `node:fs`.
  *
@@ -142,7 +142,7 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
       // from web code, so we ask the user to rename their `.INI`
       // files to `.INIX` (a non-blocked extension) on disk and we
       // pick the renamed copy up here. The cache is still keyed by
-      // the canonical `.ini` name so the BEST2 scripts (which
+      // the canonical `.ini` name so the INPA scripts (which
       // hardcode `INPA.INI` / `EDIABAS.INI`) find it unchanged.
       // See `docs/research/chrome-ini-blocklist.md`.
       const inixFilename = filename.replace(/\.ini$/i, ".INIX");
@@ -523,7 +523,7 @@ const STRING_HANDLERS: Array<[string, Handler]> = [
  * boolean result. We can't actually open a file from the browser
  * synchronously, so we return a synthetic non-error handle (1) and
  * let the script's follow-up reads (via INI helpers or `OPENFILE` /
- * `READFILE`-style BEST2 ops) fail naturally if the data isn't
+ * `READFILE`-style INPA ops) fail naturally if the data isn't
  * there. Falls back to the script-side default on the rare path
  * that checks the structure contents.
  */

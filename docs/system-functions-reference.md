@@ -1,4 +1,4 @@
-# BEST2 system functions — reference & implementation status
+# INPA system functions — reference & implementation status
 
 Companion to [`system-functions.md`](./guides/developer/inpa/system-functions.md) (which
 covers the **call mechanism** — opcode 0x0C dispatch, FRAME / RET
@@ -74,7 +74,7 @@ owns the behaviour.
 | 0x1B | `delay` | ✅ | interpreter | `await new Promise(setTimeout)`; matches `Sleep(ms)`. |
 | 0x1C | `getdate` | ✅ | interpreter | Locale-formatted; matches `GetLocalTime` formatting. |
 | 0x1D | `gettime` | ✅ | interpreter | Same. |
-| 0x1E | `realtostring` | ✅ | interpreter | Uses BEST2's C-style format spec via `formatMany` in `@emdzej/inpax-core`. |
+| 0x1E | `realtostring` | ✅ | interpreter | Uses INPA's C-style format spec via `formatMany` in `@emdzej/inpax-core`. |
 | 0x1F | `stringtoreal` | ✅ | interpreter | `parseFloat`, defaults to 0 on bad input (matches INPA). |
 | 0x20 | `inttostring` | ✅ | interpreter | Decimal, no padding. |
 | 0x21 | `stringtoint` | ✅ | interpreter | `parseInt(value, 10)`, defaults 0. |
@@ -308,7 +308,7 @@ don't hit these; the ones that do typically degrade gracefully.
 - [`docs/system-functions.md`](./system-functions.md) — opcode 0x0C
   dispatch internals, function-table layout from Ghidra.
 - [`docs/inpa-language-reference.md`](./inpa-language-reference.md)
-  — BEST2 language surface (types, control flow, FRAME / RET).
+  — INPA bytecode language surface (types, control flow, FRAME / RET).
 - [`docs/vm-functions.md`](./vm-functions.md) — VM-side
   implementation patterns shared across handlers.
 - [`docs/interfaces/README.md`](./interfaces/README.md) — the

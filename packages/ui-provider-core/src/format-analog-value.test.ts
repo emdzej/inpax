@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { formatAnalogValue } from './ui-provider.js';
 
 describe('formatAnalogValue', () => {
-  describe('BEST2 bare width.precision spec', () => {
+  describe('INPA bare width.precision spec', () => {
     // The format spec MS43 passes to every analogout: `"4.2"` =
     // width 4, 2 decimals. This is the regression-test target —
     // we used to return the literal `"4.2"` here and every gauge

@@ -1,5 +1,5 @@
 /**
- * Node-side handler for BEST2 CALLE imports.
+ * Node-side handler for INPA CALLE imports.
  *
  * Each Win32 DLL gets its own module (`ini.ts`, `system.ts`, etc.); this
  * file owns dispatch — match by import name, delegate to the matching

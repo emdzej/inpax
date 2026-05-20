@@ -49,9 +49,10 @@ C:\EC-APPS\INPA\CFGDAT\INPA.INI  →  INPA.INIX
 Then `cacheIniFile` (in `apps/inpax-web/src/lib/native-imports.ts`)
 falls back to the `.INIX` variant when the `.INI` lookup misses,
 parses it, and stores it in the in-memory INI cache under the
-**canonical `.ini`** cache key. The BEST2 scripts continue to call
-`GetPrivateProfileStringA(section, key, default, "INPA.INI")` and
-get the right data; they never see the `.INIX` rename.
+**canonical `.ini`** cache key. The INPA scripts continue to call
+`GetPrivateProfileStringA(section, key, default, "INPA.INI")` via the
+INPA CALLE shim and get the right data; they never see the `.INIX`
+rename.
 
 Copy (not rename) is the safer instruction — keeps the original
 `.INI` in place for Windows-native INPA / Tool32 / EDIABAS itself.

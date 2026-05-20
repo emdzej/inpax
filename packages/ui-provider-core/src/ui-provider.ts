@@ -49,7 +49,7 @@ export interface InternalEvents {
  *
  * Two flavours of spec exist in real BMW scripts:
  *
- *   1. **BEST2 bare spec** — `"W.D"` (width.decimals), `"W"`, or
+ *   1. **INPA bare spec** — `"W.D"` (width.decimals), `"W"`, or
  *      just `".D"`. Example: MS43's `ergebnisAnalogAusgabe` passes a
  *      literal constant `"4.2"` for every analog gauge, meaning
  *      "render with 2 decimals, target width 4". This is the
@@ -94,7 +94,7 @@ export const formatAnalogValue = (value: number, format: string): string => {
     return format.replace(printfMatch[0], rendered);
   }
 
-  // BEST2 bare spec: `W`, `.D`, or `W.D` — width / precision pair
+  // INPA bare spec: `W`, `.D`, or `W.D` — width / precision pair
   // with no `%`. Tolerates surrounding whitespace.
   const best2Match = format.trim().match(/^(\d+)?(?:\.(\d+))?$/);
   if (best2Match && (best2Match[1] !== undefined || best2Match[2] !== undefined)) {
@@ -488,7 +488,7 @@ export abstract class UIProvider
   /**
    * Snapshot of the current foreground/background colour codes the
    * next text-output call will use. Mirrors `setColor`'s storage;
-   * the dispatcher calls this for `ftextout` (whose BEST2 signature
+   * the dispatcher calls this for `ftextout` (whose INPA signature
    * has no colour args — `(text, row, col, fontsize, fontattr)`).
    */
   getCurrentColors(): { fg: number; bg: number } {

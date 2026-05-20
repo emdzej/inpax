@@ -2,7 +2,7 @@
 
 Abstract `UIProvider` for INPA runtimes — owns the state shape that
 the rendering layer reads (cell grid, menu items, input dialogs,
-analog values, …) and the BEST2 system-function surface the
+analog values, …) and the INPA system-function surface the
 dispatcher writes to.
 
 Subclassed by:
@@ -47,7 +47,7 @@ class MyUIProvider extends UIProvider {
 
 ## Mutators (called by the dispatcher)
 
-The BEST2 dispatcher routes opcodes through methods on this provider:
+The INPA dispatcher routes opcodes through methods on this provider:
 `setScreen`, `setMenu`, `setItem`, `setMenuTitle`, `text`, `textOut`,
 `fTextOut`, `clearRect`, `blankScreen`, `digitalOut`, `analogOut`,
 `hexDump`, `userBoxOpen` / `userBoxClose`, `setColor`, `setTitle`,

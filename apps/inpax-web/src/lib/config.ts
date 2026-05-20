@@ -55,8 +55,9 @@ const DEFAULT_CONFIG: WebConfig = {
     stopBits: 1,
     // K+DCAN cable defaults — most BMW INPA users land here. KWP2000
     // is the K-line protocol; UART is the framing the cable presents
-    // over Web Serial. The interpreter speaks higher-level BEST2
-    // opcodes that compose either depending on the SGBD.
+    // over Web Serial. The ediabasx BEST/2 interpreter speaks
+    // higher-level opcodes that resolve to either K-line or D-CAN
+    // framing depending on the SGBD.
     protocol: "uart",
     initMode: "fast",
     timeoutMs: 5000,

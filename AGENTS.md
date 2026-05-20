@@ -36,7 +36,7 @@ provider).
 | `packages/core` | Shared types, scalar helpers, byte-order constants |
 | `packages/parser` | `.ipo` bytecode → AST |
 | `packages/disassembler` | AST → human-readable assembly |
-| `packages/interpreter` | BEST2 VM: main scheduler, screen executor, state-machine executor, instruction dispatch |
+| `packages/interpreter` | INPA VM: main scheduler, screen executor, state-machine executor, instruction dispatch |
 | `packages/compiler-core` + `apps/inpax-compiler` | `.ips` source → `.ipo` bytecode |
 | `packages/dispatcher` | INPA system-function table, routes opcodes to provider methods |
 | `packages/ui-provider-core` | Abstract `UIProvider` — screen buffer, menu state, dialogs, cell-grid writes |
@@ -87,7 +87,7 @@ TL;DR follows.
 ### Embedding the browser UI in a new app
 
 `@emdzej/inpax-web-provider` is the one-stop dependency. It bundles
-everything an inpax-style browser app needs to render the BEST2
+everything an inpax-style browser app needs to render the INPA
 runtime against a `FileSystemDirectoryHandle`-backed INPA install:
 
 - **`WebUIProvider`** — concrete `UIProvider` subclass.
@@ -98,7 +98,7 @@ runtime against a `FileSystemDirectoryHandle`-backed INPA install:
   `isCompleteInstall`, `isFileSystemAccessSupported`,
   `listIpoFiles(dir, origin)`, `makeBrowserSgbdResolver(ecuDir)`.
 - **Native import + viewer providers** — `BrowserNativeImportProvider`
-  (BEST2 CALLE shim — kernel32 INI / system / strings, api32
+  (INPA CALLE shim — kernel32 INI / system / strings, api32
   `__apiGetConfig`, …) and `BrowserExternalProvider` (backs
   `viewopen` / `viewclose`).
 - **Scriptselect** — `parseScriptSelect(content)` parser +
@@ -213,8 +213,8 @@ in that case so the SPA shell doesn't intercept docs navigations.
 
 ### Known limitations
 
-- **`setscreen` mid-LINE-block tail continuations leak.** When BEST2
-  calls `setscreen` from inside a LINE block, the bytecode after the
+- **`setscreen` mid-LINE-block tail continuations leak.** When INPA
+  bytecode calls `setscreen` from inside a LINE block, the bytecode after the
   dispatch still runs to the end of *that block*. Writes from those
   trailing instructions land on the new screen. Cancelling mid-block
   would need an `AbortSignal` plumbed down into `vm.execute`'s

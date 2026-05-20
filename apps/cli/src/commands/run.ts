@@ -202,7 +202,7 @@ async function resolveEdiabasProvider(
         // over the auto-discovered file). The old "--sgbd alone" branch
         // forced simulation:false without a transport, which is exactly
         // what produces "Communication interface is not configured" from
-        // EdiabasX's BEST2 VM.
+        // EdiabasX's INPA VM.
         const configPath =
             (options.ediabasConfig && resolve(options.ediabasConfig)) ||
             findDefaultEdiabasConfig();

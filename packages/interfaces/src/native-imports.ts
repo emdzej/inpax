@@ -1,7 +1,7 @@
 /**
  * Native Import (CALLE) Provider
  *
- * INPA scripts use the BEST2 CALLE opcode (0x0D) to call into Windows
+ * INPA scripts use the INPA CALLE opcode (0x0D) to call into Windows
  * DLLs — typically `kernel32::GetPrivateProfileStringA` for INI lookups
  * and `api32.DLL::__apiGetConfig` / `__apiSetConfig` for EDIABAS
  * configuration. The interpreter parses the import signature and

@@ -229,7 +229,7 @@ export class InternalFunctions {
    * runtime and replaces it, so the continuing instructions become
    * moot. If the user cancels, nothing happens and the script keeps
    * going. Either way, the caller doesn't see a return value — the
-   * BEST2 signature has none.
+   * INPA signature has none.
    */
   private scriptselect(ctx: ExecutionContext): void {
     const iniFile = ctx.popString();

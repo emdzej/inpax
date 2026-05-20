@@ -508,7 +508,7 @@
                     The gateway forwards <code class="text-foreground">setCommParameter</code>,
                     <code class="text-foreground">setAnswerLength</code>,
                     <code class="text-foreground">transmitData</code>, and the rest
-                    of the BEST2 surface so <code class="text-foreground">INITIALISIERUNG</code>
+                    of the INPA runtime surface so <code class="text-foreground">INITIALISIERUNG</code>
                     runs transparently from the browser.
                   </p>
                 </div>

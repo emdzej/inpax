@@ -194,7 +194,7 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
 
   /**
    * Enumerate the active screen's "controllable items" — the entries
-   * INPA's `togglelist` system function (BEST2 sysfunc `0x16`) pops
+   * INPA's `togglelist` system function (INPA sysfunc `0x16`) pops
    * its dialog over.
    *
    * Items are declared as "empty" LineFunc sub-blocks of the SCREEN

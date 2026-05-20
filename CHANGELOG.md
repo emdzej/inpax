@@ -376,7 +376,7 @@ behaviour for:
   apps that embed the INPA runtime in a browser can consume them
   without duplicating the rendering layer. Ships:
   - `WebUIProvider` (concrete `UIProvider` subclass).
-  - 9 components: `ScreenCanvas` (canvas-based BEST2 screen renderer,
+  - 9 components: `ScreenCanvas` (canvas-based INPA screen renderer,
     ~460 LOC), `FKeyBar` (F1–F10 input bar), `MenuTitleBar`,
     `DialogOverlay`, `UserBoxOverlay`, `ViewerDialog` (backs
     `viewopen`), `ScriptSelectDialog` (host-agnostic via a `loader`

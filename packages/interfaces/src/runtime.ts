@@ -43,7 +43,7 @@ export interface IInpaRuntime {
   sps?: ISpsProvider;
 
   /**
-   * Handles BEST2 CALLE invocations into Windows-style DLL imports
+   * Handles INPA CALLE invocations into Windows-style DLL imports
    * (GetPrivateProfileStringA, apiGetConfig, etc.). Optional — when
    * unset, the interpreter logs and pops the frame, leaving out-args
    * untouched. Browser hosts that have no use for DLL imports leave

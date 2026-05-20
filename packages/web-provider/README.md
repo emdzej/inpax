@@ -15,7 +15,7 @@ What's in the box:
 
 ### Components
 
-- **`ScreenCanvas`** — canvas-based renderer for the BEST2 screen
+- **`ScreenCanvas`** — canvas-based renderer for the INPA screen
   buffer (cell grid + analog gauges + digital LEDs + sized text
   overlays).
 - **`FKeyBar`** — F1–F10 input bar with native + digit-fallback key

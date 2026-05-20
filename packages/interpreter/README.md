@@ -80,7 +80,7 @@ interface VMState {
 ## Host overrides for system functions
 
 Hosts (CLI, web app, TUI, headless test harnesses) usually need
-different semantics for the same BEST2 verb — `exitwindows` should
+different semantics for the same INPA verb — `exitwindows` should
 close a browser tab in the web app, call `process.exit` in the CLI,
 collapse a panel in the TUI. The `systemFunctions` slot in `VMConfig`
 lets the host wire those in without forking the interpreter.

@@ -385,7 +385,7 @@ describe('VM.executeMenuItem — menu-context persistence', () => {
 
 describe('VM.systemFunctions — host overrides', () => {
   // Hosts (CLI, web app, TUI) need different semantics for the same
-  // BEST2 verb — `exitwindows` in the browser should close a tab, in
+  // INPA verb — `exitwindows` in the browser should close a tab, in
   // the CLI should `process.exit`. The `systemFunctions` config slot
   // lets the host wire those in without forking the interpreter.
   //
