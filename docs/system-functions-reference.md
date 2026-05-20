@@ -65,9 +65,9 @@ owns the behaviour.
 | 0x0D | `exitwindows` | ✅ | aliased to `exit` | Real INPA called `ExitWindowsEx`. We treat it as "unload script" — terminating the browser tab would be hostile. |
 | 0x0E | `scriptselect` | ✅ | interpreter | Fire-and-forget; host shows picker, script-switch event swaps the IPO. See doc in `internal-functions.ts:scriptselect`. |
 | 0x0F | `scriptchange` | 🚧 | interpreter stub | Direct IPO swap by path. Rare in BMW scripts. |
-| 0x10–0x14 | `select` / `deselect` / `control` / `start` / `stop` | 🚧 | interpreter stub | INPA's job/measurement control verbs (used by external launchers). No public launcher API yet. |
+| 0x10–0x14 | `select` / `deselect` / `control` / `start` / `stop` | 🟡 | interpreter — silent no-ops | INPA's measurement/control-session verbs (driven by external launchers per the BMW INPA developer reference). **Not on the togglelist read path** — confirmed by Ghidra: togglelist's data source is the active SCREEN's empty LineFunc declarations, not a runtime list these verbs populate. The handlers drain their args from the operand stack (`select(MultipleSelectFlag)` pops one bool, the rest are zero-arg) but produce no observable side effect. Promote to 🔌 once a launcher API materialises. |
 | 0x15 | `getapistring` | ✅ | interpreter | Returns "" (no-launcher case). See the function's own comment in `internal-functions.ts` for the full Ghidra-derived rationale. |
-| 0x16 | `togglelist` | 🚧 | interpreter stub | Counterpart to `getapistring` for toggle-list launches. |
+| 0x16 | `togglelist` | 🔌 + ✅ | dispatcher → `ui.togglelist` ; candidates harvested from the active SCREEN via `ScreenExecutor.getToggleItems()` | INPA's "Please select the objects to be controlled" multi-select. Items live in the SCREEN's *empty* (`size === 0`) LineFunc sub-blocks — `LineHeader.arg1` carries the display name, `arg2` carries a 9-byte semicolon-hex control mask. The dispatcher reads them via `vm.getScreenExecutor()?.getToggleItems()` and hands them to `ui.togglelist(multipleSelect, argNum, items)`. The shared encoder in `@emdzej/inpax-interfaces` (`encodeTogglelistResult`) bitwise-ORs the picked masks (default — fed straight into `INPAapiJob "STEUERN_LEUCHTE"`) or formats them as space-separated 1-based indices when `ArgNumFlag` is set. Honours `MultipleSelectFlag` for radio vs checkbox mode. Reverse-engineering trail anchored at INPA.exe handler `0x004139f5` → router `FUN_00420cff` → list-iterator `FUN_0041acbe`. |
 | 0x17 | `printscreen` | 🔌 | dispatcher → `print.printScreen` | Null provider: no-op. |
 | 0x18 | `printfile` | 🔌 | dispatcher → `print.printFile` | Null provider: returns error code. |
 | 0x1A | `setcolor` | 🔌 | dispatcher → `ui.setColor` | INPA palette indices (`1=Black`, `0=White`, …); see `apps/inpax-web/src/lib/theme.ts`. |
@@ -88,7 +88,7 @@ owns the behaviour.
 | 0x29 | `inttolong` | ✅ | interpreter | Trivial widen. |
 | 0x2A | `longtoreal` | ✅ | interpreter | Trivial widen. |
 | 0x2B–0x3D | `PEM*` (label printer family) | 🔌 | dispatcher → `pem.*` | `NullPemProvider` returns `true` for every call. INPA scripts use these only when feeding label printers (BMW's old PEM workflow); browser/CLI have no printer wiring. |
-| 0x3E | `getinputstate` | 🔌 | dispatcher → `ui.getInputState` | Returns 0=idle, 1=open. |
+| 0x3E | `getinputstate` | 🔌 | dispatcher → `ui.getInputState` | Returns the outcome of the **most recently completed** input dialog, **not** the open/closed flag of the current one. INPA convention is Win32-style: `0` = OK (user submitted), non-zero = error / cancel. Verified against `KOMBI.IPO m_steuern_analog ITEM 0` — the `LOAD inputstate / LOAD const[0] / ALU EQ / MOVE / JMPNZ` chain only reaches the OK path when EQ is true (so `inputstate == 0`). `submitInput` writes `lastInputState = 0`; `cancelInput` writes `1`. |
 | 0x3F–0x47 | `inputtext` / `inputnum` / `inputhex` / `inputdigital` / `input2*` | 🔌 | dispatcher → `ui.inputXxx` | All return promises the dispatcher awaits; web app shows `DialogOverlay`. |
 | 0x48 | `text` | 🔌 | dispatcher → `ui.text` | Plain string at `(row, col)` with current colours. |
 | 0x49 | `textout` | 🔌 | dispatcher → `ui.textOut` | Same with reordered args. |
@@ -112,7 +112,7 @@ owns the behaviour.
 | 0x5F | `simdigital` | 🔌 | dispatcher → `simulation.simDigital` | Same shape. |
 | 0x60 | `INPAapiInit` | 🔌 | dispatcher → `ediabas.init` | Opens the EDIABAS provider's connection. Dispatcher wraps it in a retry/continue loop using `ui.ensureConnected()` + `ui.confirmConnectError()`. |
 | 0x61 | `INPAapiEnd` | 🔌 | dispatcher → `ediabas.end` | Disconnect. |
-| 0x62 | `INPAapiJob` | 🔌 | dispatcher → `ediabas.executeJob` | The workhorse. Runs SGBD jobs, stores result sets for subsequent `INPAapiResult*` calls. |
+| 0x62 | `INPAapiJob` | 🔌 | dispatcher → `ediabas.job` → `ediabas.executeJob` | The workhorse. Runs SGBD jobs, stores result sets for subsequent `INPAapiResult*` calls. **Parameter format**: BMW EDIABAS's `apiJob(ECU, JOB, PARAMS, RESULTS)` takes `PARAMS` as a single semicolon-delimited string that the API explodes into `par(0)`, `par(1)`, … `par(N)` slots for the BEST2 program. `ediabasx-provider.job()` splits `arg1` by `;` accordingly — e.g. `STEUERN_LEUCHTE "0xFF;0xFF;0xFF;0xFF;0xFF;0xFF"` lands in the BEST2 program as six individual `par()` values. `arg2` is BMW's `RESULTS` filter (not a parameter); `executeJob` doesn't support filtering, so it's dropped. |
 | 0x63 | `INPAapiResultText` | 🔌 | dispatcher → `ediabas.resultText` | With format spec (`%.2f`, `%X`, etc.). |
 | 0x64 | `INPAapiResultInt` | 🔌 | dispatcher → `ediabas.resultInt` | |
 | 0x65 | `INPAapiResultSets` | 🔌 | dispatcher → `ediabas.resultSets` | Returns the number of result sets (e.g. fault entries from `FS_LESEN`). |
