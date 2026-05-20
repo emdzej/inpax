@@ -31,8 +31,41 @@ interface IUIProvider extends EventEmitter<UIEvents> {
   inputText(title: string, text: string): Promise<string>;
   inputNum(title: string, text: string, min: number, max: number): Promise<number>;
   messageBox(title: string, text: string): Promise<void>;
+
+  // Toggle list — INPA's "Please select the objects to be controlled"
+  // multi-select picker. Items come from the active SCREEN's empty
+  // LineFunc declarations.
+  togglelist(
+    multipleSelect: boolean,
+    argNum: boolean,
+    items: ToggleItem[],
+  ): Promise<string>;
 }
 ```
+
+### `togglelist` serialisation helpers
+
+The package exports three helpers used by every concrete UIProvider
+that opens the togglelist dialog (CLI, web, mock) so the wire bytes
+are identical regardless of which provider drove the picker.
+
+```typescript
+import {
+  type ToggleItem,            // { name: string; mask: string }
+  orToggleMasks,              // OR multiple 9-byte masks byte-by-byte
+  formatToggleIndices,        // "1 3 7" — sorted 1-based indices
+  encodeTogglelistResult,     // routes to either of the above per argNum
+} from '@emdzej/inpax-interfaces';
+```
+
+INPA's wire convention (verified empirically against KOMBI.IPO's
+`STEUERN_LEUCHTE` call chain):
+
+- `argNum === false` → bitwise OR of the picked items' masks,
+  re-formatted as `"0xNN;0xNN;…"`. Drives multiple lamps in a single
+  ECU command.
+- `argNum === true`  → space-separated 1-based item indices
+  (`"3 7"`).
 
 ### IEdiabasProvider
 

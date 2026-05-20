@@ -6,6 +6,121 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.5.1] — 2026-05-20
+
+Bug-fix release focused on the live diagnostic-control path. Every
+fix below was verified end-to-end against a real BMW E46 KOMBI46R
+cluster: F1 TACHO in the "Steuern Analog" menu now drives the
+dashboard needle, and F3 "Auswahl: Kontrollampen ansteuern" pops a
+populated togglelist whose picks light the correct indicators.
+
+### Fixed
+
+- **Menu locals persist across the INIT → item-handler transition.**
+  v5.x menus inline their local-variable allocation as `LOAD` defaults
+  at the start of the menu body; those values must remain on the
+  stack for every MenuItemFunc dispatched by an F-key. `setMenu` used
+  to run the body in a disposable `ExecutionContext`, so the first
+  `PUSHREF local[0]` in an item handler hit an empty stack and threw
+  "Stack index out of bounds". `VM` now captures the context after the
+  menu body settles (`activeMenuContext`) and reuses it via
+  `executeMenuItem`. Mirrors what `ScreenExecutor` already does.
+  (`@emdzej/inpax-interpreter`, `@emdzej/inpax-cli`, `@emdzej/inpax-web`)
+- **`AluOp.XOR` handler + condition register on `AND`/`OR`/`XOR`.** The
+  enum had XOR (`0x6c`); the switch in `opAlu` didn't. INPA's
+  `FUN_00460faf` updates `state.condition` for all three logical
+  binary ops, not just comparisons — without that, a `JMPNZ` after a
+  compound bool like `(a == b) && (c == d)` reads the stale condition
+  from the last `EQ`. Both fixed. (`@emdzej/inpax-interpreter`)
+- **`getinputstate` polarity inverted (`0` = OK).** INPA convention
+  matches Win32 return codes: `0` = success, non-zero = error /
+  cancel. The previous fix had submit→1 / cancel→0 which made every
+  submission take the cancel branch (the script's `EQ inputstate, 0`
+  → `JMPNZ @51` chain only reaches the OK path when EQ is true).
+  `submitInput` now sets `lastInputState = 0`; `cancelInput` sets it
+  to `1`. (`@emdzej/inpax-ui-provider-core`)
+- **`INPAapiJob` splits the parameter string by `;`.** BMW EDIABAS's
+  `apiJob(ECU, JOB, PARAMS, RESULTS)` takes `PARAMS` as a single
+  semicolon-delimited string that the API explodes into `par(0)`,
+  `par(1)`, … `par(N)` for the BEST2 program. We were passing
+  `[arg1, arg2]` verbatim as a 2-element array, so a multi-param
+  command like `STEUERN_LEUCHTE "0xFF;0xFF;0xFF;0xFF;0xFF;0xFF" ""`
+  collapsed into one giant `par(0)` blob and the ECU saw nothing
+  valid. Now `arg1.split(';')` produces the correct per-`par(N)`
+  values; `arg2` (result filter) is dropped — `executeJob` doesn't
+  support filtering. (`@emdzej/inpax-ediabasx-provider`)
+- **ScrollIndicator no longer counts toggle-item declarations.**
+  `ScreenExecutor` reports `totalLines` to the host for pagination;
+  pre-fix it counted every `LineFunc` block, including the "empty"
+  (`size === 0`) ones that carry toggle-item name/mask pairs in
+  their headers. KOMBI's "Ansteuern Digital" screen has 1 paintable
+  line + 34 item declarations; the indicator was showing "1/35" with
+  scroll arrows pointing nowhere. Now it counts only `size > 0`
+  lines. (`@emdzej/inpax-interpreter`)
+
+### Added
+
+- **INPA-compatible `togglelist` dialog driven by SCREEN
+  declarations.** v1 ships the complete read path:
+  - **`ScreenExecutor.getToggleItems()`** harvests the active SCREEN's
+    "empty" LineFunc sub-blocks (`size === 0` && `arg1 !== ""`) as
+    `{ name, mask }` pairs. Each item's name lives in `LineHeader.arg1`
+    and a 9-byte semicolon-hex control mask in `LineHeader.arg2`
+    (the bytes that get fed straight into
+    `INPAapiJob "STEUERN_LEUCHTE", <mask>, ""`). Mirrors what real
+    INPA does at screen-mount time via `INPA_RunBlockPhase` /
+    `FUN_0041acbe`.
+  - **Dispatcher** reads the items via `vm.getScreenExecutor()` and
+    hands them to `ui.togglelist(multipleSelect, argNum, items)`.
+  - **Wire serialisation** honours both INPA flags:
+    `MultipleSelectFlag=false` → dialog runs in single-select mode
+    (radio behaviour); `ArgNumFlag=true` → output is space-separated
+    1-based indices (`"3 7"`); otherwise → bitwise OR of the picked
+    items' masks, re-formatted as `"0xNN;0xNN;…"` so two lamps can be
+    driven in one ECU command.
+  - **`TogglelistDialog.svelte`** renders the harvested item names in
+    a multi-select list with OK / Cancel / Deselect buttons. Free-text
+    "Set:" field removed — items always come from the SCREEN now.
+- **`ToggleItem` interface in `@emdzej/inpax-interfaces`** plus three
+  serialisation helpers — `orToggleMasks`, `formatToggleIndices`, and
+  `encodeTogglelistResult` — shared between the CLI, web, and mock
+  providers so all wire bytes match regardless of which provider drove
+  the dialog. 13 unit tests pin the OR / index / round-trip /
+  out-of-range behaviour. (`@emdzej/inpax-interfaces`)
+- **CLI `togglelist` prompt** renders items as a numbered list,
+  accepts comma-separated 1-based indices, encodes via the same
+  shared helper. (`@emdzej/inpax-cli-provider`)
+
+### Changed
+
+- **`IUIProvider.togglelist` signature**: `candidates: string[]` →
+  `items: ToggleItem[]`. The previous shape only landed in an
+  intermediate (unreleased) commit between `0.5.0` and `0.5.1`, so
+  no public API actually breaks. (`@emdzej/inpax-interfaces`,
+  `@emdzej/inpax-ui-provider-core`, all concrete UI providers)
+- **`select` / `deselect` / `control` / `start` / `stop` promoted to
+  silent no-ops.** Per BMW INPA developer reference these are the
+  "measurement/control session" verbs an external launcher drives —
+  not on the togglelist read path. The previous stub logged
+  `"stub function not implemented"` on every dispatch, which was
+  noisy for any script that exercised them. `select` correctly drains
+  its single `bool` argument via a new helper so the operand stack
+  stays balanced for subsequent instructions.
+  (`@emdzej/inpax-interpreter`)
+
+### Reverse-engineering
+
+The togglelist architecture was pinned down via a chain of INPA.exe
+decompiles documented incrementally — handler `FUN_004139f5` →
+context router `FUN_00420cff` → list-iterator `FUN_0041acbe` →
+toggle-context constructor / mounter `INPA_RunBlockPhase @ 0x00420891`.
+The crucial finding (items come from the SCREEN's empty LineFunc
+declarations, not from EDIABAS results as we'd first hypothesised)
+was confirmed empirically by scanning `KOMBI.IPO`'s constants pool
+for "Tempomat", "Bremsbelag", "Ladekontrolle" etc. — none had
+matching `LOAD const[…]` instructions because they live in
+`LineHeader.arg1` fields, not in the bytecode at all.
+
 ## [0.5.0] — 2026-05-19
 
 ### Added

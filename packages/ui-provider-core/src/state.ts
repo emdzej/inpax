@@ -8,6 +8,8 @@
  * `paintX` hooks to render the same state in their own way.
  */
 
+import type { ToggleItem } from '@emdzej/inpax-interfaces';
+
 export interface MenuItem {
   itemNum: number;
   text: string;
@@ -95,32 +97,37 @@ export interface InputDialog {
   /**
    * For `type: 'toggle-list'` only.
    *
-   * Real INPA shows a multi-select list of indicators / control
-   * objects (matching the SGBD's expected toggle vocabulary, e.g.
-   * "Kühlmittelübertemperatur", "RDC gelb", "Gurtwarnung" for the
-   * KOMBI ECU) with OK / Cancel / Deselect and a "Set:" text field
-   * for saving named selections. We model that here:
+   * The toggle-list dialog mirrors INPA's "Please select the objects
+   * to be controlled" multi-select picker. Items are declared by the
+   * active SCREEN's "empty" LineFunc sub-blocks (the LINE blocks
+   * whose body has `size=0`): the user-visible name lives in
+   * `LineHeader.arg1`, and the per-lamp control mask (a 9-byte
+   * semicolon-hex string consumed by `INPAapiJob "STEUERN_LEUCHTE"`)
+   * lives in `LineHeader.arg2`. The dispatcher walks the active
+   * screen, builds the `{name, mask}` pairs, and hands them here.
    *
-   *  - `items` is the list of candidates. INPA derives them from
-   *    EDIABAS result tables; we don't have a clean source for them
-   *    yet, so the dialog opens with whatever the dispatcher passes
-   *    (currently `[]`). The "Set:" text input remains usable so
-   *    the user can type a toggle name verbatim until we wire up
-   *    the SGBD-side discovery.
-   *  - `toggleMultipleSelect` mirrors INPA's `MultipleSelectFlag` —
-   *    when `false`, picking a row deselects any other rows.
-   *  - `toggleArgNum` mirrors `ArgNumFlag`. Reserved for the day we
-   *    implement numeric-index output; the dialog ignores it today.
+   * Serialisation rules (verified against KOMBI.IPO's STEUERN_LEUCHTE
+   * call chain):
+   *   - `toggleArgNum === false` → return the bitwise OR of the
+   *     picked items' masks, formatted as the same 9-byte
+   *     `0xNN;0xNN;…` string. Combining multiple lamps with one OR
+   *     drives them all in a single ECU command.
+   *   - `toggleArgNum === true`  → return space-separated 1-based
+   *     item indices (`"3 7"`).
    *
-   * The dialog returns the selected names joined by a single space
-   * (INPA's serialisation — verified empirically against the
-   * STEUERN_LEUCHTE call chain in KOMBI.IPO, which feeds the
-   * returned string straight into `INPAapiJob`).
+   * `toggleMultipleSelect === false` (INPA's `MultipleSelectFlag=0`)
+   * forces the dialog into single-select / radio-button mode.
    */
-  toggleItems?: string[];
+  toggleItems?: ToggleItem[];
   toggleMultipleSelect?: boolean;
   toggleArgNum?: boolean;
 }
+
+// ToggleItem lives in `@emdzej/inpax-interfaces` (`ui.ts`) so the
+// IUIProvider signature and concrete implementations both refer to
+// the same shape. Re-exported here for convenience of consumers that
+// already pull from `@emdzej/inpax-ui-provider-core`.
+export type { ToggleItem } from '@emdzej/inpax-interfaces';
 
 export interface UIProviderState {
   // Screen

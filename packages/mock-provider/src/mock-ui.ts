@@ -3,7 +3,7 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import type { IUIProvider, UIEvents } from '@emdzej/inpax-interfaces';
+import type { IUIProvider, ToggleItem, UIEvents } from '@emdzej/inpax-interfaces';
 
 export interface UICall {
   method: string;
@@ -299,13 +299,15 @@ export class MockUIProvider extends EventEmitter<UIEvents> implements IUIProvide
   async togglelist(
     multipleSelect: boolean,
     argNum: boolean,
-    candidates: string[],
+    items: ToggleItem[],
   ): Promise<string> {
-    this.record('togglelist', multipleSelect, argNum, candidates);
-    // Deterministic test result: return the first candidate, or ""
-    // if the caller passed nothing. Matches the cancel semantics
-    // (empty string => script takes the cancel branch).
-    return candidates[0] ?? '';
+    this.record('togglelist', multipleSelect, argNum, items);
+    // Deterministic test result: return the first item's mask (or
+    // index "1" when argNum is set), or "" if the caller passed no
+    // items. Empty string matches the cancel semantics.
+    if (items.length === 0) return '';
+    if (argNum) return '1';
+    return items[0].mask;
   }
 
   async messageBox(title: string, text: string): Promise<void> {

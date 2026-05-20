@@ -6,6 +6,25 @@
 import { EventEmitter } from 'eventemitter3';
 import type { UIEvents } from './events.js';
 
+/**
+ * One candidate row for the `togglelist` dialog (BEST2 sysfunc `0x16`).
+ *
+ * INPA scripts declare these via "empty" LineFunc sub-blocks of the
+ * active SCREEN — each item carries:
+ *   - `name`: user-visible label (e.g. `"Tempomat"`, `"ASC"`,
+ *     `"Kühlmittelübertemperatur"`), pulled from the LINE's `arg1`.
+ *   - `mask`: per-lamp control bitmask in INPA's wire format,
+ *     pulled from the LINE's `arg2`. Typically a 9-byte
+ *     semicolon-delimited hex string like
+ *     `"0x00;0x00;0x00;0x08;0x00;0x00;0x00;0x00;0x00"`. Multiple
+ *     picked items are OR'd byte-by-byte to produce one combined
+ *     command suitable for `INPAapiJob "STEUERN_LEUCHTE", <mask>, ""`.
+ */
+export interface ToggleItem {
+  name: string;
+  mask: string;
+}
+
 export interface IUIProvider extends EventEmitter<UIEvents> {
   // === Screen Management ===
   
@@ -327,30 +346,37 @@ export interface IUIProvider extends EventEmitter<UIEvents> {
 
   /**
    * Show INPA's toggle-list dialog — the "Please select the objects
-   * to be controlled" multi-select that real INPA pops on
-   * `togglelist` (BEST2 system function `0x16`). User picks zero or
-   * more items from `candidates`; the returned string is the
-   * selected names joined by a single space, matching INPA's
-   * serialisation (which feeds straight into `INPAapiJob` for
-   * STEUERN_* control jobs).
+   * to be controlled" multi-select picker real INPA pops on
+   * `togglelist` (BEST2 system function `0x16`). Used by control
+   * menus (e.g. KOMBI's "Ansteuern Digital → Auswahl: Kontrollampen
+   * ansteuern") to let the user pick which lamps / indicators /
+   * actuators to drive.
    *
-   * Empty result on cancel.
+   * `items` are declared by the active SCREEN's "empty" LineFunc
+   * sub-blocks: each line whose `size === 0` carries a display
+   * name in `arg1` and a 9-byte semicolon-hex bitmask in `arg2`.
+   * The dispatcher harvests those at call time and hands them here.
    *
-   * `multipleSelect` mirrors INPA's `MultipleSelectFlag`. When
-   * `false`, picking a row in the dialog deselects any other rows.
+   * Return format (matches INPA's wire serialisation, verified
+   * empirically against KOMBI.IPO STEUERN_LEUCHTE):
+   *   - `argNum === false` → the **bitwise OR of the picked items'
+   *     masks**, re-formatted as the same `0xNN;0xNN;…` string.
+   *     Combines multiple lamps into one ECU command — fed straight
+   *     into `INPAapiJob "STEUERN_LEUCHTE", <mask>, ""`.
+   *   - `argNum === true`  → space-separated 1-based item indices
+   *     (`"3 7"`) for scripts that read the choice as a numeric
+   *     index instead of the encoded mask.
    *
-   * `argNum` mirrors `ArgNumFlag` — reserved for the day we return
-   * numeric indices instead of names. Currently ignored.
+   * `multipleSelect === false` mirrors INPA's `MultipleSelectFlag=0`
+   * and forces the dialog into single-select / radio-button mode.
    *
-   * `candidates` lists the known toggle items. Real INPA derives
-   * them from the SGBD via EDIABAS result tables; we don't yet have
-   * a clean source for them, so callers may pass `[]` and rely on
-   * the dialog's free-text "Set:" field for manual entry.
+   * Returns an empty string on cancel (paired with
+   * `getInputState() !== 0`, so the script's cancel branch fires).
    */
   togglelist(
     multipleSelect: boolean,
     argNum: boolean,
-    candidates: string[]
+    items: ToggleItem[]
   ): Promise<string>;
 
   // === Message Boxes ===

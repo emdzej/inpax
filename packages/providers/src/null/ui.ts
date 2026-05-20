@@ -3,7 +3,7 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import type { IUIProvider, UIEvents } from '@emdzej/inpax-interfaces';
+import type { IUIProvider, ToggleItem, UIEvents } from '@emdzej/inpax-interfaces';
 
 export class NullUIProvider extends EventEmitter<UIEvents> implements IUIProvider {
   // === Screen ===
@@ -186,7 +186,7 @@ export class NullUIProvider extends EventEmitter<UIEvents> implements IUIProvide
   async togglelist(
     _multipleSelect: boolean,
     _argNum: boolean,
-    _candidates: string[]
+    _items: ToggleItem[]
   ): Promise<string> {
     return '';
   }

@@ -2,7 +2,7 @@ import { EventEmitter } from 'eventemitter3';
 import { getLogger } from '@emdzej/inpax-logger';
 import type { ScreenBlock, LineBlock, FunctionBlock, Value } from '@emdzej/inpax-core';
 import { ValueType } from '@emdzej/inpax-core';
-import type { IInpaRuntime } from '@emdzej/inpax-interfaces';
+import type { IInpaRuntime, ToggleItem } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
 import { ExecutionContext } from './execution-context.js';
 
@@ -142,14 +142,27 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
 
     // Notify UI
     this.runtime.ui.setScreen(this.screen.header.blockId, this.frequentFlag);
-    // Pagination: report how many LINE blocks this screen has so the
-    // host can decide whether to show scroll affordances. INPA itself
-    // paginates when LINE blocks overflow the viewport — see
-    // `docs/research/screen-line-pagination.md`. `firstVisibleLine`
-    // is reset by `setScreen` above; `visibleLineCount` is owned by
-    // the host (it knows its own viewport) — `0` from the host means
-    // "no fixed viewport" and the executor below runs every block.
-    this.runtime.ui.setTotalLines(this.screen.lines.length);
+    // Pagination: report how many *paintable* LINE blocks this screen
+    // has so the host can decide whether to show scroll affordances.
+    // INPA itself paginates when LINE blocks overflow the viewport —
+    // see `docs/research/screen-line-pagination.md`.
+    //
+    // Excludes the "empty" (size=0, body-less) LineFuncs that are
+    // really toggle-list item declarations — those carry the
+    // controllable-item name/mask pairs in their `arg1`/`arg2`
+    // header fields and are consumed by `togglelist`, not painted as
+    // screen rows. Counting them inflated the scroll indicator
+    // (e.g. KOMBI's "Ansteuern Digital" → "1/35" when the user
+    // sees only 4 visible rows).
+    //
+    // `firstVisibleLine` is reset by `setScreen` above;
+    // `visibleLineCount` is owned by the host (it knows its own
+    // viewport) — `0` from the host means "no fixed viewport" and
+    // the executor below runs every block.
+    const paintableLineCount = this.screen.lines.filter(
+      (l) => l.header.size > 0,
+    ).length;
+    this.runtime.ui.setTotalLines(paintableLineCount);
 
     // Start the execution loop
     this.scheduleNextTick();
@@ -177,6 +190,33 @@ export class ScreenExecutor extends EventEmitter<ScreenExecutorEvents> {
   pause(): void {
     this.paused = true;
     this.log('Screen execution paused');
+  }
+
+  /**
+   * Enumerate the active screen's "controllable items" — the entries
+   * INPA's `togglelist` system function (BEST2 sysfunc `0x16`) pops
+   * its dialog over.
+   *
+   * Items are declared as "empty" LineFunc sub-blocks of the SCREEN
+   * (i.e. `LineHeader.size === 0`, body has no instructions). The
+   * display name lives in `arg1`, and the per-lamp control mask
+   * (the bytes that get fed into `INPAapiJob "STEUERN_LEUCHTE",
+   * <mask>, ""`) lives in `arg2`. Lines with a non-empty body are
+   * regular paint-/cyclic-data lines and are excluded here.
+   *
+   * Empty array when the screen has no toggle items declared —
+   * the dialog will render an empty list and the user has to cancel
+   * (or just close it, in which case the script's cancel branch
+   * fires via `getInputState() != 0`).
+   */
+  getToggleItems(): ToggleItem[] {
+    const items: ToggleItem[] = [];
+    for (const line of this.screen.lines) {
+      if (line.header.size === 0 && line.header.arg1 !== '') {
+        items.push({ name: line.header.arg1, mask: line.header.arg2 });
+      }
+    }
+    return items;
   }
 
   /**

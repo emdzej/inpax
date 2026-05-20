@@ -29,6 +29,15 @@ What's in the box:
 - **`ScriptSelectDialog`** — `scriptselect` picker. Takes a `loader`
   prop so the dialog stays host-agnostic; pair with `loadScriptSelect`
   for the common CFGDAT-directory case.
+- **`TogglelistDialog`** — INPA's `togglelist` multi-select picker
+  ("Please select the objects to be controlled"). Items come from the
+  active SCREEN's "empty" LineFunc declarations (the dispatcher
+  harvests them via `ScreenExecutor.getToggleItems()` and hands them
+  to `ui.togglelist`). On OK the dialog encodes the picks per INPA's
+  wire convention — bitwise-OR of the items' 9-byte masks
+  (`"0xNN;0xNN;…"`, default), or space-separated 1-based indices
+  when `ArgNumFlag` is set. Honours both `MultipleSelectFlag` (radio
+  vs checkbox) and `ArgNumFlag` (mask vs indices).
 - **`LiveIndicator`** — green pulsing dot for cyclic screens (the
   `setscreen(handle, true)` case — "this screen is on a refresh cycle").
 - **`EdiabasBusyIndicator`** — amber pulsing dot that lights up whenever

@@ -5,7 +5,8 @@
 
 import * as readline from 'readline';
 import { EventEmitter } from 'eventemitter3';
-import type { IUIProvider, UIEvents } from '@emdzej/inpax-interfaces';
+import type { IUIProvider, ToggleItem, UIEvents } from '@emdzej/inpax-interfaces';
+import { encodeTogglelistResult } from '@emdzej/inpax-interfaces';
 
 // ANSI color codes
 const ANSI = {
@@ -430,40 +431,44 @@ export class CliProvider extends EventEmitter<UIEvents> implements IUIProvider {
 
   async togglelist(
     multipleSelect: boolean,
-    _argNum: boolean,
-    candidates: string[]
+    argNum: boolean,
+    items: ToggleItem[]
   ): Promise<string> {
-    // CLI rendering of INPA's multi-select toggle dialog. Real INPA
-    // shows the candidates as a checkbox list; we show them as a
-    // numbered list and accept either a comma-separated index list
-    // ("1,3,5") or a verbatim space-separated names list. An empty
-    // reply yields the empty string — the same "user cancelled"
-    // signal that the script's getinputstate==0 check expects.
-    const header =
-      multipleSelect
-        ? 'Select objects (comma-separated indices, or names):'
-        : 'Select an object (index or name):';
-    const lines = candidates.length
-      ? candidates.map((c, i) => `  ${(i + 1).toString().padStart(2, ' ')}. ${c}`)
-      : ['  (no candidates — type a name verbatim)'];
+    // CLI rendering of INPA's "Please select the objects to be
+    // controlled" picker. We show a numbered list of item names
+    // and accept comma-separated 1-based indices.
+    //
+    // The encoded return value matches INPA wire semantics:
+    //   - argNum=true  → "3 7" (space-separated 1-based indices)
+    //   - argNum=false → "0xNN;0xNN;…" (bitwise OR of picked masks)
+    // — same helper as the web dialog uses, so the script's
+    // downstream STEUERN_LEUCHTE call sees identical bytes
+    // regardless of which provider drove the dialog.
+    const header = multipleSelect
+      ? 'Select objects (comma-separated 1-based indices, blank to cancel):'
+      : 'Select one object (1-based index, blank to cancel):';
+    const lines = items.length
+      ? items.map((it, i) => `  ${(i + 1).toString().padStart(2, ' ')}. ${it.name}`)
+      : ['  (no controllable items declared by the active screen)'];
     this.box('Toggle list', [header, ...lines]);
     const answer = (await this.prompt('> ')).trim();
     if (!answer) {
       this.emit('input:submit', { value: '' });
       return '';
     }
-    const tokens = answer.split(/[\s,]+/).filter(Boolean);
-    const resolved = tokens
-      .map((token) => {
-        const asIndex = Number.parseInt(token, 10);
-        if (Number.isFinite(asIndex) && asIndex >= 1 && asIndex <= candidates.length) {
-          return candidates[asIndex - 1];
-        }
-        return token;
-      })
-      .join(' ');
-    this.emit('input:submit', { value: resolved });
-    return resolved;
+    // Parse 1-based indices, drop anything out of range, dedupe.
+    const picked = new Set<number>();
+    for (const tok of answer.split(/[\s,]+/).filter(Boolean)) {
+      const n = Number.parseInt(tok, 10);
+      if (Number.isFinite(n) && n >= 1 && n <= items.length) picked.add(n - 1);
+    }
+    // Single-select mode: keep only the first pick.
+    const indices = multipleSelect
+      ? [...picked]
+      : picked.size > 0 ? [[...picked][0]] : [];
+    const encoded = encodeTogglelistResult(items, indices, argNum);
+    this.emit('input:submit', { value: encoded });
+    return encoded;
   }
 
   // === Simulation (simple prompts) ===

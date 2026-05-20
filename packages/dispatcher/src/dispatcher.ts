@@ -4,7 +4,7 @@
  */
 
 import { SystemFunction, SystemFunctionMap, type StackEntry, type Scope, ValueType } from '@emdzej/inpax-core';
-import type { IInpaRuntime, IEdiabasProvider, IExternalProvider } from '@emdzej/inpax-interfaces';
+import type { IInpaRuntime, IEdiabasProvider, IExternalProvider, ToggleItem } from '@emdzej/inpax-interfaces';
 import { formatFsLesenReport } from './format-fs.js';
 
 /** Set of async function IDs */
@@ -115,7 +115,22 @@ export interface ExecutionContext {
     getVariable?(scope: Scope, index: number): StackEntry;
 }
 
-export type VM = unknown;
+/**
+ * Minimal structural type for the VM as seen from the dispatcher.
+ *
+ * We intentionally avoid a direct dependency on
+ * `@emdzej/inpax-interpreter`'s concrete `VM` class — the
+ * `interpreter` package imports `dispatcher` (the other direction
+ * already exists), so taking the full type here would create a
+ * cycle. The few methods the dispatcher actually needs (currently
+ * just an accessor for the active screen's toggle-list items) are
+ * declared structurally and the real `VM` matches by shape.
+ */
+export interface VM {
+    getScreenExecutor?(): {
+        getToggleItems(): ToggleItem[];
+    } | null;
+}
 
 export type ParamDirection = 'in' | 'out' | 'inout';
 
@@ -461,17 +476,24 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
             case SystemFunction.togglelist: {
                 // BEST2 sig: (in: bool MultipleSelectFlag, in: bool ArgNumFlag,
                 //             out: string ApiToggleString)
-                // INPA derives the candidate list from EDIABAS result tables
-                // for the most-recently-loaded SGBD. We don't yet have a
-                // clean accessor for that table on `IEdiabasProvider`, so we
-                // pass an empty list for now and rely on the dialog's free-
-                // text "Set:" field for manual entry. TODO: wire candidates
-                // through once the provider exposes a `getResultNames()` or
-                // equivalent.
+                //
+                // Candidates come from the active SCREEN's "empty"
+                // LineFunc sub-blocks — each carries a display name in
+                // `arg1` and a 9-byte semicolon-hex bitmask in `arg2`.
+                // See `ScreenExecutor.getToggleItems()` for the harvest
+                // logic and `docs/ipo-format-versions.md` for the
+                // reverse-engineering notes that pinned this down.
+                //
+                // When no screen executor is running (e.g. before
+                // `setscreen` fires, or in unit-test setups) the list
+                // is empty — the dialog opens with no rows and the
+                // user has to cancel; same behaviour as real INPA when
+                // the active screen has no `select` / control items.
+                const items = vm.getScreenExecutor?.()?.getToggleItems() ?? [];
                 return finalize(ui.togglelist(
                     inputs[0] as boolean,
                     inputs[1] as boolean,
-                    []
+                    items
                 ));
             }
             case SystemFunction.input2int:

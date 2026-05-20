@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-interfaces",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "TypeScript interfaces for INPA runtime providers",
   "type": "module",
   "main": "./dist/index.js",
@@ -16,13 +16,15 @@
   ],
   "scripts": {
     "build": "tsc",
+    "test": "vitest run --passWithNoTests",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "eventemitter3": "^5.0.1"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^3.0.0"
   },
   "repository": {
     "type": "git",

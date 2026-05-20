@@ -1,47 +1,45 @@
 <script lang="ts">
   /**
    * INPA's `togglelist` multi-select dialog — the "Please select the
-   * objects to be controlled" picker BMW INPA pops when a script calls
-   * system function `0x16`. Used by control menus (Steuern / Ansteuern
-   * Digital → Auswahl: Kontrollampen ansteuern, etc.) to let the user
-   * pick which lamps / indicators / actuators to operate.
+   * objects to be controlled" picker BMW INPA pops when a script
+   * calls system function `0x16`. Used by control menus (Steuern /
+   * Ansteuern Digital → Auswahl: Kontrollampen ansteuern, etc.) to
+   * let the user pick which lamps / indicators / actuators to drive.
    *
-   * Layout mirrors the original (see screenshot in the inpax repo):
+   * Items are declared by the active SCREEN's "empty" LineFunc
+   * sub-blocks — the dispatcher harvests them via
+   * `ScreenExecutor.getToggleItems()` and hands them here through
+   * `dialog.toggleItems`. Each item carries a display `name` and a
+   * `mask` (9-byte semicolon-hex). On OK, this component encodes the
+   * picks via `encodeTogglelistResult` and calls `ui.submitInput`
+   * with the resulting wire string:
+   *   - `argNum=false` → bitwise OR of the picked masks
+   *     (`"0xNN;0xNN;…"`), suitable for `INPAapiJob "STEUERN_LEUCHTE"`.
+   *   - `argNum=true`  → space-separated 1-based indices (`"3 7"`).
+   *
+   * Layout mirrors the real INPA dialog:
    *   ┌───────────────────────────────┬───────────┐
-   *   │ candidate list (multi-select) │   OK      │
+   *   │ candidate list                │   OK      │
    *   │                               │   Cancel  │
    *   │                               │   Deselect│
-   *   ├───────────────────────────────┴───────────┤
-   *   │ Set:                                       │
-   *   │ ┌──────────────────────────────────────┐   │
-   *   │ │ free-text (verbatim toggle name)     │   │
-   *   │ └──────────────────────────────────────┘   │
-   *   └────────────────────────────────────────────┘
+   *   └───────────────────────────────┴───────────┘
    *
-   * The "Set:" field is INPA's escape hatch for cases where the
-   * candidate list doesn't carry the toggle the user wants — they
-   * just type the name verbatim. We keep it because our candidate
-   * list is empty for now (the SGBD-derived names will land here
-   * once `IEdiabasProvider` grows a result-name accessor), and free
-   * text is the only way to drive the script forward in the
-   * meantime.
-   *
-   * Submit serialises the selected items + the typed text, joined by
-   * a single space — INPA's serialisation, verified against the
-   * KOMBI.IPO STEUERN_LEUCHTE call chain where the returned string
-   * is fed straight into `INPAapiJob`.
+   * (Real INPA also has a "Set:" preset save/load row at the
+   * bottom — not implemented yet, low value compared to getting the
+   * core dialog correct.)
    */
 
   import type { UIProvider, InputDialog } from "@emdzej/inpax-ui-provider-core";
+  import { encodeTogglelistResult, type ToggleItem } from "@emdzej/inpax-interfaces";
 
   type Props = { ui: UIProvider };
   const { ui }: Props = $props();
 
   let dialog = $state<InputDialog | null>(null);
-  // Set of indices selected from the candidate list.
+  // Set of indices selected from the candidate list (0-based into
+  // `items`). `encodeTogglelistResult` converts to 1-based when the
+  // script requested numeric indices.
   let selected = $state<Set<number>>(new Set());
-  // Free-text "Set:" input — appended verbatim to the result.
-  let custom = $state<string>("");
 
   $effect(() => {
     const provider = ui;
@@ -52,24 +50,23 @@
         return;
       }
       dialog = { ...next };
-      // Reset transient selection state every time a new togglelist
-      // dialog opens — otherwise a previous menu's picks bleed into
-      // the next one.
+      // Reset selection on every fresh dialog open — otherwise the
+      // previous menu's picks would bleed into the next one.
       selected = new Set();
-      custom = "";
     };
     refresh();
     return provider.onStateChange(refresh);
   });
 
-  const candidates = $derived<string[]>(dialog?.toggleItems ?? []);
+  const items = $derived<ToggleItem[]>(dialog?.toggleItems ?? []);
   const multiple = $derived<boolean>(dialog?.toggleMultipleSelect ?? false);
+  const argNum = $derived<boolean>(dialog?.toggleArgNum ?? false);
 
   function toggleIndex(i: number): void {
-    // Provider semantics:
-    //   - multipleSelect=false  → picking a row clears any previous
-    //     selection (radio-button feel).
-    //   - multipleSelect=true   → checkbox-style toggling.
+    // INPA semantics:
+    //   - MultipleSelectFlag=false → picking a row clears any
+    //     prior selection (radio-button behaviour).
+    //   - MultipleSelectFlag=true  → checkbox-style toggling.
     if (!multiple) {
       selected = selected.has(i) ? new Set() : new Set([i]);
       return;
@@ -86,19 +83,8 @@
 
   function submit(): void {
     if (!dialog) return;
-    const picked = Array.from(selected)
-      .sort((a, b) => a - b)
-      .map((i) => candidates[i]);
-    const customTrimmed = custom.trim();
-    // Selected names first, then anything the user typed verbatim,
-    // joined by a single space (INPA's wire format). Empty when both
-    // collections are empty — submitting "" still flips
-    // `lastInputState` to 1, which is fine: the calling script's
-    // own EQ-with-zero check is what decides whether the cancel
-    // branch fires, and an empty `STEUERN_LEUCHTE` argument is a
-    // valid no-op for the downstream job.
-    const result = [...picked, ...(customTrimmed ? [customTrimmed] : [])].join(" ");
-    ui.submitInput(result);
+    const encoded = encodeTogglelistResult(items, [...selected], argNum);
+    ui.submitInput(encoded);
   }
 
   function cancel(): void {
@@ -110,11 +96,7 @@
   $effect(() => {
     if (!dialog) return;
     const onKey = (e: KeyboardEvent) => {
-      // Don't steal Enter from the inline text input — submitting
-      // via the "Set:" field's onkeydown handler keeps focus where
-      // the user expected, and our outer Enter still fires for
-      // anything else.
-      if (e.key === "Enter" && (e.target as HTMLElement)?.tagName !== "INPUT") {
+      if (e.key === "Enter") {
         submit();
         e.preventDefault();
       } else if (e.key === "Escape") {
@@ -140,18 +122,17 @@
       </header>
 
       <section class="flex gap-3 px-4 py-3 text-sm text-foreground">
-        <!-- Candidate list. INPA scrolls these inside a small fixed
-             pane; we mirror with overflow-y-auto + max-h. Empty state
-             nudges the user toward the "Set:" field below. -->
+        <!-- Candidate list. INPA scrolls inside a fixed pane;
+             we mirror with overflow-y-auto + max-h. -->
         <div class="flex-1 min-h-[12rem] max-h-72 overflow-y-auto rounded border border-rule bg-base">
-          {#if candidates.length === 0}
+          {#if items.length === 0}
             <p class="px-2 py-3 text-xs text-faint">
-              No candidate items available — type the toggle name
-              into the "Set:" field below.
+              The active screen declared no controllable items. Cancel
+              and pick a control screen first.
             </p>
           {:else}
             <ul role="listbox" aria-multiselectable={multiple}>
-              {#each candidates as item, i (i)}
+              {#each items as item, i (i)}
                 {@const isSelected = selected.has(i)}
                 <li>
                   <button
@@ -163,7 +144,7 @@
                     class:text-zinc-950={isSelected}
                     onclick={() => toggleIndex(i)}
                   >
-                    {item}
+                    {item.name}
                   </button>
                 </li>
               {/each}
@@ -171,9 +152,9 @@
           {/if}
         </div>
 
-        <!-- Buttons column. Same vertical stack as real INPA — OK,
-             Cancel, then Deselect. We skip Save / Delete (set-presets
-             feature) for now; those are future work. -->
+        <!-- Buttons column: OK / Cancel / Deselect. Same vertical
+             stack as real INPA. Save / Delete (set-presets) skipped
+             — future work. -->
         <div class="flex w-24 flex-col gap-2">
           <button
             type="button"
@@ -198,29 +179,6 @@
             Deselect
           </button>
         </div>
-      </section>
-
-      <!-- "Set:" free-text input. Submitting via Enter inside the
-           input fires the dialog's submit() so the user doesn't have
-           to mouse over to the OK button. -->
-      <section class="border-t border-divider px-4 py-3 text-sm text-foreground">
-        <label class="block">
-          <span class="text-xs text-faint">Set:</span>
-          <!-- svelte-ignore a11y_autofocus — autofocus is the right
-               UX for the only editable field in the dialog. -->
-          <input
-            type="text"
-            class="mt-1 w-full rounded border border-rule bg-base px-2 py-1 text-foreground outline-none focus:ring-1 focus:ring-accent"
-            bind:value={custom}
-            onkeydown={(e) => {
-              if (e.key === "Enter") {
-                submit();
-                e.preventDefault();
-              }
-            }}
-            autofocus
-          />
-        </label>
       </section>
     </div>
   </div>

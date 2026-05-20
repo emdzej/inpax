@@ -7,7 +7,11 @@
 export * from './events.js';
 
 // Providers
-export type { IUIProvider } from './ui.js';
+export type { IUIProvider, ToggleItem } from './ui.js';
+
+// Shared togglelist serialisation helpers (used by every concrete
+// UIProvider that opens the dialog — CLI, web, mock).
+export { orToggleMasks, formatToggleIndices, encodeTogglelistResult } from './toggle-list.js';
 export type { ISimulationProvider } from './simulation.js';
 export type { IEdiabasProvider } from './ediabas.js';
 export type { IInp1Provider } from './inp1.js';

@@ -26,7 +26,7 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import type { IUIProvider, UIEvents } from '@emdzej/inpax-interfaces';
+import type { IUIProvider, ToggleItem, UIEvents } from '@emdzej/inpax-interfaces';
 import { ScreenBuffer } from './screen-buffer.js';
 import {
   type UIProviderState,
@@ -746,7 +746,7 @@ export abstract class UIProvider
   async togglelist(
     multipleSelect: boolean,
     argNum: boolean,
-    candidates: string[],
+    items: ToggleItem[],
   ): Promise<string> {
     return new Promise(resolve => {
       this._state.inputDialog = {
@@ -757,14 +757,14 @@ export abstract class UIProvider
         title: 'Please select the objects to be controlled',
         text: '',
         value: '',
-        toggleItems: candidates,
+        toggleItems: items,
         toggleMultipleSelect: multipleSelect,
         toggleArgNum: argNum,
       };
-      // `submitInput(value)` resolves with the space-separated names
-      // (the dialog component formats them); `cancelInput()` resolves
-      // with `''` so the script's "user cancelled" branch fires
-      // naturally via the lastInputState=0 + EQ-with-zero check.
+      // The dialog component does the encoding (OR'd masks or
+      // space-separated indices, per argNum) and calls
+      // submitInput(<encoded string>) on OK / cancelInput() on
+      // cancel. We just resolve with whatever it passes us.
       this._state.inputResolve = v => resolve(String(v ?? ''));
       this.update();
     });
