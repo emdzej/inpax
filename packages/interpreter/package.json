@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-interpreter",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "INPA IPO bytecode interpreter",
   "type": "module",
   "main": "dist/index.js",

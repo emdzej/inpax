@@ -6,6 +6,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.6.2] — 2026-05-20
+
+Dependency bump release. Picks up the ediabasx 0.2.2 patch that fixes
+CP1252 round-trip corruption on five specific byte values — the bug
+that caused certain BEST2 jobs to loop forever once an inner counter
+or response byte crossed `0x81`, `0x8D`, `0x8F`, `0x90`, or `0x9D`.
+
+### Changed
+
+- **Bump `@emdzej/ediabasx-*` pins from `^0.2.1` to `^0.2.2`.** Affects
+  `@emdzej/inpax-ediabasx-provider`, `@emdzej/inpax-cli`, and
+  `@emdzej/inpax-web`. The underlying ediabasx fix is in
+  `@emdzej/ediabasx-core`'s CP1252 encode table (the five "undefined"
+  CP1252 slots now round-trip bit-exact instead of falling back to
+  `'?'` / `0x3F`). Surfaced by `C_KMB46.prg!C_FA_LESEN` (BMW E46
+  vehicle-order read), whose loop counter at `S0[#$0..1]` got stuck
+  cycling `0x40..0x81` instead of reaching its `0x180` exit max. See
+  `ediabasx/CHANGELOG.md @ 0.2.2` and the
+  `ediabasx/docs/s-register-refactor-proposal.md` doc for the
+  longer-term direction (native `Uint8Array` storage for S registers).
+
 ## [0.6.1] — 2026-05-20
 
 Bug-fix release. Closes a v1.x interpretation bug discovered while
