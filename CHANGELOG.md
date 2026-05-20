@@ -6,6 +6,60 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.6.0] — 2026-05-20
+
+Additive release driven by two threads of INPA.exe reverse-engineering:
+mapping the STEUERN (control/activation) verb family to its state
+machine, and giving consumers of `@emdzej/inpax-interpreter` a clean
+hook to override system functions per host.
+
+### Added
+
+- **`ControlSession` — state mirror for the STEUERN verb family.**
+  Promotes `select` / `deselect` / `start` / `stop` from silent no-op
+  stubs to real state mutations on a per-VM `ControlSession` that
+  mirrors INPA's `DAT_004a0008` singleton. Field map is Ghidra-anchored
+  in the docblock (`+0x38` active, `+0x44` applied, `+0x98` selected,
+  `cycleTicks` from `DAT_0049bec0`, …). `control()` stays a no-op —
+  only 8 legacy E36/E38 IPOs (LCM / LSZ / ZKE2 lighting era) use it
+  and none of them query the session back. (`@emdzej/inpax-interpreter`)
+
+  - `select(MultipleSelectFlag)` moved from internal-functions into
+    the dispatcher's async list. It routes through
+    `ui.togglelist(multi, /*argNum=*/true, items)` so the dialog
+    returns 1-based indices (no mask-OR ambiguity), then commits
+    picks via `session.applySelection()`. Guarded with INPA's
+    `IsEmpty` check so orphaned `m_main` F-keys (`start; select(true)`
+    on screens with no LineFuncs — observed in MS430 / KOMBI / LCM)
+    stay silent instead of opening an empty picker.
+    (`@emdzej/inpax-dispatcher`)
+  - `start()` honours the same `IsEmpty` guard via
+    `session.start(items)` and sets `cycleTicks = 60` to match
+    `DAT_0049bec0 = 0x3c`. (`@emdzej/inpax-interpreter`)
+  - `stop()` clears `active` + `cycleTicks` — the canonical pattern
+    in ZKE2's per-screen error halt (`messagebox` + `stop` at offset
+    `002d`, repeated 60+ times across body-electronics screens).
+    (`@emdzej/inpax-interpreter`)
+  - No consumers read the session yet, so KOMBI / MS43 flows that
+    already work via `togglelist` (0x16) are untouched. The session
+    is the foundation for ZKE2-style cycle gating and the legacy
+    LCM `control + INPAapiJob` pattern.
+
+- **Host overrides for system functions.** New `systemFunctions?:
+  Map<number, SystemFunctionOverride>` slot in `VMConfig`. Each entry
+  fully replaces the default routing for that `SystemFunction` ID —
+  checked before both the internal-functions registry and the
+  dispatcher. Sync or async handlers both supported (`void` or
+  `Promise<void>` return); the VM awaits either. No `next()` chain:
+  consumers who want "default plus side-effect" compose by hand.
+
+  Lets each host wire verbs that need different semantics per
+  environment — `exitwindows` closes a browser tab in the web app,
+  calls `process.exit` in the CLI, collapses a panel in the TUI —
+  without forking the interpreter. See
+  `packages/interpreter/README.md` for the recipe.
+  (`@emdzej/inpax-interpreter`)
+
 ## [0.5.1] — 2026-05-20
 
 Bug-fix release focused on the live diagnostic-control path. Every

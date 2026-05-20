@@ -98,6 +98,18 @@ export interface VMState {
 }
 
 /**
+ * Custom system function handler. Returns `void` for synchronous
+ * handlers or `Promise<void>` for async — the VM awaits both. The
+ * handler is responsible for popping its own operand-stack arguments
+ * (same convention as `InternalFunctions`); the dispatcher's generic
+ * argument-collection path is bypassed when an override fires.
+ */
+export type SystemFunctionOverride = (
+    ctx: ExecutionContext,
+    vm: VM,
+) => void | Promise<void>;
+
+/**
  * VM Configuration
  */
 export interface VMConfig {
@@ -107,6 +119,20 @@ export interface VMConfig {
     screenExecutor?: ScreenExecutorConfig;
     /** State machine executor configuration */
     stateMachineExecutor?: StateMachineExecutorConfig;
+    /**
+     * Per-system-function overrides keyed by `SystemFunction` ID.
+     * Checked before both the internal-functions and dispatcher
+     * routing paths — if a handler is registered here it fully
+     * replaces the default behaviour. Use this when a host needs
+     * different semantics for a verb (e.g. `exitwindows` should
+     * close a browser tab in the web host but call `process.exit`
+     * in the CLI host).
+     *
+     * No chain-to-default: an override either runs or it doesn't.
+     * Consumers that want "default plus side-effect" should compose
+     * by hand.
+     */
+    systemFunctions?: Map<number, SystemFunctionOverride>;
 }
 
 /**
@@ -133,6 +159,11 @@ export class VM {
     // anchor to the INPA struct. One session per VM (no scoping by
     // screen — INPA itself uses a global).
     private controlSession: ControlSession = new ControlSession();
+
+    // Host-provided system-function overrides. Checked first in
+    // `callSystemFunction` — if a handler is registered for the
+    // requested funcId, it fully replaces the default routing.
+    private systemFunctionOverrides: Map<number, SystemFunctionOverride>;
 
     // State machine execution
     private stateMachineExecutor: StateMachineExecutor | null = null;
@@ -172,6 +203,7 @@ export class VM {
         this.internal = new InternalFunctions(this);
         this.screenExecutorConfig = config.screenExecutor ?? {};
         this.stateMachineExecutorConfig = config.stateMachineExecutor ?? {};
+        this.systemFunctionOverrides = config.systemFunctions ?? new Map();
         this.config = config;
         // Initialize state machine executor and register all state machines from IPO
         this.initStateMachineExecutor();
@@ -653,6 +685,15 @@ export class VM {
      * Call system function - routes to internal or dispatcher
      */
     private async callSystemFunction(funcId: number, ctx: ExecutionContext): Promise<void> {
+        // Host overrides take precedence over both internal-functions
+        // and dispatcher routing. The handler is fully responsible —
+        // there's no chain-to-default.
+        const override = this.systemFunctionOverrides.get(funcId);
+        if (override) {
+            await override(ctx, this);
+            return;
+        }
+
         // Check if internal (handled by interpreter)
         if (this.dispatcher.isInternal(funcId)) {
             this.internal.call(funcId, ctx);

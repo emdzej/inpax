@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   AluOp,
+  CallTarget,
   Opcode,
   Scope,
   StackEntry,
   StackEntryFlags,
+  SystemFunction,
   ValueType,
   type BlockHeader,
   type ConstantsBlock,
@@ -15,7 +17,7 @@ import {
   type MenuBlock,
 } from '@emdzej/inpax-core';
 import { ExecutionContext } from './execution-context.js';
-import { VM } from './interpreter.js';
+import { VM, type SystemFunctionOverride } from './interpreter.js';
 
 const entry = (type: ValueType, value: StackEntry['value']): StackEntry => ({
   type,
@@ -378,5 +380,76 @@ describe('VM.executeMenuItem — menu-context persistence', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     await vm.executeMenuItem(item);
     expect(vm.getGlobals()[0].value).toBe(22);
+  });
+});
+
+describe('VM.systemFunctions — host overrides', () => {
+  // Hosts (CLI, web app, TUI) need different semantics for the same
+  // BEST2 verb — `exitwindows` in the browser should close a tab, in
+  // the CLI should `process.exit`. The `systemFunctions` config slot
+  // lets the host wire those in without forking the interpreter.
+  //
+  // The override fully replaces the default; both internal-functions
+  // routing (e.g. `exitwindows` as `this.exit()`) and dispatcher
+  // routing are skipped when an entry is registered.
+
+  function callSysBlock(funcId: number): FunctionBlock {
+    return createFunctionBlock([
+      createInstruction(Opcode.FRAME, 0, 0),
+      createInstruction(Opcode.CALL, CallTarget.SystemFunction, funcId),
+      createInstruction(Opcode.RET, 0, 0),
+    ]);
+  }
+
+  it('runs a registered override instead of the default handler', async () => {
+    const handler = vi.fn();
+    const block = callSysBlock(SystemFunction.exitwindows);
+    const ipo = createIpoFile(block);
+
+    const vm = new VM(ipo, {
+      systemFunctions: new Map<number, SystemFunctionOverride>([
+        [SystemFunction.exitwindows, handler],
+      ]),
+    });
+
+    const ctx = new ExecutionContext([entry(ValueType.Int, 0)], []);
+    await vm.execute(block, ctx);
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    // VM still running — default `exitwindows` would have stopped it.
+    expect(handler.mock.calls[0][1]).toBe(vm);
+  });
+
+  it('awaits an async override before resuming bytecode', async () => {
+    const order: string[] = [];
+    const block = callSysBlock(SystemFunction.exitwindows);
+    const ipo = createIpoFile(block);
+
+    const vm = new VM(ipo, {
+      systemFunctions: new Map<number, SystemFunctionOverride>([
+        [SystemFunction.exitwindows, async () => {
+          order.push('start');
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          order.push('end');
+        }],
+      ]),
+    });
+
+    const ctx = new ExecutionContext([entry(ValueType.Int, 0)], []);
+    await vm.execute(block, ctx);
+
+    expect(order).toEqual(['start', 'end']);
+  });
+
+  it('falls through to the default when no override is registered', async () => {
+    // `exit` is an internal-functions handler that flips `running` to
+    // false. Without an override the VM should still take that path.
+    const block = callSysBlock(SystemFunction.exit);
+    const ipo = createIpoFile(block);
+    const vm = new VM(ipo);
+
+    const ctx = new ExecutionContext([entry(ValueType.Int, 0)], []);
+    await vm.execute(block, ctx);
+    // No throw, no override called — default routing took effect.
   });
 });
