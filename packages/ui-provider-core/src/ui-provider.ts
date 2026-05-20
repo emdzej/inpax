@@ -314,6 +314,23 @@ export abstract class UIProvider
       this._state.inputResolve = null;
     }
     this._state.inputDialog = null;
+    // Outcome surfaced via `getinputstate` — INPA convention is
+    // Win32-style return codes: **0 = success (user submitted OK)**,
+    // non-zero = error / cancel.
+    //
+    // Verified via KOMBI.IPO m_steuern_analog ITEM 0:
+    //   LOAD global[28]   ; the value getinputstate just wrote
+    //   LOAD global[29]   ; initialised to int 0 in __inpa_startup__
+    //   ALU EQ            ; (inputstate == 0)?
+    //   MOVE 0, 1         ; condition = bool result
+    //   JMPNZ @51         ; semantics: jump-if-zero (matches INPA case 0xb)
+    //   …OK path…         ; only reached when cond != 0 — i.e. EQ true
+    //                     ;   — i.e. inputstate == 0 — i.e. user pressed OK
+    //
+    // The naming "JMPNZ" in our enum is historical; the *operation*
+    // matches INPA's `if (condition == 0) ip = target`. So for the
+    // OK path to execute, `getinputstate` must return 0 on submit.
+    this._state.lastInputState = 0;
     this.emit('input:submit', { value });
     this.update();
   }
@@ -336,6 +353,13 @@ export abstract class UIProvider
       this._state.inputResolve = null;
     }
     this._state.inputDialog = null;
+    // Cancel = non-zero error code. INPA convention treats 0 as
+    // success; any non-zero is "something other than OK happened".
+    // The script's `EQ inputstate, 0` check returns false here, the
+    // condition register stays 0, JMPNZ jumps past the OK path, and
+    // the cancel branch (typically a no-op / "skip the value
+    // processing") runs as intended.
+    this._state.lastInputState = 1;
     this.emit('input:cancel');
     this.update();
   }
@@ -654,7 +678,14 @@ export abstract class UIProvider
   // === Input ===
 
   getInputState(): number {
-    return this._state.inputDialog ? 1 : 0;
+    // Surfaces the outcome of the most recently completed input
+    // dialog, not the open/closed flag of the current dialog. Real
+    // INPA bytecode (e.g. KOMBI.IPO m_steuern_analog ITEM 0) calls
+    // `getinputstate` AFTER `inputint` resolves, then branches on
+    // `inputstate != 0` for the success path. Returning the
+    // dialog-open flag here used to make every submission look like
+    // a cancel because the dialog was already closed by then.
+    return this._state.lastInputState;
   }
 
   async inputText(title: string, text: string): Promise<string> {
@@ -710,6 +741,33 @@ export abstract class UIProvider
   ): Promise<[number, number]> {
     const result = await this.inputInt(title, text, min1, max1);
     return [result, min2];
+  }
+
+  async togglelist(
+    multipleSelect: boolean,
+    argNum: boolean,
+    candidates: string[],
+  ): Promise<string> {
+    return new Promise(resolve => {
+      this._state.inputDialog = {
+        type: 'toggle-list',
+        // Title matches the real INPA dialog header verbatim — keeps
+        // the muscle memory intact for users coming from BMW INPA and
+        // makes screenshots line up across tools.
+        title: 'Please select the objects to be controlled',
+        text: '',
+        value: '',
+        toggleItems: candidates,
+        toggleMultipleSelect: multipleSelect,
+        toggleArgNum: argNum,
+      };
+      // `submitInput(value)` resolves with the space-separated names
+      // (the dialog component formats them); `cancelInput()` resolves
+      // with `''` so the script's "user cancelled" branch fires
+      // naturally via the lastInputState=0 + EQ-with-zero check.
+      this._state.inputResolve = v => resolve(String(v ?? ''));
+      this.update();
+    });
   }
 
   async inputHex(

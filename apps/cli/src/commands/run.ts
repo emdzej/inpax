@@ -367,7 +367,11 @@ async function runWithTui(filePath: string, scriptName: string, options: RunOpti
         const menuItem = findMenuItemHandler(ipo, menuHandle, itemNum);
         if (menuItem) {
             scheduler.queueMenuAction(itemNum, async () => {
-                await vm.executeBlock(menuItem);
+                // Use executeMenuItem so the handler reuses the
+                // active menu's persistent ExecutionContext —
+                // otherwise `local[i]` reads in the handler hit
+                // an empty stack. See VM.executeMenuItem.
+                await vm.executeMenuItem(menuItem);
             });
         } else if (options.debug) {
             console.log(chalk.gray(`No handler for F${itemNum}`));

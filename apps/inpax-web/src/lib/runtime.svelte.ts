@@ -215,7 +215,13 @@ export async function startInpaRuntime(
       scheduler.queueMenuAction(itemNum, async () => {
         debugLog(`[menu:select] running handler for F${itemNum}`);
         try {
-          await vm.executeBlock(handler);
+          // `executeMenuItem` (not `executeBlock`) preserves the
+          // active menu's persistent ExecutionContext, so the
+          // handler's `local[i]` references resolve against the
+          // values the menu's INIT body left on the stack. Using
+          // `executeBlock` here would create a fresh context with
+          // an empty stack and trip on `PUSHREF local[0]`.
+          await vm.executeMenuItem(handler);
           debugLog(`[menu:select] handler for F${itemNum} done`);
         } catch (err) {
           console.error(`[menu:select] handler for F${itemNum} threw:`, err);

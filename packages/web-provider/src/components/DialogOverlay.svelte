@@ -31,13 +31,15 @@
       const next = provider.getInputDialog();
       // scriptselect is handled by ScriptSelectDialog (richer UI —
       // tree + entries); connect / connect-error are handled by
-      // ConnectDialog. Skip them here so we don't render two modals
-      // on top of each other.
+      // ConnectDialog; toggle-list is handled by TogglelistDialog
+      // (multi-select list + free-text "Set:" field). Skip them
+      // here so we don't render two modals on top of each other.
       if (
         next &&
         (next.type === "scriptselect" ||
           next.type === "connect" ||
-          next.type === "connect-error")
+          next.type === "connect-error" ||
+          next.type === "toggle-list")
       ) {
         dialog = null;
         return;

@@ -78,6 +78,7 @@ export { default as ScreenCanvas } from "./components/ScreenCanvas.svelte";
 export { default as FKeyBar } from "./components/FKeyBar.svelte";
 export { default as MenuTitleBar } from "./components/MenuTitleBar.svelte";
 export { default as DialogOverlay } from "./components/DialogOverlay.svelte";
+export { default as TogglelistDialog } from "./components/TogglelistDialog.svelte";
 export { default as UserBoxOverlay } from "./components/UserBoxOverlay.svelte";
 export { default as ViewerDialog } from "./components/ViewerDialog.svelte";
 export { default as ScriptSelectDialog } from "./components/ScriptSelectDialog.svelte";

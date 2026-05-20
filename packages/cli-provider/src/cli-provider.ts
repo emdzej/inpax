@@ -428,6 +428,44 @@ export class CliProvider extends EventEmitter<UIEvents> implements IUIProvider {
     return result;
   }
 
+  async togglelist(
+    multipleSelect: boolean,
+    _argNum: boolean,
+    candidates: string[]
+  ): Promise<string> {
+    // CLI rendering of INPA's multi-select toggle dialog. Real INPA
+    // shows the candidates as a checkbox list; we show them as a
+    // numbered list and accept either a comma-separated index list
+    // ("1,3,5") or a verbatim space-separated names list. An empty
+    // reply yields the empty string — the same "user cancelled"
+    // signal that the script's getinputstate==0 check expects.
+    const header =
+      multipleSelect
+        ? 'Select objects (comma-separated indices, or names):'
+        : 'Select an object (index or name):';
+    const lines = candidates.length
+      ? candidates.map((c, i) => `  ${(i + 1).toString().padStart(2, ' ')}. ${c}`)
+      : ['  (no candidates — type a name verbatim)'];
+    this.box('Toggle list', [header, ...lines]);
+    const answer = (await this.prompt('> ')).trim();
+    if (!answer) {
+      this.emit('input:submit', { value: '' });
+      return '';
+    }
+    const tokens = answer.split(/[\s,]+/).filter(Boolean);
+    const resolved = tokens
+      .map((token) => {
+        const asIndex = Number.parseInt(token, 10);
+        if (Number.isFinite(asIndex) && asIndex >= 1 && asIndex <= candidates.length) {
+          return candidates[asIndex - 1];
+        }
+        return token;
+      })
+      .join(' ');
+    this.emit('input:submit', { value: resolved });
+    return resolved;
+  }
+
   // === Simulation (simple prompts) ===
 
   async simNum(title: string, text: string, min: number, max: number): Promise<number> {

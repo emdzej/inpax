@@ -251,10 +251,24 @@ export class EdiabasXProvider
         this.currentEcu = ecu;
       }
 
-      // INPA passes empty strings when an arg is unused. Pass through
-      // as positional params — EdiabasX `executeJob` accepts an array
-      // and the BEST2 `par*` opcodes read from it by index.
-      const params = [arg1, arg2].filter((p) => p !== undefined);
+      // INPA's `apiJob(ECU, JOB, PARAMS, RESULTS)` follows BMW EDIABAS
+      // convention: **`PARAMS` is a single semicolon-delimited string**
+      // that EDIABAS splits into individual `par(0)`, `par(1)`, … `par(N)`
+      // slots before the BEST2 program runs. `RESULTS` is a result-name
+      // filter — not a parameter — and our `executeJob` doesn't yet
+      // support filtering, so we drop it.
+      //
+      // Real-world examples that pin this down:
+      //   • STEUERN_ANZEIGE  arg1="TACHO;40"                    → par(0)="TACHO", par(1)="40"
+      //   • STEUERN_LEUCHTE  arg1="0xFF;0xFF;0xFF;0xFF;0xFF;0xFF" → par(0..5)="0xFF"
+      //   • IDENT            arg1=""                            → no params
+      //
+      // Pre-fix we passed `[arg1, arg2]` verbatim as a 2-element array,
+      // so STEUERN_LEUCHTE ended up with `par(0)` set to the entire
+      // "0xFF;0xFF;…" blob — the SGBD's per-lamp control bytes
+      // collapsed into one giant string, the ECU saw nothing valid,
+      // and the dashboard needle (or lamp) didn't move.
+      const params = arg1 === '' ? [] : arg1.split(';');
 
       const sets = await this.ediabas.executeJob(jobName, { params });
 

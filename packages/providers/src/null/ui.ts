@@ -183,6 +183,13 @@ export class NullUIProvider extends EventEmitter<UIEvents> implements IUIProvide
   ): Promise<boolean> {
     return false;
   }
+  async togglelist(
+    _multipleSelect: boolean,
+    _argNum: boolean,
+    _candidates: string[]
+  ): Promise<string> {
+    return '';
+  }
 
   // === Message Boxes ===
   async messageBox(_title: string, _text: string): Promise<void> {}

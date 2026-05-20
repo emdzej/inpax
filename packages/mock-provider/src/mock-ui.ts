@@ -296,6 +296,18 @@ export class MockUIProvider extends EventEmitter<UIEvents> implements IUIProvide
     return this.nextBool();
   }
 
+  async togglelist(
+    multipleSelect: boolean,
+    argNum: boolean,
+    candidates: string[],
+  ): Promise<string> {
+    this.record('togglelist', multipleSelect, argNum, candidates);
+    // Deterministic test result: return the first candidate, or ""
+    // if the caller passed nothing. Matches the cancel semantics
+    // (empty string => script takes the cancel branch).
+    return candidates[0] ?? '';
+  }
+
   async messageBox(title: string, text: string): Promise<void> {
     this.record('messageBox', title, text);
     this.emit('messagebox:closed', {});

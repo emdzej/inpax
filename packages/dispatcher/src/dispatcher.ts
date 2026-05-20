@@ -19,6 +19,9 @@ const ASYNC_FUNCTIONS = new Set<number>([
     SystemFunction.input2hex,
     SystemFunction.inputint,
     SystemFunction.input2int,
+    // Toggle list — INPA's multi-select picker. Async because the UI
+    // provider awaits the user's selection before resolving.
+    SystemFunction.togglelist,
     // Message boxes
     SystemFunction.messagebox,
     SystemFunction.infobox,
@@ -57,7 +60,6 @@ const INTERNAL_FUNCTIONS = new Set<number>([
     SystemFunction.start,
     SystemFunction.stop,
     SystemFunction.getapistring,
-    SystemFunction.togglelist,
     // Time
     SystemFunction.delay,
     SystemFunction.getdate,
@@ -456,6 +458,22 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
                     inputs[0] as string, inputs[1] as string,
                     inputs[2] as number, inputs[3] as number
                 ));
+            case SystemFunction.togglelist: {
+                // BEST2 sig: (in: bool MultipleSelectFlag, in: bool ArgNumFlag,
+                //             out: string ApiToggleString)
+                // INPA derives the candidate list from EDIABAS result tables
+                // for the most-recently-loaded SGBD. We don't yet have a
+                // clean accessor for that table on `IEdiabasProvider`, so we
+                // pass an empty list for now and rely on the dialog's free-
+                // text "Set:" field for manual entry. TODO: wire candidates
+                // through once the provider exposes a `getResultNames()` or
+                // equivalent.
+                return finalize(ui.togglelist(
+                    inputs[0] as boolean,
+                    inputs[1] as boolean,
+                    []
+                ));
+            }
             case SystemFunction.input2int:
                 return finalize(ui.input2Int(
                     inputs[0] as string, inputs[1] as string,

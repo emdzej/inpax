@@ -86,7 +86,9 @@ export class InternalFunctions {
     this.handlers.set(SystemFunction.start, () => this.stub('start'));
     this.handlers.set(SystemFunction.stop, () => this.stub('stop'));
     this.handlers.set(SystemFunction.getapistring, (ctx) => this.getapistring(ctx));
-    this.handlers.set(SystemFunction.togglelist, () => this.stub('togglelist'));
+    // togglelist is dispatched through the UI provider (`ui.togglelist`)
+    // — it opens an async multi-select dialog rather than running
+    // internally. See `packages/dispatcher/src/dispatcher.ts`.
 
     // String Arrays (stubs)
     this.handlers.set(SystemFunction.StrArrayCreate, () => this.stub('StrArrayCreate'));
@@ -196,6 +198,7 @@ export class InternalFunctions {
     ctx.popBool(); // argNumFlag — ignored
     ctx.setOutParam(outRef, Stack.createEntry(ValueType.String, ''));
   }
+
 
   // ============ Script Control ============
 

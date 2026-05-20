@@ -325,6 +325,34 @@ export interface IUIProvider extends EventEmitter<UIEvents> {
     onText: string
   ): Promise<boolean>;
 
+  /**
+   * Show INPA's toggle-list dialog — the "Please select the objects
+   * to be controlled" multi-select that real INPA pops on
+   * `togglelist` (BEST2 system function `0x16`). User picks zero or
+   * more items from `candidates`; the returned string is the
+   * selected names joined by a single space, matching INPA's
+   * serialisation (which feeds straight into `INPAapiJob` for
+   * STEUERN_* control jobs).
+   *
+   * Empty result on cancel.
+   *
+   * `multipleSelect` mirrors INPA's `MultipleSelectFlag`. When
+   * `false`, picking a row in the dialog deselects any other rows.
+   *
+   * `argNum` mirrors `ArgNumFlag` — reserved for the day we return
+   * numeric indices instead of names. Currently ignored.
+   *
+   * `candidates` lists the known toggle items. Real INPA derives
+   * them from the SGBD via EDIABAS result tables; we don't yet have
+   * a clean source for them, so callers may pass `[]` and rely on
+   * the dialog's free-text "Set:" field for manual entry.
+   */
+  togglelist(
+    multipleSelect: boolean,
+    argNum: boolean,
+    candidates: string[]
+  ): Promise<string>;
+
   // === Message Boxes ===
   
   /**

@@ -21,6 +21,7 @@
     FKeyBar,
     MenuTitleBar,
     DialogOverlay,
+    TogglelistDialog,
     ScriptSelectDialog,
     UserBoxOverlay,
     ViewerDialog,
@@ -406,6 +407,7 @@
           <FKeyBar ui={runtime.ui} />
         </footer>
         <DialogOverlay ui={runtime.ui} />
+        <TogglelistDialog ui={runtime.ui} />
         <ScriptSelectDialog
           ui={runtime.ui}
           loader={(filename: string): Promise<ScriptSelectNode | null> => {

@@ -129,6 +129,22 @@ export class VM {
     private stateMachineExecutor: StateMachineExecutor | null = null;
     private stateMachineExecutorConfig: StateMachineExecutorConfig;
 
+    // Persistent context for the active menu. Menus, unlike screens,
+    // do not carry a separate ALLOC sub-block in the binary format —
+    // the menu's body LOADs default values onto the stack at the
+    // start of INIT, and those become the menu's locals (`local[0]`,
+    // `local[1]`, …) for the duration of the menu. Every MenuItemFunc
+    // (the per-F-key handler) expects those locals to still be there
+    // when the user activates the item; a fresh `ExecutionContext`
+    // per item would resolve `local[i]` against an empty stack and
+    // throw "Stack index out of bounds".
+    //
+    // We capture the context after `menu.func` runs and reuse it
+    // across all subsequent item-handler dispatches (via
+    // `executeMenuItem`) until another `setMenu` swaps in a fresh
+    // one. Mirrors what `ScreenExecutor` already does for screens.
+    private activeMenuContext: ExecutionContext | null = null;
+
     private config: VMConfig;
 
     constructor(ipo: IpoFile, config: VMConfig = {}) {
@@ -879,6 +895,11 @@ export class VM {
         const ui = this.runtime.ui;
         const menuFunc = menu.func;
         const staticItems = menu.items;
+        // Previous menu's locals are gone — clear before INIT runs.
+        // The new context is allocated below; readers in the gap
+        // (e.g. an F-key fired before INIT settles) fall back to a
+        // disposable context via `executeMenuItem`.
+        this.activeMenuContext = null;
         setTimeout(() => {
             ui.setMenu(menuHandle);
             for (const item of staticItems) {
@@ -887,12 +908,46 @@ export class VM {
                 }
             }
             if (menuFunc) {
-                this.execute(menuFunc, this.createExecutionContext())
+                // Allocate the persistent ExecutionContext that will
+                // own the menu's local frame. The menu body LOADs
+                // initial values onto its stack — those become the
+                // locals (`local[i] = stack[frameOffset + i]`). After
+                // INIT completes we keep the context alive on
+                // `this.activeMenuContext` so item-handler dispatch
+                // (`executeMenuItem`) can re-enter with the same
+                // stack/frameOffset and resolve `local[i]` against
+                // the values INIT left behind.
+                const menuCtx = this.createExecutionContext();
+                this.execute(menuFunc, menuCtx)
+                    .then(() => {
+                        this.activeMenuContext = menuCtx;
+                    })
                     .catch((err: unknown) => {
                         log.error({ err }, 'menu init block failed');
                     });
             }
         }, 0);
+    }
+
+    /**
+     * Execute a menu item handler against the active menu's persistent
+     * ExecutionContext, so `local[i]` references inside the handler
+     * resolve to the values the menu's INIT body left on its stack.
+     *
+     * Falls back to a fresh isolated execution if no active menu
+     * context is available (test harnesses, or an F-key fired between
+     * `setMenu` issuing and the deferred INIT settling). In that
+     * fallback, any `local[i]` access inside the item will still
+     * throw — but it'll throw the same way the previous (always-fresh)
+     * code path did, so we haven't made anything worse for the
+     * corner case.
+     */
+    async executeMenuItem(item: FunctionBlock): Promise<void> {
+        if (this.activeMenuContext) {
+            await this.executeBlockWithContext(item, this.activeMenuContext);
+        } else {
+            await this.executeBlock(item);
+        }
     }
 
     /**

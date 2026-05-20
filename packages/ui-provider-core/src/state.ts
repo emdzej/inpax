@@ -76,7 +76,8 @@ export interface InputDialog {
     | 'message'
     | 'scriptselect'
     | 'connect'
-    | 'connect-error';
+    | 'connect-error'
+    | 'toggle-list';
   title: string;
   text: string;
   value: string;
@@ -91,6 +92,34 @@ export interface InputDialog {
    * provider only carries the filename through.
    */
   scriptSelectFile?: string;
+  /**
+   * For `type: 'toggle-list'` only.
+   *
+   * Real INPA shows a multi-select list of indicators / control
+   * objects (matching the SGBD's expected toggle vocabulary, e.g.
+   * "Kühlmittelübertemperatur", "RDC gelb", "Gurtwarnung" for the
+   * KOMBI ECU) with OK / Cancel / Deselect and a "Set:" text field
+   * for saving named selections. We model that here:
+   *
+   *  - `items` is the list of candidates. INPA derives them from
+   *    EDIABAS result tables; we don't have a clean source for them
+   *    yet, so the dialog opens with whatever the dispatcher passes
+   *    (currently `[]`). The "Set:" text input remains usable so
+   *    the user can type a toggle name verbatim until we wire up
+   *    the SGBD-side discovery.
+   *  - `toggleMultipleSelect` mirrors INPA's `MultipleSelectFlag` —
+   *    when `false`, picking a row deselects any other rows.
+   *  - `toggleArgNum` mirrors `ArgNumFlag`. Reserved for the day we
+   *    implement numeric-index output; the dialog ignores it today.
+   *
+   * The dialog returns the selected names joined by a single space
+   * (INPA's serialisation — verified empirically against the
+   * STEUERN_LEUCHTE call chain in KOMBI.IPO, which feeds the
+   * returned string straight into `INPAapiJob`).
+   */
+  toggleItems?: string[];
+  toggleMultipleSelect?: boolean;
+  toggleArgNum?: boolean;
 }
 
 export interface UIProviderState {
@@ -139,6 +168,19 @@ export interface UIProviderState {
   // Input
   inputDialog: InputDialog | null;
   inputResolve: ((value: unknown) => void) | null;
+  /**
+   * Outcome of the most recently completed input dialog, surfaced by
+   * the `getinputstate` system function. INPA scripts use it to branch
+   * between the "user submitted" and "user cancelled" paths after an
+   * `inputint` / `inputtext` / etc. call returns.
+   *
+   * Convention (mirrors real INPA): `1` = submitted (OK), `0` =
+   * cancelled or no input has run yet. The KOMBI.IPO menu-item handlers
+   * compare against a global initialised to `0` and treat EQUAL as the
+   * cancel path; returning the dialog's open/closed flag (the
+   * pre-2026-05 behaviour) made every submission look like a cancel.
+   */
+  lastInputState: number;
 }
 
 export const initialUIState: UIProviderState = {
@@ -163,6 +205,7 @@ export const initialUIState: UIProviderState = {
   totalLines: 0,
   inputDialog: null,
   inputResolve: null,
+  lastInputState: 0,
 };
 
 /**

@@ -168,11 +168,46 @@ describe('EdiabasXProvider', () => {
       expect(fake.loadCalls).toEqual(['D_0023.GRP', 'ms430ds0.prg']);
     });
 
-    it('forwards arg1/arg2 as positional params', async () => {
+    it('splits arg1 by `;` into per-par(N) values; drops arg2 (result filter)', async () => {
+      // BMW EDIABAS convention: `apiJob(ECU, JOB, PARAMS, RESULTS)`
+      // where PARAMS is a single semicolon-delimited string the API
+      // explodes into par(0), par(1), … par(N), and RESULTS is a
+      // result-name filter (not a parameter). Our `executeJob` doesn't
+      // implement filtering so arg2 is dropped on the floor.
+      //
+      // The previous test asserted `params: ['foo', 'bar']` which
+      // documented our old `[arg1, arg2]` mis-implementation — that
+      // collapsed real semicolon-separated INPA scripts
+      // (e.g. STEUERN_LEUCHTE "0xFF;0xFF;0xFF;0xFF;0xFF;0xFF") into a
+      // single par(0), so the BEST2 program never saw the per-lamp
+      // bytes and the ECU never reacted.
       const p = new EdiabasXProvider({ config: { ecuPath: '.', simulation: true }, autoConnect: false });
       await p.init();
       await p.job('DME', 'READ_DATA', 'foo', 'bar');
-      expect(fake.jobCalls).toEqual([{ name: 'READ_DATA', params: ['foo', 'bar'] }]);
+      expect(fake.jobCalls).toEqual([{ name: 'READ_DATA', params: ['foo'] }]);
+    });
+
+    it('explodes a semicolon-separated arg1 into multiple par(N) values', async () => {
+      // The KOMBI.IPO regression that triggered this fix: arg1
+      // "0xFF;0xFF;0xFF;0xFF;0xFF;0xFF" needs to land in the BEST2
+      // program as six separate par() slots so STEUERN_LEUCHTE drives
+      // the per-lamp control bytes.
+      const p = new EdiabasXProvider({ config: { ecuPath: '.', simulation: true }, autoConnect: false });
+      await p.init();
+      await p.job('KOMBI46R', 'STEUERN_LEUCHTE', '0xFF;0xFF;0xFF;0xFF;0xFF;0xFF', '');
+      expect(fake.jobCalls).toEqual([
+        { name: 'STEUERN_LEUCHTE', params: ['0xFF', '0xFF', '0xFF', '0xFF', '0xFF', '0xFF'] },
+      ]);
+    });
+
+    it('passes no params for an empty arg1', async () => {
+      // The other common shape — `INPAapiJob(ecu, "IDENT", "", "")` —
+      // should not produce a phantom `par(0) = ""` (which the BEST2
+      // program might happily read as a real "" parameter).
+      const p = new EdiabasXProvider({ config: { ecuPath: '.', simulation: true }, autoConnect: false });
+      await p.init();
+      await p.job('DME', 'IDENT', '', '');
+      expect(fake.jobCalls).toEqual([{ name: 'IDENT', params: [] }]);
     });
 
     it('emits job:complete with the multi-set count', async () => {
@@ -486,7 +521,10 @@ describe('EdiabasXProvider', () => {
       p.on('fs:complete', fsComplete);
       fake.nextResult = [[makeResult('JOB_STATUS', 'string', 'OKAY')], [makeResult('F_ORT_NR', 'int', 1)]];
       await p.fsLesen('DME', '/tmp/faults.log');
-      expect(fake.jobCalls).toEqual([{ name: 'FS_LESEN', params: ['/tmp/faults.log', ''] }]);
+      // fsLesen internally calls `job(ecu, FS_LESEN, fileName, '')`,
+      // and our `job()` splits arg1 by `;` (none here) → 1-element
+      // params array. arg2='' is the result filter and is dropped.
+      expect(fake.jobCalls).toEqual([{ name: 'FS_LESEN', params: ['/tmp/faults.log'] }]);
       expect(fsComplete).toHaveBeenCalledWith({ ecu: 'DME', fileName: '/tmp/faults.log', faultCount: 2 });
     });
 
@@ -511,7 +549,8 @@ describe('EdiabasXProvider', () => {
       const p = new EdiabasXProvider({ config: { ecuPath: '.', simulation: true }, autoConnect: false });
       await p.init();
       await p.fsLesen2('DME', '/tmp/x');
-      expect(fake.jobCalls).toEqual([{ name: 'FS_LESEN', params: ['/tmp/x', ''] }]);
+      // Same param-shape as fsLesen — arg2 (result filter) is dropped.
+      expect(fake.jobCalls).toEqual([{ name: 'FS_LESEN', params: ['/tmp/x'] }]);
     });
   });
 });
