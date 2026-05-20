@@ -80,22 +80,24 @@ export class InternalFunctions {
     this.handlers.set(SystemFunction.setjobstatus, () => this.stub('setjobstatus'));
     this.handlers.set(SystemFunction.scriptselect, (ctx) => this.scriptselect(ctx));
     this.handlers.set(SystemFunction.scriptchange, () => this.stub('scriptchange'));
-    // INPA's measurement/control session verbs. The full semantics
-    // (start/stop a measurement-mode session, select / deselect items
-    // for batch control, control() to commit) are documented in the
-    // BMW INPA developer reference but only relevant when an external
-    // launcher is driving the script — they're called by scripts that
-    // expose a "control session" to a host application. For the
-    // togglelist UI path we don't need them: items come straight from
-    // `ScreenExecutor.getToggleItems()` (the SCREEN's empty-LineFunc
-    // declarations). Silent pop-args / no-op until we wire a real
-    // launcher API; the previous `this.stub('…')` log was noisy on
-    // every dispatch.
-    this.handlers.set(SystemFunction.select, (ctx) => this.controlVerbStub(ctx, 1));
-    this.handlers.set(SystemFunction.deselect, () => {});
+    // INPA's STEUERN (control/activation) session verbs. Mirrors the
+    // `DAT_004a0008` state machine in INPA.exe; see
+    // `runtime/control-session.ts` for the field-by-field anchor.
+    //
+    //   select(MultipleSelectFlag) — async picker; lives in the
+    //     dispatcher (`packages/dispatcher/src/dispatcher.ts`) because
+    //     it awaits a UI provider call. Not registered here.
+    //   deselect / start / stop — synchronous state mutations on the
+    //     VM's `ControlSession`.
+    //   control — only used by 8 legacy E36/E38 IPOs (LCM/LSZ/ZKE2
+    //     lighting era); leave as a no-op until we find a real caller.
+    this.handlers.set(SystemFunction.deselect, () => this.vm.getControlSession().deselect());
     this.handlers.set(SystemFunction.control, () => {});
-    this.handlers.set(SystemFunction.start, () => {});
-    this.handlers.set(SystemFunction.stop, () => {});
+    this.handlers.set(SystemFunction.start, () => {
+      const items = this.vm.getScreenExecutor()?.getToggleItems() ?? [];
+      this.vm.getControlSession().start(items);
+    });
+    this.handlers.set(SystemFunction.stop, () => this.vm.getControlSession().stop());
     this.handlers.set(SystemFunction.getapistring, (ctx) => this.getapistring(ctx));
     // togglelist is dispatched through the UI provider (`ui.togglelist`)
     // — it opens an async multi-select dialog rather than running
@@ -129,21 +131,6 @@ export class InternalFunctions {
 
   private stub(name: string): void {
     log.warn({ name }, 'stub function not implemented');
-  }
-
-  /**
-   * Silent operand drain for `select` / `deselect` / `control` /
-   * `start` / `stop` — INPA's measurement/control-session verbs.
-   * The handlers above register these as no-ops; the only thing the
-   * dispatcher infrastructure needs is for the right number of args
-   * to be consumed from the operand stack so subsequent instructions
-   * don't read stale values. Today only `select(MultipleSelectFlag)`
-   * has an arg (one bool), so this helper takes a count and pops
-   * that many bools. Callers that don't take args pass `0` (or just
-   * use the bare `() => {}` arrow we register).
-   */
-  private controlVerbStub(ctx: ExecutionContext, argCount: number): void {
-    for (let i = 0; i < argCount; i++) ctx.popBool();
   }
 
   /**

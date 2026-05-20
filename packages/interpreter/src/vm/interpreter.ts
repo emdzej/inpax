@@ -17,6 +17,7 @@ import { getLogger } from '@emdzej/inpax-logger';
 import { Stack } from './stack.js';
 import { ExecutionContext } from './execution-context.js';
 import { InternalFunctions } from '../runtime/internal-functions.js';
+import { ControlSession } from '../runtime/control-session.js';
 import { ScreenExecutor, type ScreenExecutorConfig } from './screen-executor.js';
 import { StateMachineExecutor, type StateMachineExecutorConfig } from './statemachine-executor.js';
 
@@ -124,6 +125,14 @@ export class VM {
     // Screen execution
     private screenExecutor: ScreenExecutor | null = null;
     private screenExecutorConfig: ScreenExecutorConfig;
+
+    // STEUERN (control) session — mirrors INPA's `DAT_004a0008`
+    // singleton: tracks which controllable items the user has picked
+    // via `select`, whether a control campaign is `active`, and a
+    // cycle counter. See `control-session.ts` for the field-by-field
+    // anchor to the INPA struct. One session per VM (no scoping by
+    // screen — INPA itself uses a global).
+    private controlSession: ControlSession = new ControlSession();
 
     // State machine execution
     private stateMachineExecutor: StateMachineExecutor | null = null;
@@ -985,6 +994,15 @@ export class VM {
      */
     getScreenExecutor(): ScreenExecutor | null {
         return this.screenExecutor;
+    }
+
+    /**
+     * Get the VM's STEUERN (control) session. Used by the dispatcher
+     * to commit `select` picks and by `internal-functions` to drive
+     * `start` / `stop` / `deselect`.
+     */
+    getControlSession(): ControlSession {
+        return this.controlSession;
     }
 
     /**

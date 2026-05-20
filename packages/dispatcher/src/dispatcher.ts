@@ -22,6 +22,10 @@ const ASYNC_FUNCTIONS = new Set<number>([
     // Toggle list — INPA's multi-select picker. Async because the UI
     // provider awaits the user's selection before resolving.
     SystemFunction.togglelist,
+    // `select` opens the same picker dialog as `togglelist` but commits
+    // results to the VM's `ControlSession` instead of writing to an
+    // out-string. Async for the same reason.
+    SystemFunction.select,
     // Message boxes
     SystemFunction.messagebox,
     SystemFunction.infobox,
@@ -54,7 +58,7 @@ const INTERNAL_FUNCTIONS = new Set<number>([
     SystemFunction.exitwindows,
     SystemFunction.scriptselect,
     SystemFunction.scriptchange,
-    SystemFunction.select,
+    // `select` lives in ASYNC_FUNCTIONS — see above.
     SystemFunction.deselect,
     SystemFunction.control,
     SystemFunction.start,
@@ -126,10 +130,16 @@ export interface ExecutionContext {
  * just an accessor for the active screen's toggle-list items) are
  * declared structurally and the real `VM` matches by shape.
  */
+export interface ControlSessionLike {
+    applySelection(picked: ToggleItem[]): void;
+    cancel(): void;
+}
+
 export interface VM {
     getScreenExecutor?(): {
         getToggleItems(): ToggleItem[];
     } | null;
+    getControlSession?(): ControlSessionLike;
 }
 
 export type ParamDirection = 'in' | 'out' | 'inout';
@@ -473,6 +483,53 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
                     inputs[0] as string, inputs[1] as string,
                     inputs[2] as number, inputs[3] as number
                 ));
+            case SystemFunction.select: {
+                // BEST2 sig: (in: bool MultipleSelectFlag) — no out-string.
+                //
+                // INPA's `select` opens the same multi-select picker as
+                // `togglelist` (we route through `ui.togglelist`) but
+                // commits the picks to the VM's `ControlSession` instead
+                // of writing them to a script-visible string. Subsequent
+                // cyclic SCREEN refresh iterates `session.activeItems()`
+                // to drive whatever STEUERN_* job the SCREEN is wired
+                // to.
+                //
+                // We pass `argNum=true` so the dialog returns
+                // space-separated 1-based indices rather than OR'd
+                // masks — that lets us decode back to individual items
+                // without ambiguity from mask-overlap.
+                //
+                // Empty result is treated as "user cancelled" — strictly
+                // it could also mean "user clicked OK with zero picks",
+                // but that's a no-op either way and avoids needing a
+                // separate cancel channel.
+                //
+                // IsEmpty guard: when the active screen has no toggle
+                // items registered (no empty LineFuncs), return silently
+                // instead of opening an empty picker. This matches the
+                // `IsEmpty(+0x1f)` early-return in INPA's `FUN_0041aba9`
+                // and avoids a UX regression on orphaned F-keys like
+                // `m_main` ITEM 7 (`start; select(true)`) in MS430 /
+                // KOMBI / LCM, which previously did nothing.
+                const multi = inputs[0] as boolean;
+                const items = vm.getScreenExecutor?.()?.getToggleItems() ?? [];
+                if (items.length === 0) return;
+                const encoded = await ui.togglelist(multi, true, items);
+                const session = vm.getControlSession?.();
+                if (session) {
+                    if (!encoded) {
+                        session.cancel();
+                    } else {
+                        const picks = encoded.split(/\s+/)
+                            .filter(s => s.length > 0)
+                            .map(s => parseInt(s, 10) - 1)
+                            .filter(i => i >= 0 && i < items.length)
+                            .map(i => items[i]);
+                        session.applySelection(picks);
+                    }
+                }
+                return;
+            }
             case SystemFunction.togglelist: {
                 // BEST2 sig: (in: bool MultipleSelectFlag, in: bool ArgNumFlag,
                 //             out: string ApiToggleString)
