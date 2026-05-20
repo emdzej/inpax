@@ -767,25 +767,48 @@ files mis-labels every opcode in the `0x0D`–`0x10` range. e.g.
 `dll[cabi.h]` text is meaningless (we were dereferencing
 `constants[0]` for every RET).
 
-### TypeMarker semantics: same, but internal tags differ
+### TypeMarker semantics differ between v1.x and v5.x
 
-`FUN_0045cdc0` returns NCSEXPERT's internal type tag for each
-marker byte:
+> **Correction (2026-05-20).** An earlier version of this document
+> claimed the TypeMarker byte → ValueType semantics were identical
+> across versions and only the internal tags differed. That was
+> wrong — verified by running real v1.x IPOs through the interpreter
+> and observing that `popString()` on an `ALLOC 0x53` slot returns
+> `"0"` (a default-valued Long coerced to string) instead of `""`.
+>
+> Empirical fix anchor: `A_ACC.ipo!FgnrLesen` allocates `3× 0x53 +
+> 1× 0x51` and feeds local[0] into `INPAapiJob "STOP_MODUS"` as the
+> par(0) string and into `PEMProtokollAusgabe` as a string-out —
+> proves `0x53` is **String** in v1.x.
 
-| TypeMarker | v1.x meaning | NCSEXPERT internal tag | INPA internal tag (v5.x) |
-|---|---|---|---|
-| `0x50` | BOOL    | `1` | `1` BOOL |
-| `0x51` | INT     | `2` | `3` INT |
-| `0x52` | BYTE    | `3` | `2` BYTE |
-| `0x53` | LONG    | `4` | `4` LONG |
-| `0x54` | REAL    | `6` | `5` REAL |
-| `0x55` | STRING  | `5` | `6` STRING |
+NCSEXPERT-era v1.x bytecode numbers its TypeMarker bytes following
+the constants vocabulary (`1=BOOL, 2=INT, 3=REAL, 4=STRING, 5=LONG`)
+shifted by `0x4F`. v5.x inserted BYTE at slot `0x52` and shifted
+REAL/STRING/LONG. The two cells overlap (BOOL, INT); the next three
+differ.
 
-The marker byte → ValueType **semantics are the same** (0x50 always
-means BOOL, 0x55 always means STRING) — but NCSEXPERT and INPA
-disagree on the internal numeric tag they assign to each type.
-NCSEXPERT also has **no `0x56`/`0x57` markers** (Object/ULong don't
-exist in v1.x).
+| TypeMarker | v1.x meaning | v5.x meaning |
+|---|---|---|
+| `0x50` | BOOL    | BOOL    *(overlap)* |
+| `0x51` | INT     | INT     *(overlap)* |
+| `0x52` | REAL    | BYTE    |
+| `0x53` | STRING  | LONG    |
+| `0x54` | LONG    | REAL    |
+| `0x55` | *(unused)* | STRING |
+| `0x56` | *(n/a)* | OBJECT  |
+| `0x57` | *(n/a)* | ULONG   |
+
+NCSEXPERT emits only `0x50`/`0x51`/`0x53` in practice — coding
+scripts deal in flags/ints/strings, rarely Real or Long. Surveyed
+across the full `EC-APPS/NCS_EXPER/SGDAT/` install, no v1.x IPO
+emits `0x55`. `0x56`/`0x57` are v5.x-only (Object/ULong don't exist
+in v1.x's value-type vocabulary).
+
+**Parser-level remap.** Translated at parse time via
+`V1_TYPE_MARKER_TO_V5_TYPE_MARKER` in
+`packages/parser/src/parser/ipo-parser.ts`. Applies to `ALLOC`
+(`0x08`) and `PUSHIMM` (`0x11`) operand1. `Instruction.raw`
+preserves the original disk byte for tooling that needs it.
 
 ### Runtime type system — v1.x is narrower
 

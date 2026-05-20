@@ -303,3 +303,111 @@ describe('IpoParser — v1.x opcode remap', () => {
     }
   });
 });
+
+describe('IpoParser — v1.x TypeMarker remap (ALLOC, PUSHIMM)', () => {
+  // NCSEXPERT-era v1.x bytecode numbers TypeMarker bytes following the
+  // constants vocabulary shifted by 0x4F:
+  //
+  //   v1.x byte | v1.x meaning | v5.x byte | v5.x meaning
+  //   ──────────┼──────────────┼───────────┼──────────────
+  //   0x50      | BOOL         | 0x50      | BOOL    (overlap)
+  //   0x51      | INT          | 0x51      | INT     (overlap)
+  //   0x52      | REAL         | 0x54      | REAL
+  //   0x53      | STRING       | 0x55      | STRING
+  //   0x54      | LONG         | 0x53      | LONG
+  //
+  // The bug it fixes: without remap, an `ALLOC 0x53` in a v1.x IPO
+  // (= String, default "") gets interpreted by `opAlloc` against the
+  // v5.x table as `ValueType.Long` with default `0`. Subsequent
+  // string ALU / popString operations corrupt.
+  //
+  // Verified end-to-end against `A_ACC.ipo!FgnrLesen`, which allocates
+  // 3× 0x53 + 1× 0x51 and feeds local[0] directly into INPAapiJob and
+  // PEMProtokollAusgabe as a string.
+  const TYPE_REMAP_CASES: Array<[number, number, string]> = [
+    [0x50, 0x50, 'BOOL'],
+    [0x51, 0x51, 'INT'],
+    [0x52, 0x54, 'REAL'],
+    [0x53, 0x55, 'STRING'],
+    [0x54, 0x53, 'LONG'],
+  ];
+
+  for (const [v1, v5, name] of TYPE_REMAP_CASES) {
+    it(`remaps ALLOC operand1 v1.x ${name} (0x${v1.toString(16)}) → v5.x 0x${v5.toString(16)}`, () => {
+      const builder = new IpoBuilder()
+        .header(1, 2)
+        .block({ type: BlockType.Function, blockId: 1, size: 1 })
+        .instr(0x08, v1, 0); // ALLOC with TypeMarker
+
+      const parser = new IpoParser(builder.build());
+      const fn = parser.parse().functions.get(1)!;
+      const instr = fn.instructions[0];
+
+      expect(instr.opcode).toBe(0x08);
+      expect(instr.operand1).toBe(v5);
+      // Raw byte still shows what the file actually had.
+      expect((instr.raw >> 8) & 0xff).toBe(v1);
+    });
+
+    it(`remaps PUSHIMM operand1 v1.x ${name} (0x${v1.toString(16)}) → v5.x 0x${v5.toString(16)}`, () => {
+      // PUSHIMM is opcode 0x10 in v1.x (gets remapped to 0x11 by the
+      // opcode table). Both the opcode AND its TypeMarker operand
+      // should be translated.
+      const builder = new IpoBuilder()
+        .header(1, 2)
+        .block({ type: BlockType.Function, blockId: 1, size: 1 })
+        .instr(0x10, v1, 0);
+
+      const parser = new IpoParser(builder.build());
+      const fn = parser.parse().functions.get(1)!;
+      const instr = fn.instructions[0];
+
+      expect(instr.opcode).toBe(0x11); // PUSHIMM (canonical v5.x)
+      expect(instr.operand1).toBe(v5);
+    });
+  }
+
+  it('passes through unmapped TypeMarker bytes (e.g. 0x55 unused in v1.x)', () => {
+    // The remap table only covers 0x50–0x54. Any byte outside that
+    // range — including 0x55 which v5.x uses for STRING but v1.x
+    // never emits — should pass through verbatim. (Empty install
+    // survey confirms 0x55 doesn't appear in real v1.x ALLOCs.)
+    const builder = new IpoBuilder()
+      .header(1, 2)
+      .block({ type: BlockType.Function, blockId: 1, size: 1 })
+      .instr(0x08, 0x55, 0);
+
+    const parser = new IpoParser(builder.build());
+    const fn = parser.parse().functions.get(1)!;
+    expect(fn.instructions[0].operand1).toBe(0x55);
+  });
+
+  it('does not touch ALLOC operand1 for v5.x files', () => {
+    // A v5.x ALLOC 0x53 (= LONG) must stay 0x53 — applying the v1
+    // remap would scramble it to 0x55 (STRING) and break every v5.x
+    // script.
+    const builder = new IpoBuilder()
+      .header(5, 0)
+      .block({ type: BlockType.Function, blockId: 1, size: 1 })
+      .instr(0x08, 0x53, 0);
+
+    const parser = new IpoParser(builder.build());
+    const fn = parser.parse().functions.get(1)!;
+    expect(fn.instructions[0].operand1).toBe(0x53);
+  });
+
+  it('leaves non-typed opcodes untouched even in v1.x', () => {
+    // The remap is gated on opcode === ALLOC or PUSHIMM. Other v1.x
+    // opcodes with byte values that happen to fall in 0x50–0x54
+    // (e.g. LOAD with a scope/index combination) must not be
+    // translated.
+    const builder = new IpoBuilder()
+      .header(1, 2)
+      .block({ type: BlockType.Function, blockId: 1, size: 1 })
+      .instr(0x01, 0x53, 0); // LOAD with operand1=0x53 (nonsensical, but proves the gate)
+
+    const parser = new IpoParser(builder.build());
+    const fn = parser.parse().functions.get(1)!;
+    expect(fn.instructions[0].operand1).toBe(0x53);
+  });
+});

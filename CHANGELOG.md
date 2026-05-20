@@ -6,6 +6,58 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.6.1] — 2026-05-20
+
+Bug-fix release. Closes a v1.x interpretation bug discovered while
+running NCSEXPERT-emitted IPOs end-to-end.
+
+### Fixed
+
+- **v1.x `ALLOC` / `PUSHIMM` TypeMarker bytes are now translated to
+  the canonical v5.x vocabulary at parse time.** NCSEXPERT-era v1.x
+  bytecode numbers TypeMarker bytes following the constants
+  vocabulary (`1=BOOL, 2=INT, 3=REAL, 4=STRING, 5=LONG`) shifted by
+  `0x4F` — so v1.x `0x53` means **String** (default `""`), but the
+  canonical v5.x `0x53` means **Long** (default `0`). Without
+  translation, `opAlloc` mis-typed every v1.x string local as Long;
+  `A_ACC.ipo!FgnrLesen`'s `local[0]` (the EDIABAS job-name slot)
+  came back as a Long-`0` and `popString` returned `"0"` —
+  cascading into broken `INPAapiJob` dispatches and string-ALU
+  results.
+
+  Empirical anchor: surveyed every IPO in
+  `EC-APPS/NCS_EXPER/SGDAT/`; only `0x50/0x51/0x53` are emitted by
+  NCSEXPERT in the wild (Bool / Int / String — coding scripts
+  rarely need Real or Long). The String case was verified end-to-end
+  against `FgnrLesen`, whose `3× ALLOC 0x53 + 1× ALLOC 0x51`
+  prologue feeds `local[0]` into both `INPAapiJob "STOP_MODUS"` and
+  `PEMProtokollAusgabe` as strings.
+
+  Fixed via a new `V1_TYPE_MARKER_TO_V5_TYPE_MARKER` table in
+  `packages/parser/src/parser/ipo-parser.ts`, applied at parse time
+  in `parseFunction` when `versionHi === 1` and `opcode` is `ALLOC`
+  or `PUSHIMM`. `Instruction.raw` preserves the original on-disk
+  byte for tooling that needs it. ALU operations need no separate
+  fix — their type-dispatching reads the (now-correct) operand
+  `type` field from the stack, so string concatenation and string
+  equality work as soon as ALLOC stops mis-typing the source slots.
+  (`@emdzej/inpax-parser`)
+
+### Documentation
+
+- **Umbrella docblock at the top of `ipo-parser.ts`** spelling out
+  the "normalise v1.x → v5.x at parse time" strategy and listing
+  all four translation tables in one place (opcode, TypeMarker,
+  constants type, globals type) so future contributors know to
+  extend by adding a new table rather than branching downstream.
+  (`@emdzej/inpax-parser`)
+- **Corrected `docs/ipo-format-versions.md` TypeMarker table.** The
+  previous version claimed the byte → ValueType semantics were
+  identical across v1.x / v5.x with only internal-tag differences —
+  wrong, as the FgnrLesen anchor proves. New table makes the
+  byte-swap explicit and the "v1.x = constants_type + 0x4F"
+  derivation explicit.
+
 ## [0.6.0] — 2026-05-20
 
 Additive release driven by two threads of INPA.exe reverse-engineering:

@@ -10,6 +10,7 @@ import {
   StateMachineBlock,
   LineBlock,
   Instruction,
+  Opcode,
   StackEntry,
   BlockType,
   ValueType,
@@ -17,6 +18,60 @@ import {
 
 const MAGIC = 'TEST-Infotext';
 const SEPARATOR = 0x0a;
+
+/*
+ * ════════════════════════════════════════════════════════════════════
+ *  v1.x → v5.x normalisation at parse time
+ * ════════════════════════════════════════════════════════════════════
+ *
+ * BMW shipped two binary formats for IPO bytecode:
+ *
+ *   - **v1.x** — emitted by NCSEXPERT (`EC-APPS/NCS_EXPER/SGDAT/`).
+ *     Smaller vocabulary: 5 value types (BOOL/INT/REAL/STRING/LONG)
+ *     and 16 opcodes (no LOGTABLE).
+ *   - **v5.x** — emitted by INPA (`EC-APPS/INPA/SGDAT/`). 8 value
+ *     types (adds BYTE/OBJECT/ULONG and the internal NUMERIC), 17
+ *     opcodes (adds LOGTABLE at 0x10, shifting the trailing four
+ *     opcodes by one slot).
+ *
+ * The downstream layers — VM (`opAlloc`, `opAlu`, …), dispatcher,
+ * disassembler — only know the v5.x vocabulary. The parser is the
+ * single point that knows both, and it **translates every divergent
+ * byte at read time into the canonical v5.x value**. That way:
+ *
+ *   - `Instruction.opcode` is always a v5.x opcode byte
+ *   - `Instruction.operand1` for ALLOC / PUSHIMM is always a v5.x
+ *     `TypeMarker` byte
+ *   - `ConstantsBlock.values[i].type` is always a v5.x `ValueType`
+ *   - `GlobalsBlock.types[i]`         is always a v5.x `ValueType`
+ *
+ * For tooling that wants the original on-disk bytes (a "show me what
+ * the file actually says" disassembler view, hex dumps, byte-level
+ * round-trip tests), `Instruction.raw` preserves the unmodified
+ * 32-bit word.
+ *
+ * Four translation tables drive the normalisation. They live just
+ * below — each carries its own RE provenance (Ghidra anchors and
+ * the IPOs we verified the mapping against):
+ *
+ *   1. `V1_OPCODE_TO_V5_OPCODE`             — opcode byte (0x0D–0x10)
+ *   2. `V1_TYPE_MARKER_TO_V5_TYPE_MARKER`   — operand1 of ALLOC / PUSHIMM
+ *   3. `V1_CONSTANT_TYPE_TO_VALUE_TYPE`     — constants-block type byte
+ *   4. `V1_GLOBAL_TYPE_TO_VALUE_TYPE`       — globals-block type byte
+ *
+ * The opcode bytes 0x01–0x0C and the ALU sub-codes 0x60–0x71 are
+ * bit-identical between versions and need no translation. Same for
+ * Scope (operand1 of LOAD / PUSHREF / PUSHR / PUSHREFSTORE) and
+ * CallTarget (operand1 of CALL). Anything else divergent should be
+ * documented in `docs/ipo-format-versions.md` and routed through a
+ * new translation table here.
+ *
+ * Reading guide: each parse function that knows about versions takes
+ * `this.versionHi` from `parseHeader`, branches once (`isV1` /
+ * `isV5`), and translates eagerly. There is no version-aware code
+ * downstream of the parser — that's the design rule that keeps the
+ * runtime simple.
+ */
 
 /**
  * v1.x → v5.x ValueType byte translation for **constants**
@@ -127,6 +182,57 @@ const V1_OPCODE_TO_V5_OPCODE: Record<number, number> = {
   0x0e: 0x0f, // FRAME
   0x0f: 0x0d, // CALLE
   0x10: 0x11, // PUSHIMM
+};
+
+/**
+ * v1.x → v5.x **TypeMarker byte** remap for ALLOC (`0x08`) and PUSHIMM
+ * (`0x11`) operand1.
+ *
+ * NCSEXPERT-era v1.x bytecode numbers its TypeMarker bytes following
+ * the constants vocabulary (`1=BOOL, 2=INT, 3=REAL, 4=STRING, 5=LONG`)
+ * shifted by `0x4F`:
+ *
+ *   v1.x byte | v1.x meaning | v5.x byte | v5.x meaning
+ *   ──────────┼──────────────┼───────────┼──────────────
+ *   0x50      | BOOL         | 0x50      | BOOL    (overlap)
+ *   0x51      | INT          | 0x51      | INT     (overlap)
+ *   0x52      | REAL         | 0x54      | REAL
+ *   0x53      | STRING       | 0x55      | STRING
+ *   0x54      | LONG         | 0x53      | LONG
+ *
+ * v5.x inserted BYTE at slot `0x52` and shifted REAL/STRING/LONG. The
+ * first two cells overlap; the next three differ.
+ *
+ * Empirical confirmation: surveyed every v1.x IPO in NCSEXPERT's
+ * `SGDAT/` and only `0x50` / `0x51` / `0x53` appear in real ALLOC
+ * instructions (Bool / Int / String — coding scripts rarely need Real
+ * or Long). The `0x53 = String` cell was verified end-to-end against
+ * `A_ACC.ipo!FgnrLesen`, whose body `ALLOC 0x53` × 3 + `ALLOC 0x51` is
+ * consumed by `INPAapiJob "STOP_MODUS"` (string par(0)) and
+ * `PEMProtokollAusgabe` (string-out). Bytes `0x52` and `0x54` are
+ * extrapolated from the constants vocabulary — observed only in
+ * synthetic tests, but the mapping is the natural extension.
+ *
+ * Without this remap, `opAlloc` (which uses the v5.x TypeMarker
+ * vocabulary) interprets v1.x `0x53` as `ValueType.Long` and initialises
+ * the slot to `0`. Subsequent `opAlu ADD` between two such slots takes
+ * the numeric branch (`0 + 0 = 0`) instead of string concat, and
+ * `popString` returns `"0"` from the Long slot.
+ *
+ * Applied at parse time so `Instruction.operand1` is always the
+ * canonical v5.x marker. PUSHIMM uses the same vocabulary and gets the
+ * same treatment defensively — only `0x51` (Int) has been observed in
+ * real v1.x PUSHIMM today, but if a v1.x script ever emits PUSHIMM with
+ * a String / Real / Long literal it would hit the same bug.
+ *
+ * See `docs/ipo-format-versions.md` for the byte-by-byte derivation.
+ */
+const V1_TYPE_MARKER_TO_V5_TYPE_MARKER: Record<number, number> = {
+  0x50: 0x50, // BOOL
+  0x51: 0x51, // INT
+  0x52: 0x54, // REAL
+  0x53: 0x55, // STRING
+  0x54: 0x53, // LONG
 };
 
 /**
@@ -423,9 +529,18 @@ export class IpoParser {
       // — the first 12 (0x01–0x0C) and the ALU sub-codes (0x60–0x71)
       // are identical in both versions.
       const opcode = isV1 ? (V1_OPCODE_TO_V5_OPCODE[rawOpcode] ?? rawOpcode) : rawOpcode;
+      const rawOperand1 = (raw >> 8) & 0xff;
+      // ALLOC / PUSHIMM carry a TypeMarker byte in operand1, and v1.x
+      // numbers those bytes differently (REAL / STRING / LONG occupy
+      // 0x52 / 0x53 / 0x54 in v1.x but 0x54 / 0x55 / 0x53 in v5.x).
+      // Translate to the canonical v5.x marker so `opAlloc` and the
+      // PUSHIMM dispatcher don't need version branches downstream.
+      const operand1 = isV1 && (opcode === Opcode.ALLOC || opcode === Opcode.PUSHIMM)
+        ? (V1_TYPE_MARKER_TO_V5_TYPE_MARKER[rawOperand1] ?? rawOperand1)
+        : rawOperand1;
       instructions.push({
         opcode,
-        operand1: (raw >> 8) & 0xff,
+        operand1,
         operand2: (raw >> 16) & 0xffff,
         raw,
       });
