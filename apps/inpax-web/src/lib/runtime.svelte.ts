@@ -30,6 +30,7 @@ import {
   type IpoEntry,
 } from "@emdzej/inpax-web-provider";
 import { settings, RUNTIME_TICK_MS_FAST, debugLog } from "./settings.svelte.js";
+import { app } from "./state.svelte.js";
 import { Ediabas, type EdiabasConfig } from "@emdzej/ediabasx-ediabas";
 
 export interface RuntimeOptions {
@@ -143,6 +144,30 @@ export async function startInpaRuntime(
     // calls `provider.init()` which will `ediabas.connect()` once the
     // transport callback returns something.
     getTransport: options.getTransport,
+  });
+
+  // Surface job-execution failures to the user, not just the console.
+  //
+  // The provider's `job:error` event fires when `executeJob` throws —
+  // SGBD load failure, transport timeout, JOB_STATUS != OKAY caught by
+  // CheckJobStatus, etc. INPA bytecode never sees these directly
+  // (the dispatcher catches and surfaces via the event), so without
+  // a listener the failure is silently swallowed inside
+  // `EdiabasXProvider.job()` and the IPO continues past the failed
+  // call with stale results — leading to symptoms like "userbox
+  // opens but never closes" (the report-display step runs on an
+  // empty/stale result set) or "F1 handler done but no serial".
+  //
+  // Anchor: KOMBI.IPO!m_fehler ITEM 0 — the F1=Read-faults handler
+  // calls `INPAapiFsMode(165, …)` then `INPAapiFsLesen` for KOMBI46R
+  // variants. Without this listener, any failure in that chain (e.g.,
+  // unsupported FsMode at the cluster, missing job, transport timeout)
+  // surfaced as a stuck "Fehlerspeicher lesen" box with zero console
+  // breadcrumbs.
+  ediabasProvider.on("job:error", ({ code, message }) => {
+    const text = `EDIABAS job failed${code !== -1 ? ` (code ${code})` : ""}: ${message}`;
+    console.error(`[ediabas/job:error] ${text}`);
+    app.error = text;
   });
 
   // 4. INP1 surface — thin adapter over the same EDIABAS state, so

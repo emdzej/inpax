@@ -6,6 +6,48 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.6.4] — 2026-05-21
+
+### Fixed
+
+- **EDIABAS job failures are now surfaced to the user.** Pre-fix the
+  `@emdzej/inpax-ediabasx-provider` `job:error` event had **no
+  listeners** — when `executeJob` threw (SGBD load failure, transport
+  timeout, `JOB_STATUS != OKAY` caught by `CheckJobStatus`, init
+  failure, you-name-it) the error was internally caught and emitted as
+  a silent event. The IPO bytecode never sees the failure and runs
+  past the failed call with empty/stale results, producing symptoms
+  like "userbox opens but never closes" (the report-display step
+  ends up rendering an empty file), "F1 handler done but no serial
+  activity in the console", or "the screen refreshes once with zero
+  data and stops".
+
+  Anchor: KOMBI.IPO `m_fehler` ITEM 0 (F1 = Read faults) calls
+  `INPAapiFsMode(165, …)` then `INPAapiFsLesen` for KOMBI46R cluster
+  variants. Failures along that path (an `INPAapiFsMode` mode our
+  provider doesn't propagate, a job-status mismatch, a cable that
+  dropped between the previous call and this one) all swallowed
+  silently — debugging required adding console.log statements inside
+  the provider. After this fix the same failure surfaces as a red
+  banner at the top of the running-script view with the underlying
+  EDIABAS message, the user can dismiss it once read, and the
+  console still logs the full context for further diagnostics.
+
+  Implementation:
+  - `runtime.svelte.ts` subscribes to `ediabasProvider.on('job:error',
+    …)` and writes a one-line summary to `app.error` (the same Svelte
+    state slot the install picker already uses for banner errors).
+  - `App.svelte` renders an `app.error` banner above
+    `IpoSidebar` + `IpoRunner` when the user is in the browse view —
+    previously the banner was only rendered inside `InstallPicker`
+    so script-runtime errors were invisible.
+  - `connect:error` failures route through the same `job:error`
+    event in the provider (`lines 198, 203` of `ediabasx-provider.ts`),
+    so cable / init failures land in the same banner without a
+    separate listener.
+
+  (`@emdzej/inpax-web`)
+
 ## [0.6.3] — 2026-05-21
 
 Picks up two structural improvements from `ediabasx` (0.2.3 and 0.2.4)

@@ -122,6 +122,32 @@
         Settings
       </button>
     </header>
+    <!--
+      Browse-view error banner. Surfaces job/runtime failures the
+      providers raise via their `job:error` / `connect:error` events.
+      Previously these only hit the console (or worse, the silent
+      swallow path inside `EdiabasXProvider.job()`), so users saw
+      symptoms like "userbox opens but never closes" with no
+      explanation. The runtime wires `app.error` from those events
+      in `runtime.svelte.ts`; the close button lets the user dismiss
+      once they've read it.
+    -->
+    {#if app.error}
+      <div
+        role="alert"
+        class="flex items-start gap-3 border-b border-rule bg-red-50 px-4 py-2 text-sm text-red-900 dark:bg-red-950/60 dark:text-red-100"
+      >
+        <span class="mt-0.5 flex-1 break-words">{app.error}</span>
+        <button
+          type="button"
+          class="rounded px-2 py-0.5 text-xs text-red-900/70 hover:bg-red-100 hover:text-red-900 dark:text-red-100/70 dark:hover:bg-red-900/40 dark:hover:text-red-100"
+          aria-label="Dismiss error"
+          onclick={() => (app.error = null)}
+        >
+          ✕
+        </button>
+      </div>
+    {/if}
     <div class="flex flex-1 overflow-hidden">
       <IpoSidebar />
       <IpoRunner />
