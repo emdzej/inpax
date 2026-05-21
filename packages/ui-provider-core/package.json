@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-ui-provider-core",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Abstract UI provider — shared state + IUIProvider implementation that TUI and Web subclasses build on.",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,7 +24,11 @@
     "@emdzej/inpax-interfaces": "workspace:*",
     "eventemitter3": "^5.0.1"
   },
+  "peerDependencies": {
+    "@emdzej/inpax-logger": "workspace:*"
+  },
   "devDependencies": {
+    "@emdzej/inpax-logger": "workspace:*",
     "typescript": "^5.3.3",
     "vitest": "^2.1.8"
   },

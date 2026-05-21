@@ -27,7 +27,10 @@
 
 import { EventEmitter } from 'eventemitter3';
 import type { IUIProvider, ToggleItem, UIEvents } from '@emdzej/inpax-interfaces';
+import { getLogger } from '@emdzej/inpax-logger';
 import { ScreenBuffer } from './screen-buffer.js';
+
+const log = getLogger('ui-provider');
 import {
   type UIProviderState,
   initialUIState,
@@ -932,6 +935,7 @@ export abstract class UIProvider
     title: string,
     _text: string,
   ): void {
+    log.debug({ boxNum, title, before: this._state.userBoxes.size }, 'userBoxOpen');
     this._state.userBoxes.set(boxNum, {
       boxNum,
       row,
@@ -948,6 +952,10 @@ export abstract class UIProvider
   }
 
   userBoxClose(boxNum: number): void {
+    log.debug(
+      { boxNum, had: this._state.userBoxes.has(boxNum), before: this._state.userBoxes.size },
+      'userBoxClose'
+    );
     this._state.userBoxes.delete(boxNum);
     this.emit('messagebox:closed', { boxNum });
     this.update();

@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-web-provider",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Svelte 5 UI provider + components for embedding the INPA runtime in a browser app — canvas renderer, F-key bar, dialogs, viewer modal, scriptselect picker.",
   "type": "module",
   "svelte": "./src/index.ts",

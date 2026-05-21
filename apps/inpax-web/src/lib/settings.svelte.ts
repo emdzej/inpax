@@ -10,7 +10,20 @@
  * localStorage on every change.
  */
 
+import { logger } from "@emdzej/inpax-logger";
+
 export type ThemeChoice = "light" | "dark" | "system";
+
+/**
+ * Flip the shared pino logger between "debug" and "info" so the
+ * diagnostic taps in `@emdzej/inpax-dispatcher`,
+ * `@emdzej/inpax-ui-provider-core`, and friends only fire when the
+ * user is in developer mode. Re-applied on settings load and on every
+ * toggle of `settings.debugMode`.
+ */
+function applyLogLevel(debug: boolean): void {
+  logger.level = debug ? "debug" : "info";
+}
 
 export interface WebSettings {
   /**
@@ -90,6 +103,10 @@ function load(): WebSettings {
 
 export const settings = $state<WebSettings>(load());
 
+// Apply once at module init so the log level matches the persisted
+// `debugMode` before any provider has emitted its first event.
+applyLogLevel(settings.debugMode);
+
 function persist(): void {
   if (typeof localStorage === "undefined") return;
   try {
@@ -139,6 +156,7 @@ export function cycleTheme(): void {
 
 export function setDebugMode(enabled: boolean): void {
   settings.debugMode = enabled;
+  applyLogLevel(enabled);
   persist();
 }
 
@@ -204,6 +222,7 @@ export function applySettingsImport(raw: unknown): { config: unknown } {
       ? incoming.theme
       : DEFAULTS.theme;
   settings.debugMode = Boolean(incoming.debugMode);
+  applyLogLevel(settings.debugMode);
   settings.tickMs =
     typeof incoming.tickMs === "number" && Number.isFinite(incoming.tickMs)
       ? Math.max(50, Math.min(60_000, Math.round(incoming.tickMs)))

@@ -6,6 +6,93 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.6.5] — 2026-05-21
+
+### Fixed
+
+- **VM `execute()` is now re-entrancy safe.** Symptom: pressing F1 on
+  `SGDAT\KOMBI.IPO`'s "Fehler­speicher" menu ran `INPAapiFsLesen`
+  successfully (fault report written, no exception thrown), but the
+  trailing `userboxclose(0)` and `viewopen("na_fs.tmp", …)`
+  instructions at PC `0x00c7` / `0x00cb` never executed — the
+  "Fehlerspeicher lesen" progress box stayed stuck on screen, no
+  viewer modal opened, no log line surfaced anywhere. The new 0.6.4
+  `[ediabas/job:error]` banner didn't catch it either: EDIABAS had
+  succeeded, there was simply nothing left running.
+
+  Root cause: every `vm.execute(block, ctx)` call mutated the shared
+  `VM.state.{running, currentBlock, ip}` fields. The F1 handler's
+  outer `execute()` loop suspended on the `INPAapiFsLesen` `await`;
+  during that await, the `setTimeout(0)` scheduled by `setmenu menu[22]`
+  (the same handler's PC `0x0002`) fired and ran a *nested* `execute()`
+  for `m_fehler_lesen`'s INIT body. When that INIT block ran out of
+  instructions, `doReturn` saw an empty return-address stack (top-level
+  call from this `execute()`'s perspective) and did
+  `this.state.running = false`. Because `running` is a shared field,
+  this killed the outer F1 handler's loop guard
+  `while (this.state.running && this.state.currentBlock)` —
+  silently, with no exception, no error, no log. The outer handler
+  returned "normally" without ever running PC `0x00c5`+.
+
+  Why MS43 / ZKE5 fault reads worked: their F1 handlers don't navigate
+  menus (no `setmenu` → no nested execute), so there was never a
+  re-entrancy window.
+
+  Fix: snapshot `state.{running, currentBlock, ip}` at `execute()`
+  entry and restore in `finally`. Each `execute()` now owns its own
+  loop guard; a nested call finishing top-level can no longer cancel
+  the outer one mid-await. The intra-call call/return mechanism
+  (`opCall` / `doReturn` with a non-empty return stack) is untouched —
+  user-function calls within a single `execute()` still work the way
+  they always did.
+
+  This also closes a latent screen-executor / F-key race: a screen
+  block running to completion would have killed any concurrent F-key
+  handler too (and vice versa). No reproducer for that one yet, but
+  the failure mode was identical.
+
+  (`@emdzej/inpax-interpreter`)
+
+### Changed
+
+- **`@emdzej/inpax-logger` and `@emdzej/ediabasx-ediabas` are now
+  peer dependencies.** Previously they were regular `dependencies` of
+  the library packages that used them, which meant each consumer of
+  `inpax-dispatcher` / `inpax-interpreter` / `inpax-ui-provider-core`
+  / `inpax-ediabasx-provider` could end up with its own pino logger
+  instance (or its own ediabasx-ediabas version) in `node_modules`,
+  hoisted or not. With per-instance loggers the new debug-mode toggle
+  (see below) only flipped *one* of the copies and the others stayed
+  silent; with two ediabasx-ediabas versions the runtime could end
+  up sharing state across mismatched cores.
+
+  Each affected package now declares the dep as a `peerDependency`
+  *and* a `devDependency` (so the package still compiles and tests
+  in isolation). Apps that ship inpax (`@emdzej/inpax-web`,
+  `@emdzej/inpax-cli`) declare the peer-targets as direct
+  `dependencies` — pnpm install resolves the peer to the app's
+  copy. inpax-web already had both as direct deps; cli picked them
+  up in this release.
+
+  (`@emdzej/inpax-dispatcher`, `@emdzej/inpax-interpreter`,
+  `@emdzej/inpax-ui-provider-core`, `@emdzej/inpax-ediabasx-provider`,
+  `@emdzej/inpax-cli`)
+
+- **Diagnostic VM/dispatcher traces are now gated behind the web
+  app's developer-mode toggle.** Added `log.debug(…)` calls in
+  `dispatcher.runFsLesen` (entry / mid / exit with character count)
+  and `ui-provider`'s `userBoxOpen` / `userBoxClose` (boxNum + state
+  snapshot). `apps/inpax-web/src/lib/settings.svelte.ts` flips the
+  shared pino logger's level between `"debug"` and `"info"` whenever
+  `settings.debugMode` toggles (and once on module load). Result:
+  debug mode on → diagnostic taps appear in the browser console;
+  debug mode off → silent no-ops. Real warnings / errors keep going
+  through `console.warn` / `console.error` unconditionally —
+  `0.6.4`'s `[ediabas/job:error]` banner is unaffected.
+
+  (`@emdzej/inpax-dispatcher`, `@emdzej/inpax-ui-provider-core`,
+  `@emdzej/inpax-web`)
+
 ## [0.6.4] — 2026-05-21
 
 ### Fixed

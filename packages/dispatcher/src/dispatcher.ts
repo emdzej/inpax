@@ -5,7 +5,10 @@
 
 import { SystemFunction, SystemFunctionMap, type StackEntry, type Scope, ValueType } from '@emdzej/inpax-core';
 import type { IInpaRuntime, IEdiabasProvider, IExternalProvider, ToggleItem } from '@emdzej/inpax-interfaces';
+import { getLogger } from '@emdzej/inpax-logger';
 import { formatFsLesenReport } from './format-fs.js';
+
+const log = getLogger('dispatcher');
 
 /** Set of async function IDs */
 const ASYNC_FUNCTIONS = new Set<number>([
@@ -842,11 +845,13 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
         fileName: string,
         variant: "FsLesen" | "FsLesen2"
     ): Promise<void> {
+        log.debug({ ecu, fileName, variant }, 'runFsLesen entry');
         if (variant === "FsLesen2") {
             await ediabas.fsLesen2(ecu, fileName);
         } else {
             await ediabas.fsLesen(ecu, fileName);
         }
+        log.debug({ variant }, 'runFsLesen — ediabas call done, formatting');
 
         const cfg = ediabas.getFsModeConfig();
         const body = formatFsLesenReport(
@@ -867,5 +872,6 @@ export class SystemFunctionDispatcher implements ISystemFunctionDispatcher {
         // emit the formatted fault list — matches what real INPA does
         // when no pre/post files are configured.
         await external.writeFile(fileName, body);
+        log.debug({ fileName, chars: body.length }, 'runFsLesen done');
     }
 }

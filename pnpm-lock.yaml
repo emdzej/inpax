@@ -63,6 +63,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@emdzej/ediabasx-ediabas':
+        specifier: ^0.2.4
+        version: 0.2.4
       '@emdzej/ediabasx-interfaces':
         specifier: ^0.2.4
         version: 0.2.4
@@ -87,6 +90,9 @@ importers:
       '@emdzej/inpax-interpreter':
         specifier: workspace:*
         version: link:../../packages/interpreter
+      '@emdzej/inpax-logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       '@emdzej/inpax-mock-provider':
         specifier: workspace:*
         version: link:../../packages/mock-provider
@@ -350,15 +356,15 @@ importers:
         specifier: workspace:*
         version: link:../interfaces
     devDependencies:
+      '@emdzej/inpax-logger':
+        specifier: workspace:*
+        version: link:../logger
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
 
   packages/ediabasx-provider:
     dependencies:
-      '@emdzej/ediabasx-ediabas':
-        specifier: ^0.2.4
-        version: 0.2.4
       '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../core
@@ -369,6 +375,9 @@ importers:
         specifier: ^5.0.1
         version: 5.0.4
     devDependencies:
+      '@emdzej/ediabasx-ediabas':
+        specifier: ^0.2.4
+        version: 0.2.4
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -409,9 +418,6 @@ importers:
       '@emdzej/inpax-interfaces':
         specifier: workspace:*
         version: link:../interfaces
-      '@emdzej/inpax-logger':
-        specifier: workspace:*
-        version: link:../logger
       '@emdzej/inpax-parser':
         specifier: workspace:*
         version: link:../parser
@@ -422,6 +428,9 @@ importers:
         specifier: ^5.0.1
         version: 5.0.4
     devDependencies:
+      '@emdzej/inpax-logger':
+        specifier: workspace:*
+        version: link:../logger
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.10
@@ -543,6 +552,9 @@ importers:
         specifier: ^5.0.1
         version: 5.0.4
     devDependencies:
+      '@emdzej/inpax-logger':
+        specifier: workspace:*
+        version: link:../logger
       typescript:
         specifier: ^5.3.3
         version: 5.9.3

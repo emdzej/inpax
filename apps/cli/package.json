@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-cli",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "INPAX CLI - IPO toolchain",
   "type": "module",
   "bin": {
@@ -12,18 +12,20 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
+    "@emdzej/ediabasx-ediabas": "^0.2.4",
+    "@emdzej/ediabasx-interfaces": "^0.2.4",
+    "@emdzej/inpax-cli-provider": "workspace:*",
     "@emdzej/inpax-core": "workspace:*",
-    "@emdzej/inpax-parser": "workspace:*",
-    "@emdzej/inpax-interpreter": "workspace:*",
     "@emdzej/inpax-dis": "workspace:*",
+    "@emdzej/inpax-ediabasx-provider": "workspace:*",
+    "@emdzej/inpax-ini-parser": "workspace:*",
+    "@emdzej/inpax-interfaces": "workspace:*",
+    "@emdzej/inpax-interpreter": "workspace:*",
+    "@emdzej/inpax-logger": "workspace:*",
+    "@emdzej/inpax-mock-provider": "workspace:*",
+    "@emdzej/inpax-parser": "workspace:*",
     "@emdzej/inpax-tui": "workspace:*",
     "@emdzej/inpax-tui-provider": "workspace:*",
-    "@emdzej/inpax-cli-provider": "workspace:*",
-    "@emdzej/inpax-ediabasx-provider": "workspace:*",
-    "@emdzej/ediabasx-interfaces": "^0.2.4",
-    "@emdzej/inpax-interfaces": "workspace:*",
-    "@emdzej/inpax-mock-provider": "workspace:*",
-    "@emdzej/inpax-ini-parser": "workspace:*",
     "commander": "^12.0.0",
     "chalk": "^5.3.0"
   },
