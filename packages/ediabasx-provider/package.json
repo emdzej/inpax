@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-ediabasx-provider",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "EdiabasX provider for INPA interpreter \u2014 uses @emdzej/ediabasx-ediabas for real ECU communication.",
   "type": "module",
   "main": "dist/index.js",
@@ -22,7 +22,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@emdzej/ediabasx-ediabas": "^0.2.2",
+    "@emdzej/ediabasx-ediabas": "^0.2.4",
     "@emdzej/inpax-core": "workspace:*",
     "@emdzej/inpax-interfaces": "workspace:*",
     "eventemitter3": "^5.0.1"

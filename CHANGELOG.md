@@ -6,6 +6,50 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.6.3] — 2026-05-21
+
+Picks up two structural improvements from `ediabasx` (0.2.3 and 0.2.4)
+and bumps `apps/*` onto the package version line so the whole monorepo
+moves in lockstep.
+
+### Changed
+
+- **Bump `@emdzej/ediabasx-*` pins to `^0.2.4`.** Two-release jump from
+  `^0.2.2`:
+
+  - **`ediabasx@0.2.3`** — byte-backed S registers. The interpreter
+    now stores S0–SF as raw `Uint8Array` buffers + a logical length
+    (matches C# `EdiabasLib.StringData`), with CP1252 only running at
+    the `getS`/`setS` boundary. All 256 byte values round-trip
+    bit-exact through `getSBinary`/`setSBinary`; the 0.2.2 encode-
+    table patch is no longer load-bearing for binary buffers. `getS`
+    now terminates at the first `0x00` (C# `GetStringData` parity)
+    and `getSBinary` returns a fresh copy. No inpax-visible behaviour
+    change for canonical write-then-read flows; binary-heavy paths
+    are now structurally lossless.
+  - **`ediabasx@0.2.4`** — `Ediabas.executeJob` accepts
+    `Uint8Array` parameters. EDIABAS exposes two parameter channels
+    (string via `pari`/`pars`, binary via `pary`/`parb`/`parw`/`parl`/
+    `parr`). The widened API routes elements by JS type:
+    `string` → `ParameterSet.parameters[i]`, `Uint8Array` →
+    `ParameterSet.binaryPayload`. Unblocks binbuf-driven SGBDs whose
+    entry point starts with `pary S1; jz ERROR_NO_BIN_BUFFER` —
+    notably BMW NCS coding (`C_S_LESEN` / `C_S_SCHREIBEN` /
+    `C_S_AUFTRAG` on K-line + F-series equivalents). Pure widening;
+    every existing `string[]` caller still type-checks.
+
+  Touches `@emdzej/inpax-ediabasx-provider`, `@emdzej/inpax-cli`, and
+  `@emdzej/inpax-web` (the three packages with direct ediabasx pins).
+
+- **`apps/*` versions now move with `packages/*`.** Previously the
+  five apps (`cli`, `inpax-web`, `inpax-compiler`, `ipo-editor`,
+  `bimmerz-bundler`) stayed pinned at `0.5.1` while packages
+  advanced through `0.6.x`. This was technically fine since the apps
+  aren't published, but it made it hard to tell which app build
+  matches which package release. From this release on, every
+  `package.json` in the repo (packages, apps, root) carries the
+  same version string.
+
 ## [0.6.2] — 2026-05-20
 
 Dependency bump release. Picks up the ediabasx 0.2.2 patch that fixes

@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-cli",
-  "version": "0.5.1",
+  "version": "0.6.3",
   "description": "INPAX CLI - IPO toolchain",
   "type": "module",
   "bin": {
@@ -20,7 +20,7 @@
     "@emdzej/inpax-tui-provider": "workspace:*",
     "@emdzej/inpax-cli-provider": "workspace:*",
     "@emdzej/inpax-ediabasx-provider": "workspace:*",
-    "@emdzej/ediabasx-interfaces": "^0.2.2",
+    "@emdzej/ediabasx-interfaces": "^0.2.4",
     "@emdzej/inpax-interfaces": "workspace:*",
     "@emdzej/inpax-mock-provider": "workspace:*",
     "@emdzej/inpax-ini-parser": "workspace:*",
