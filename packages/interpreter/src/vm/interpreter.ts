@@ -269,27 +269,48 @@ export class VM {
      * Main execution loop (async for provider calls)
      */
     async execute(block: FunctionBlock, ctx: ExecutionContext): Promise<void> {
-        this.callFunction(block);
-        this.state.running = true;
+        // Snapshot VM state so a nested execute() call (e.g. a deferred
+        // setMenu INIT that fires while we're awaiting a system call)
+        // can run to completion without killing our loop. `doReturn`
+        // flips `state.running = false` on a top-level RET — correct for
+        // the inner call's own loop, but disastrous if shared. Same
+        // for currentBlock/ip: the inner can leave them pointing at
+        // its block on exit.
+        //
+        // Anchor: KOMBI.IPO!m_fehler ITEM 0 — F1 calls setmenu(menu_22)
+        // then awaits FS_LESEN. The setTimeout(0) for menu_22's INIT
+        // raced into us during the await and flipped running=false,
+        // silently dropping the post-FsLesen userboxclose / viewopen.
+        const savedRunning = this.state.running;
+        const savedBlock = this.state.currentBlock;
+        const savedIp = this.state.ip;
+        try {
+            this.callFunction(block);
+            this.state.running = true;
 
-        while (this.state.running && this.state.currentBlock) {
-            const currentBlock = this.state.currentBlock;
+            while (this.state.running && this.state.currentBlock) {
+                const currentBlock = this.state.currentBlock;
 
-            if (this.state.ip >= currentBlock.instructions.length) {
-                // End of function - implicit return
-                this.doReturn(ctx);
-                continue;
-            }
-
-            const instr = currentBlock.instructions[this.state.ip];
-            try {
-                await this.executeInstruction(instr, ctx);
-            } catch (err) {
-                if (err instanceof Error) {
-                    err.message = `${err.message} [in ${currentBlock.header.name}#${currentBlock.header.blockId} @pc=${this.state.ip} op=0x${instr.opcode.toString(16).padStart(2, '0')} op1=0x${instr.operand1.toString(16)} op2=0x${instr.operand2.toString(16)} frameOffset=${ctx.frameOffset} stackLen=${ctx.stack.size}]`;
+                if (this.state.ip >= currentBlock.instructions.length) {
+                    // End of function - implicit return
+                    this.doReturn(ctx);
+                    continue;
                 }
-                throw err;
+
+                const instr = currentBlock.instructions[this.state.ip];
+                try {
+                    await this.executeInstruction(instr, ctx);
+                } catch (err) {
+                    if (err instanceof Error) {
+                        err.message = `${err.message} [in ${currentBlock.header.name}#${currentBlock.header.blockId} @pc=${this.state.ip} op=0x${instr.opcode.toString(16).padStart(2, '0')} op1=0x${instr.operand1.toString(16)} op2=0x${instr.operand2.toString(16)} frameOffset=${ctx.frameOffset} stackLen=${ctx.stack.size}]`;
+                    }
+                    throw err;
+                }
             }
+        } finally {
+            this.state.running = savedRunning;
+            this.state.currentBlock = savedBlock;
+            this.state.ip = savedIp;
         }
     }
 
