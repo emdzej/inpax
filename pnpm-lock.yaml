@@ -64,11 +64,11 @@ importers:
   apps/cli:
     dependencies:
       '@emdzej/ediabasx-ediabas':
-        specifier: ^0.2.4
-        version: 0.2.4
+        specifier: ^0.2.5
+        version: 0.2.5
       '@emdzej/ediabasx-interfaces':
-        specifier: ^0.2.4
-        version: 0.2.4
+        specifier: ^0.2.5
+        version: 0.2.5
       '@emdzej/inpax-cli-provider':
         specifier: workspace:*
         version: link:../../packages/cli-provider
@@ -144,17 +144,17 @@ importers:
   apps/inpax-web:
     dependencies:
       '@emdzej/ediabasx-ediabas':
-        specifier: ^0.2.4
-        version: 0.2.4
+        specifier: ^0.2.5
+        version: 0.2.5
       '@emdzej/ediabasx-interface-base':
-        specifier: ^0.2.4
-        version: 0.2.4
+        specifier: ^0.2.5
+        version: 0.2.5
       '@emdzej/ediabasx-interface-serial':
-        specifier: ^0.2.4
-        version: 0.2.4
+        specifier: ^0.2.5
+        version: 0.2.5
       '@emdzej/ediabasx-interfaces':
-        specifier: ^0.2.4
-        version: 0.2.4
+        specifier: ^0.2.5
+        version: 0.2.5
       '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -376,8 +376,8 @@ importers:
         version: 5.0.4
     devDependencies:
       '@emdzej/ediabasx-ediabas':
-        specifier: ^0.2.4
-        version: 0.2.4
+        specifier: ^0.2.5
+        version: 0.2.5
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -1110,35 +1110,35 @@ packages:
   '@canvas/image-data@1.1.0':
     resolution: {integrity: sha512-QdObRRjRbcXGmM1tmJ+MrHcaz1MftF2+W7YI+MsphnsCrmtyfS0d5qJbk0MeSbUeyM/jCb0hmnkXPsy026L7dA==}
 
-  '@emdzej/ediabasx-best-parser@0.2.4':
-    resolution: {integrity: sha512-mXM2EVSA7NbY24P2/CUARmKSCxxGRSaq+9d3KEOs6bfivN+G42VQ+wVGVTgf/jojo7SLe28jZMcZfpixhelatw==}
+  '@emdzej/ediabasx-best-parser@0.2.5':
+    resolution: {integrity: sha512-VYeCVvq1isn4Fan++H/zhP1NIiWiAQ6MKbDpZqS5WwLSR/TBNJrgTMzgVAY5EDfrX8KuoSbqWmLzG3wila52qw==}
 
-  '@emdzej/ediabasx-core@0.2.4':
-    resolution: {integrity: sha512-CfRSBgP+TiovsSv58e2WL3MGmb8Ypm8S6dWV4IrINCxJpoR1PuyEIlS0LOofuC+wDQ8DrfuwVMr4fdyxOj2C3Q==}
+  '@emdzej/ediabasx-core@0.2.5':
+    resolution: {integrity: sha512-CKH14PJojxMuxnk22DDZ/IVI36z4e9+YVgLglehKf2b3EuOH1OUcMxll6OCfAnSWSKuv0pz+WEIKrd3txBpvvQ==}
 
-  '@emdzej/ediabasx-ediabas@0.2.4':
-    resolution: {integrity: sha512-FPrk5D/JBu9TdJtLn5XZCHxno5V1MVmMwfzjosyw3NXPXa7PaK8NeV5yAN+uQECiMrKgRfZmWsLlPRQaS866Mg==}
+  '@emdzej/ediabasx-ediabas@0.2.5':
+    resolution: {integrity: sha512-RAfr1D8K1eOmCelkHIfcq7OiNXOHy9Q+e7/gfQMzNDVOHADTJZ6sm1/RuOE3QXS/y1eZMZzB12AcShWlkfUcww==}
 
-  '@emdzej/ediabasx-interface-base@0.2.4':
-    resolution: {integrity: sha512-8SP8URUo21mGSGQ/OC/1EssMta6rkCVQEnqo1rNQIasiS1slLkDwZbXh4Ok47SR2sqMkzJV8qteEj4BmIllfrg==}
+  '@emdzej/ediabasx-interface-base@0.2.5':
+    resolution: {integrity: sha512-aSuXgIpTD9K8XaljXn4FB1uims6T36qg0LghJysMPspAJxd0BfIGJwa+RrOIKW83FUjeEpZBdyqaffW5Bjk1ng==}
 
-  '@emdzej/ediabasx-interface-enet@0.2.4':
-    resolution: {integrity: sha512-iBQxJ+jdVYQ86JKqM+klDlQIVVQ09Bx0yWZdhkVKtuMYyTKSEhVvWyQsjTMHQQyZeZogUq7VMVViLrT5qBZbdA==}
+  '@emdzej/ediabasx-interface-enet@0.2.5':
+    resolution: {integrity: sha512-+BzCYhPNCluGuKV/fh/VuhCjT7kvDnbqAsb6cLg+ht+JlKHFFAr1ny8CZQDlJn+6vaUy0RxKqGkF9RUkJ7tXdA==}
 
-  '@emdzej/ediabasx-interface-serial@0.2.4':
-    resolution: {integrity: sha512-8HONxUaLmifCOC+MuyXbdN3LOrSZpdlOJm8LRJzI+AGDKsy7t/5NwA0I8A4eQfODyEmFXrZguEU8hjptf+BkQg==}
+  '@emdzej/ediabasx-interface-serial@0.2.5':
+    resolution: {integrity: sha512-zglSVy7iXYaQoUX1E3fQErFL+PWDbewbxbHlFdCdFfWrSrmAQ08icvdCW09Re6YC7tcxrHNlLzX7ieKTv+gQIw==}
 
-  '@emdzej/ediabasx-interfaces@0.2.4':
-    resolution: {integrity: sha512-uVSK2IZErh/P3xft6YvdfpSdt2kKep7I6BZfvmRL5ypSaAe/odiWiSyLhNiSmurSv0wo1PQ2SakRKElgwvZisg==}
+  '@emdzej/ediabasx-interfaces@0.2.5':
+    resolution: {integrity: sha512-rR9oEt0SIDbbzeLk02nq4CFI3CiFsWmDdsZElP9I+Zv6Pyou50L6TAcw1h0H7XdNlHB9iNpXGOVKvyknlJdV1A==}
 
-  '@emdzej/ediabasx-interpreter@0.2.4':
-    resolution: {integrity: sha512-ihs3oVSNcyHv9vtBT5jsuURKyXAAkrDxFeqbV+wjQYVvvs1GwlLrOJm9u0af624JX8aTJtOfLcm6FXerqY3GRA==}
+  '@emdzej/ediabasx-interpreter@0.2.5':
+    resolution: {integrity: sha512-0OetKc7P7Xed8Cde3/rjkiiJ1nZ3sWtT3oMDvrtjFkKOeI8oSt1xbdkPUec6QmtahGYXm6VSTYnYLPmk6JWstg==}
 
-  '@emdzej/ediabasx-logger@0.2.4':
-    resolution: {integrity: sha512-NYTLtS2mTsivXF57fL6fkXoranJvrESo+G+jK4OSAiZIy3JN+QkD5tLdcINxRZ8POh841jq767Ee/qgbMt1ETQ==}
+  '@emdzej/ediabasx-logger@0.2.5':
+    resolution: {integrity: sha512-dMf82LERLhMe7OZyl6vVWZeDW31fwxBIb2j5tY996SzBrtnST6IzyNIwot0e9N9q4+0xX6QRcWvYI5cMd4G1Dg==}
 
-  '@emdzej/ediabasx-protocol-uds@0.2.4':
-    resolution: {integrity: sha512-nJMTkXAbzLCzp+iMsF67AN33QsRooau5Ym0GUpRK6c/09CJJ2/nG16axj3t5+tw9AzP/titNmcA125a4/m5thg==}
+  '@emdzej/ediabasx-protocol-uds@0.2.5':
+    resolution: {integrity: sha512-Z9JcLL+QmCUBnMG6aQGGKiEAN4iLG9uJ0olpLZ7zpUDsntZN5Yy0SGfY6IZhOeQUzxt3BofEiD08b1Ms3T7zew==}
 
   '@emnapi/runtime@1.10.0':
     resolution: {integrity: sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA==}
@@ -5194,68 +5194,68 @@ snapshots:
 
   '@canvas/image-data@1.1.0': {}
 
-  '@emdzej/ediabasx-best-parser@0.2.4':
+  '@emdzej/ediabasx-best-parser@0.2.5':
     dependencies:
-      '@emdzej/ediabasx-core': 0.2.4
-      '@emdzej/ediabasx-logger': 0.2.4
+      '@emdzej/ediabasx-core': 0.2.5
+      '@emdzej/ediabasx-logger': 0.2.5
       chalk: 5.6.2
 
-  '@emdzej/ediabasx-core@0.2.4': {}
+  '@emdzej/ediabasx-core@0.2.5': {}
 
-  '@emdzej/ediabasx-ediabas@0.2.4':
+  '@emdzej/ediabasx-ediabas@0.2.5':
     dependencies:
-      '@emdzej/ediabasx-best-parser': 0.2.4
-      '@emdzej/ediabasx-core': 0.2.4
-      '@emdzej/ediabasx-interface-base': 0.2.4
-      '@emdzej/ediabasx-interface-enet': 0.2.4
-      '@emdzej/ediabasx-interface-serial': 0.2.4
-      '@emdzej/ediabasx-interfaces': 0.2.4
-      '@emdzej/ediabasx-interpreter': 0.2.4
-      '@emdzej/ediabasx-logger': 0.2.4
+      '@emdzej/ediabasx-best-parser': 0.2.5
+      '@emdzej/ediabasx-core': 0.2.5
+      '@emdzej/ediabasx-interface-base': 0.2.5
+      '@emdzej/ediabasx-interface-enet': 0.2.5
+      '@emdzej/ediabasx-interface-serial': 0.2.5
+      '@emdzej/ediabasx-interfaces': 0.2.5
+      '@emdzej/ediabasx-interpreter': 0.2.5
+      '@emdzej/ediabasx-logger': 0.2.5
       zod: 4.4.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
       - utf-8-validate
 
-  '@emdzej/ediabasx-interface-base@0.2.4': {}
+  '@emdzej/ediabasx-interface-base@0.2.5': {}
 
-  '@emdzej/ediabasx-interface-enet@0.2.4':
+  '@emdzej/ediabasx-interface-enet@0.2.5':
     dependencies:
-      '@emdzej/ediabasx-interface-base': 0.2.4
+      '@emdzej/ediabasx-interface-base': 0.2.5
 
-  '@emdzej/ediabasx-interface-serial@0.2.4':
+  '@emdzej/ediabasx-interface-serial@0.2.5':
     dependencies:
-      '@emdzej/ediabasx-core': 0.2.4
-      '@emdzej/ediabasx-interface-base': 0.2.4
-      '@emdzej/ediabasx-protocol-uds': 0.2.4
+      '@emdzej/ediabasx-core': 0.2.5
+      '@emdzej/ediabasx-interface-base': 0.2.5
+      '@emdzej/ediabasx-protocol-uds': 0.2.5
       serialport: 12.0.0
     transitivePeerDependencies:
       - supports-color
 
-  '@emdzej/ediabasx-interfaces@0.2.4':
+  '@emdzej/ediabasx-interfaces@0.2.5':
     dependencies:
-      '@emdzej/ediabasx-interface-base': 0.2.4
-      '@emdzej/ediabasx-interface-enet': 0.2.4
-      '@emdzej/ediabasx-interface-serial': 0.2.4
+      '@emdzej/ediabasx-interface-base': 0.2.5
+      '@emdzej/ediabasx-interface-enet': 0.2.5
+      '@emdzej/ediabasx-interface-serial': 0.2.5
       ws: 8.19.0
     transitivePeerDependencies:
       - bufferutil
       - supports-color
       - utf-8-validate
 
-  '@emdzej/ediabasx-interpreter@0.2.4':
+  '@emdzej/ediabasx-interpreter@0.2.5':
     dependencies:
-      '@emdzej/ediabasx-best-parser': 0.2.4
-      '@emdzej/ediabasx-core': 0.2.4
-      '@emdzej/ediabasx-interface-base': 0.2.4
+      '@emdzej/ediabasx-best-parser': 0.2.5
+      '@emdzej/ediabasx-core': 0.2.5
+      '@emdzej/ediabasx-interface-base': 0.2.5
 
-  '@emdzej/ediabasx-logger@0.2.4':
+  '@emdzej/ediabasx-logger@0.2.5':
     dependencies:
       pino: 9.14.0
       pino-pretty: 11.3.0
 
-  '@emdzej/ediabasx-protocol-uds@0.2.4': {}
+  '@emdzej/ediabasx-protocol-uds@0.2.5': {}
 
   '@emnapi/runtime@1.10.0':
     dependencies:

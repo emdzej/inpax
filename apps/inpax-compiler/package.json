@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-compiler",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "description": "INPA .ips -> .ipo compiler CLI",
   "type": "module",
   "main": "dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-cli",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "description": "INPAX CLI - IPO toolchain",
   "type": "module",
   "bin": {
@@ -12,8 +12,8 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@emdzej/ediabasx-ediabas": "^0.2.4",
-    "@emdzej/ediabasx-interfaces": "^0.2.4",
+    "@emdzej/ediabasx-ediabas": "^0.2.5",
+    "@emdzej/ediabasx-interfaces": "^0.2.5",
     "@emdzej/inpax-cli-provider": "workspace:*",
     "@emdzej/inpax-core": "workspace:*",
     "@emdzej/inpax-dis": "workspace:*",

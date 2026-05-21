@@ -6,6 +6,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.6.6] — 2026-05-21
+
+### Changed
+
+- **Bump `@emdzej/ediabasx-*` pins to `^0.2.5`.** Picks up
+  `ediabasx@0.2.5`, which fixes a CP1252/binary mismatch in three
+  interpreter opcodes — `pary`, `freadln`, and `shmget` — that were
+  routing raw byte payloads through the string-write path
+  (`SetStringData` semantics: append `\0` if the last byte isn't
+  already zero) instead of the byte-write path
+  (`SetArrayData` semantics: pass-through). The result was a silent
+  off-by-one in the destination S register's logical length whenever
+  a binary payload's last byte happened to be non-zero, which
+  manifested as `JOB_STATUS = "ERROR_BIN_BUFFER"` from any SGBD that
+  `slen`-checks the input.
+
+  Surfaced while porting BMW NCS coding to `ncsx` —
+  `C_S_SCHREIBEN` aborted on real GETRIEBEART writes (last byte
+  `0x0A`) purely from this 1-byte skew. `C_S_LESEN` worked by
+  accident because the IPO pre-fills the scratchpad with zeros so
+  the buffer's last byte is `0x00` and the NUL-append no-ops.
+
+  No inpax-visible code changes — the three opcodes now match C#
+  `EdiabasLib` semantics exactly. Touches the same three packages
+  the 0.6.3 bump did (`@emdzej/inpax-ediabasx-provider`,
+  `@emdzej/inpax-cli`, `@emdzej/inpax-web`).
+
 ## [0.6.5] — 2026-05-21
 
 ### Fixed
