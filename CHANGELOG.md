@@ -6,6 +6,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.6.7] — 2026-05-22
+
+### Changed
+
+- **Bump `@emdzej/ediabasx-*` pins to `^0.2.6`.** Picks up
+  `ediabasx@0.2.6`, which fixes the `not` opcode (`0x0A`) in the
+  bytecode interpreter — previously every job that executed `not`
+  aborted with `EdiabasError: Cannot read value from operand`
+  because the unary handler routed through the binary
+  `arithmeticReadModifyWrite` helper with a synthetic
+  `{ kind: "none" }` placeholder for `arg1`, and `readPolyValue`
+  rejected the unknown kind.
+
+  Surfaced via `ncsx` again — BMW E46 `KOMBI46R.prg::C_CHECKSUM`
+  runs `not L0` inside its post-coding verify path, so NCS Expert's
+  `SG_CODIEREN` flow aborted on the C_CHECKSUM step right after the
+  16-chunk write loop completed. Earlier blockers (the binary-param
+  NUL-append bug from 0.6.6 / `ediabasx@0.2.5`, slot table seeding,
+  auth) had to land first before this surfaced as the next gate.
+
+  No inpax-visible code changes — the fix is a dedicated
+  `unaryReadModifyWrite` helper inside ediabasx's interpreter that
+  mirrors C# `OpNot` (`EdOperations.cs:1753`) exactly. Touches the
+  three packages with direct ediabasx pins:
+  `@emdzej/inpax-ediabasx-provider`, `@emdzej/inpax-cli`,
+  `@emdzej/inpax-web`.
+
 ## [0.6.6] — 2026-05-21
 
 ### Changed

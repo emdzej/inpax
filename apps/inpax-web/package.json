@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-web",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "description": "Browser SPA for INPAX — pick an INPA install root, browse IPO scripts, run them against a live ECU via Web Serial. Pure client-side; no server.",
   "private": true,
   "type": "module",
@@ -12,10 +12,10 @@
     "typecheck": "tsc --noEmit && svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
-    "@emdzej/ediabasx-ediabas": "^0.2.5",
-    "@emdzej/ediabasx-interface-base": "^0.2.5",
-    "@emdzej/ediabasx-interface-serial": "^0.2.5",
-    "@emdzej/ediabasx-interfaces": "^0.2.5",
+    "@emdzej/ediabasx-ediabas": "^0.2.6",
+    "@emdzej/ediabasx-interface-base": "^0.2.6",
+    "@emdzej/ediabasx-interface-serial": "^0.2.6",
+    "@emdzej/ediabasx-interfaces": "^0.2.6",
     "@emdzej/inpax-core": "workspace:*",
     "@emdzej/inpax-dispatcher": "workspace:*",
     "@emdzej/inpax-ediabasx-provider": "workspace:*",
