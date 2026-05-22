@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-compiler-core",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "description": "INPA IPS to IPO compiler",
   "type": "module",
   "main": "dist/index.js",

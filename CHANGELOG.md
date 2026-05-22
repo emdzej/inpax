@@ -6,6 +6,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.6.8] — 2026-05-22
+
+### Changed
+
+- **Bump `@emdzej/ediabasx-*` pins to `^0.2.7`.** Picks up
+  `ediabasx@0.2.7`, which converts the BEST/2 table-op error paths
+  (`tabseek`, `tabseeku`, `tabget`, `tabline`) from hard `throw` to
+  soft `SetError + return` — matching C# `EdiabasLib`'s
+  `OpTabseek`/etc. Before, a SGBD that `tabset`'d a non-existent
+  table (or seeked an unknown column) had its whole `executeJob`
+  aborted with an `EdiabasError`; the BEST/2 program never got to
+  branch on `Z` or test the error state. Now the program continues
+  past the failed lookup, as C# does.
+
+  Surfaced via `ncsx` again — `C_KMB46.prg::STATUS_AIF_SIA_DATEN_LESEN`
+  was throwing inside ncsx-web's SG_CODIEREN post-write status check
+  ("tabseek: no active table") even though the actual coding write +
+  checksum had completed cleanly. That manifested as a misleading
+  "Write failed" toast in the UI for AKMB-class coding flows that
+  worked fine before.
+
+  Also picks up `EDIABASX_TIMEOUT_STD_MIN_MS` — a Node-only env var
+  that floors `ParTimeoutStd` for diagnosing slow flash-write paths.
+  No browser impact (process is undefined in Vite builds).
+
+  No inpax-visible code changes — the fix is entirely inside the
+  ediabasx interpreter's table-op error handling. Touches the three
+  packages with direct ediabasx pins:
+  `@emdzej/inpax-ediabasx-provider`, `@emdzej/inpax-cli`,
+  `@emdzej/inpax-web`.
+
 ## [0.6.7] — 2026-05-22
 
 ### Changed

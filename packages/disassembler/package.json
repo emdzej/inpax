@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-dis",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "description": "INPA IPO bytecode disassembler",
   "type": "module",
   "main": "dist/index.js",

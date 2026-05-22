@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-dispatcher",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "description": "System function dispatcher for INPA runtime",
   "type": "module",
   "main": "./dist/index.js",

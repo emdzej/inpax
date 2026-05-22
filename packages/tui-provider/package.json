@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-tui-provider",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "description": "Headless TUI state management for INPA runtime",
   "type": "module",
   "main": "./dist/index.js",
