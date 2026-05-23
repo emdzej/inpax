@@ -1,5 +1,7 @@
 /**
- * Disassemble command
+ * `inpax decompile <file>` — print BEST/2 bytecode as readable
+ * assembly. Library functions in @emdzej/inpax-dis keep the
+ * `disassemble*` name; only the CLI surface changed.
  */
 import { Command } from 'commander';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -7,11 +9,11 @@ import chalk from 'chalk';
 import { parseIpo } from '@emdzej/inpax-parser';
 import { disassembleIpo, disassembleFunction, type DisassemblyOptions } from '@emdzej/inpax-dis';
 
-export const disasmCommand = new Command('disasm')
-  .description('Disassemble IPO bytecode file')
-  .argument('<file>', 'IPO file to disassemble')
+export const decompileCommand = new Command('decompile')
+  .description('Decompile IPO bytecode into readable assembly')
+  .argument('<file>', 'IPO file to decompile')
   .option('-o, --output <file>', 'Output file (default: stdout)')
-  .option('-f, --function <name>', 'Disassemble specific function only')
+  .option('-f, --function <name>', 'Decompile a specific function only')
   .option('--no-color', 'Disable colored output')
   .option('--no-raw', 'Hide raw hex bytes')
   .option('--no-comments', 'Hide comments')

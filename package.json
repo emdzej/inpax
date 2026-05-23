@@ -14,9 +14,9 @@
     "cli:debug": "node --inspect-brk apps/cli/dist/index.js",
     "interpreter": "node packages/interpreter/dist/cli.js",
     "disassembler": "node packages/disassembler/dist/cli.js",
-    "compile": "node apps/inpax-compiler/dist/index.js",
-    "compile:debug": "node --inspect-brk apps/inpax-compiler/dist/index.js",
-    "editor": "node apps/ipo-editor/dist/index.js",
+    "compile": "node apps/cli/dist/index.js compile",
+    "compile:debug": "node --inspect-brk apps/cli/dist/index.js compile",
+    "editor": "node apps/cli/dist/index.js edit",
     "dev:web": "pnpm --filter @emdzej/inpax-web dev",
     "dev:web:host": "pnpm --filter @emdzej/inpax-web dev -- --host 0.0.0.0",
     "build:web": "pnpm --filter @emdzej/inpax-web build"

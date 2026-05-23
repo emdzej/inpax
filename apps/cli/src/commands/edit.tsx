@@ -1,14 +1,22 @@
-#!/usr/bin/env node
+/**
+ * `inpax edit <file>` — interactive Ink TUI for editing constants in a
+ * compiled `.ipo` file. Subsumes what used to ship as the separate
+ * `ipo-editor` binary.
+ *
+ * Also exposes `inpax patch init|apply` as siblings, since the
+ * non-interactive constant-patch workflow shares the same parser /
+ * walker / save plumbing under `./edit/`.
+ */
 import { readFileSync } from 'node:fs';
 import { resolve as resolvePath } from 'node:path';
 import React from 'react';
 import { render } from 'ink';
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { canonicalCodepage, isCodepageSupported } from './lib/codepage.js';
-import { looksLikeCp125x, walkIpo } from './lib/walker.js';
-import { App } from './components/App.js';
-import { runPatchInit, runPatchApply } from './patch/cli.js';
+import { canonicalCodepage, isCodepageSupported } from './edit/lib/codepage.js';
+import { looksLikeCp125x, walkIpo } from './edit/lib/walker.js';
+import { App } from './edit/components/App.js';
+import { runPatchInit, runPatchApply } from './edit/patch/cli.js';
 
 interface EditFlags {
   codepage?: string;
@@ -18,17 +26,8 @@ interface EditFlags {
   readonly?: boolean;
 }
 
-const program = new Command();
-
-program
-  .name('ipo-editor')
-  .description('Edit constants in compiled INPA .ipo files; init and apply patch files')
-  .version('0.0.0');
-
-// ---- `edit` (default command) ----
-program
-  .command('edit', { isDefault: true })
-  .description('Open a TUI to edit constants interactively')
+export const editCommand = new Command('edit')
+  .description('Open a TUI to edit constants in a compiled .ipo file')
   .argument('<file>', '.ipo file to open')
   .option('--codepage <name>', 'codepage for string decode/encode', 'cp1252')
   .option('--no-backup', 'do not write <file>.bak on save')
@@ -74,8 +73,6 @@ program
         walk={walk}
         readonly={opts.readonly === true}
         allowFfi={opts.allowFfi === true}
-        // commander turns `--no-backup` into `opts.backup === false`;
-        // omitting the flag leaves it undefined → backup ON by default.
         backup={opts.backup !== false}
         initialHint={hint}
       />,
@@ -83,14 +80,12 @@ program
     );
   });
 
-// ---- `patch` (subcommand group) ----
-const patchCmd = program
-  .command('patch')
-  .description('Create or apply translation/override patches for .ipo files');
+export const patchCommand = new Command('patch')
+  .description('Create or apply constant patches for compiled .ipo files');
 
-patchCmd
+patchCommand
   .command('init')
-  .description('Emit a starter patch file listing the IPO\'s current constants')
+  .description("Emit a starter patch file listing the IPO's current constants")
   .argument('<file>', '.ipo file to scan')
   .option('-o, --output <path>', 'output patch path (default: <file>.patch.yaml)')
   .option('--input-encoding <name>', 'codepage used to decode strings in the IPO', 'cp1252')
@@ -116,7 +111,7 @@ patchCmd
     }
   });
 
-patchCmd
+patchCommand
   .command('apply')
   .description('Apply one or more patch files to an .ipo and write the result')
   .argument('<file>', '.ipo file to patch')
@@ -125,7 +120,7 @@ patchCmd
   .option('--dry-run', 'verify and report changes without writing', false)
   .option(
     '--ignore-checksum',
-    'apply even if a patch\'s checksum does not match the IPO',
+    "apply even if a patch's checksum does not match the IPO",
     false,
   )
   .option(
@@ -136,7 +131,7 @@ patchCmd
   .option('--input-encoding <name>', 'codepage for decoding the IPO', 'cp1252')
   .option(
     '--output-encoding <name>',
-    'override the patches\' target_encoding when writing strings',
+    "override the patches' target_encoding when writing strings",
   )
   .action((file: string, patches: string[], opts) => {
     try {
@@ -146,8 +141,3 @@ patchCmd
       process.exit(1);
     }
   });
-
-program.parseAsync(process.argv).catch((err) => {
-  console.error(chalk.red((err as Error).message));
-  process.exit(1);
-});

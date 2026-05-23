@@ -1,4 +1,8 @@
-#!/usr/bin/env node
+/**
+ * `inpax compile <files...>` — IPS source → IPO bytecode compiler.
+ * Plus `inpax compile new <file>` for scaffolding starter .ips files.
+ * Subsumes what used to ship as the separate `inpax-compiler` binary.
+ */
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, resolve as resolvePath } from 'node:path';
 import { Command } from 'commander';
@@ -11,27 +15,15 @@ import {
 } from '@emdzej/inpax-compiler-core';
 
 interface CompileFlags {
-  /**
-   * Output target. With a single input, treated as a file path. With
-   * multiple inputs, must be (or be created as) a directory — each
-   * compiled file lands at `<dir>/<basename(.ipo)>`.
-   */
   output?: string;
   include?: string[];
   encoding?: string;
-  /** Keep going after a file fails to compile (batch mode). */
   continue?: boolean;
   verbose?: boolean;
 }
 
-const program = new Command();
-
-program
-  .name('inpax-compiler')
+export const compileCommand = new Command('compile')
   .description('Compile INPA IPS source files into IPO bytecode')
-  .version('0.1.0');
-
-program
   .argument('<files...>', 'IPS source file(s) — compile one or many')
   .option(
     '-o, --output <path>',
@@ -70,10 +62,6 @@ program
       const outputPath = outputFor(target, inputPath);
 
       try {
-        // Decode source bytes with the user-chosen encoding before
-        // handing the string to the compiler. The compiler itself
-        // applies the same encoding to any `#include`d files it
-        // pulls in from disk.
         const source = decodeBytes(readFileSync(inputPath), encoding);
         const bytes = compile(source, {
           filePath: inputPath,
@@ -108,20 +96,14 @@ program
     }
 
     if (failCount > 0) {
-      // Exit non-zero so shell pipelines / CI catch failures, but the
-      // per-file error already went to stderr above. `firstFailure` is
-      // retained only for the assertion message — actual diagnostics
-      // were printed line by line.
       process.exit(firstFailure ? 1 : 1);
     }
   });
 
-/**
- * Scaffold a minimal IPS file. Modelled after the canonical "empty
- * INPA script" shape every BMW script starts from — `#pragma winedit`
- * + `#include "inpa.h"` + the two mandatory entry points.
- */
-program
+// `inpax compile new <file>` — scaffold a starter .ips file with
+// the canonical winedit/inpainit/inpaexit skeleton every BMW script
+// starts from.
+compileCommand
   .command('new <file>')
   .description('write a starter .ips file with inpainit / inpaexit stubs')
   .option('--title <text>', 'placeholder text for settitle() in inpainit', 'New script')
@@ -137,19 +119,10 @@ program
       process.exit(2);
     }
     writeFileSync(outPath, ipsTemplate(opts.title), { encoding: 'utf-8' });
-    process.stderr.write(
-      chalk.gray(`✓ wrote ${shortPath(outPath)}\n`),
-    );
+    process.stderr.write(chalk.gray(`✓ wrote ${shortPath(outPath)}\n`));
   });
 
-program.parseAsync(process.argv).catch((err) => {
-  console.error(chalk.red((err as Error).message));
-  process.exit(1);
-});
-
 function ipsTemplate(title: string): string {
-  // Escape any " in the user-supplied title — keeps the generated
-  // file valid IPS even if the caller passes something quote-y.
   const safe = title.replace(/[\\"]/g, '\\$&');
   return [
     '#pragma winedit',
@@ -181,34 +154,22 @@ function collectIncludeDirs(value: string, prev: string[]): string[] {
 }
 
 type OutputTarget =
-  | { kind: 'file'; file: string }      // explicit single output file
-  | { kind: 'dir'; dir: string }        // batch with -o <dir>
-  | { kind: 'next-to-source' };          // default in both single and batch modes
+  | { kind: 'file'; file: string }
+  | { kind: 'dir'; dir: string }
+  | { kind: 'next-to-source' };
 
 function resolveOutputTarget(
   files: string[],
   output: string | undefined,
   isBatch: boolean,
 ): OutputTarget {
-  if (!output) {
-    // No -o: every output sits next to its source. Works for both
-    // single and batch modes — matches how `tsc` and similar tools
-    // default.
-    return { kind: 'next-to-source' };
-  }
-
+  if (!output) return { kind: 'next-to-source' };
   const abs = resolvePath(output);
   if (isBatch) {
-    // With multiple inputs, -o is a directory. Otherwise we'd
-    // silently overwrite every output with the last file's bytes.
-    // We don't auto-mkdir — that's a bigger blast-radius decision to
-    // surface to the user.
     let isDir = false;
     try {
       isDir = statSync(abs).isDirectory();
     } catch {
-      // Path doesn't exist yet. If it doesn't look like a .ipo path,
-      // accept it as a (yet-to-be-created) dir; otherwise reject.
       isDir = !/\.ipo$/i.test(abs);
     }
     if (!isDir) {
@@ -221,7 +182,6 @@ function resolveOutputTarget(
     }
     return { kind: 'dir', dir: abs };
   }
-
   return { kind: 'file', file: abs };
 }
 
