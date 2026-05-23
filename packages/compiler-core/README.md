@@ -1,10 +1,12 @@
 # @emdzej/inpax-compiler-core
 
-IPS source code compiler library for INPAX (Work in Progress). The CLI front-end lives in `apps/inpax-compiler/`.
+IPS source code compiler library for inpax. The CLI front-end is the
+`compile` subcommand of [`@emdzej/inpax-cli`](../../apps/cli) —
+`inpax compile <files…>`.
 
 ## Status
 
-🚧 **In Development** — Not yet functional.
+Functional. Backed by the same lexer / parser / codegen the CLI uses.
 
 ## Planned Usage
 

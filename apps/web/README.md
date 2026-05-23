@@ -60,7 +60,7 @@ on the workshop machine.
 
 If `showDirectoryPicker` is awkward (e.g. Chrome's `.ini` blocklist
 on Windows), the user can drop in a zip produced by
-[`@emdzej/bimmerz-bundler`](../bimmerz-bundler) instead. The zip is
+[`inpax bundle`](../cli/README.md#inpax-bundle) instead. The zip is
 streamed into OPFS and exposed through the same
 `FileSystemDirectoryHandle` shape downstream consumers expect —
 no separate code path.
