@@ -39,13 +39,13 @@ jobs:
         run: pnpm --filter @emdzej/inpax-web... build
 
       - name: Add CNAME
-        run: echo "inpax.bimmerz.app" > apps/inpax-web/dist/CNAME
+        run: echo "inpax.bimmerz.app" > apps/web/dist/CNAME
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/inpax-web/dist
+          path: apps/web/dist
 
   deploy:
     needs: build

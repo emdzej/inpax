@@ -152,7 +152,7 @@ function parseEntries(ini: IniFile, section: string): ScriptSelectEntry[] {
  * often have mixed-case filenames after a Windows → macOS rsync — the
  * lookup matches either way. Drop in as the `<ScriptSelectDialog
  * loader={...}>` callback when your host has a `FileSystemDirectoryHandle`
- * for CFGDAT (the case for both `apps/inpax-web` and any future
+ * for CFGDAT (the case for both `apps/web` and any future
  * inpax-style browser app using the File System Access API or OPFS).
  */
 export async function loadScriptSelect(

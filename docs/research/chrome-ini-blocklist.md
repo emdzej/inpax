@@ -46,7 +46,7 @@ C:\EDIABAS\Bin\EDIABAS.INI       →  EDIABAS.INIX
 C:\EC-APPS\INPA\CFGDAT\INPA.INI  →  INPA.INIX
 ```
 
-Then `cacheIniFile` (in `apps/inpax-web/src/lib/native-imports.ts`)
+Then `cacheIniFile` (in `apps/web/src/lib/native-imports.ts`)
 falls back to the `.INIX` variant when the `.INI` lookup misses,
 parses it, and stores it in the in-memory INI cache under the
 **canonical `.ini`** cache key. The INPA scripts continue to call

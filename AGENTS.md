@@ -49,7 +49,7 @@ provider).
 | `packages/ini-parser` | INPA `.ini` config parser (INPA.INI, EDIABAS.INI) |
 | `packages/logger` | pino-based structured logging, honours `INPAX_LOG_LEVEL` |
 | `apps/cli` | `inpax` terminal binary — TUI runtime + IPO toolchain subcommands |
-| `apps/inpax-web` | Browser SPA — Svelte 5 + Vite. Deploys to `inpax.bimmerz.app` |
+| `apps/web` | Browser SPA — Svelte 5 + Vite. Deploys to `inpax.bimmerz.app` |
 | `apps/inpax-compiler` | Headless `.ips → .ipo` compiler binary |
 | `apps/ipo-editor` | Ink-based TUI for editing constants inside compiled `.ipo` files; ships the **patch system** (init / apply / save-as-patch) |
 | `apps/bimmerz-bundler` | CLI that produces a curated zip of a BMW INPA install; OPFS-importable in inpax-web. Truncation bug fixed in 0.3.2 |
@@ -66,7 +66,7 @@ on npm; consumed via *npm pins*, **not** workspace links — three places
 hold the pin:
 
 - `apps/cli/package.json` → `@emdzej/ediabasx-interfaces`
-- `apps/inpax-web/package.json` → `ediabasx-ediabas`, `interface-base`,
+- `apps/web/package.json` → `ediabasx-ediabas`, `interface-base`,
   `interface-serial`, `interfaces`
 - `packages/ediabasx-provider/package.json` → `ediabasx-ediabas`
 
@@ -81,7 +81,7 @@ of `@emdzej/ediabasx-interfaces` is what `inpax-web` imports
 Full guide: [`docs/guides/developer/embedding.md`](docs/guides/developer/embedding.md).
 Covers the VM + provider protocol + real-ECU transports
 (Web Serial / ENET / Gateway) + the browser-specific config quirks +
-worked examples in `apps/cli` and `apps/inpax-web`. The browser-side
+worked examples in `apps/cli` and `apps/web`. The browser-side
 TL;DR follows.
 
 ### Embedding the browser UI in a new app
@@ -148,7 +148,7 @@ documented in the package's README):
 
 Simulation / ENET / raw `serial` / `kdcan` are not offered: they need
 Node-only APIs. Older localStorage entries with those values coerce
-back to `webserial` on load (see `apps/inpax-web/src/lib/config.ts`).
+back to `webserial` on load (see `apps/web/src/lib/config.ts`).
 
 ### Build / test / lint
 
@@ -184,7 +184,7 @@ the directory. `pnpm --filter @emdzej/inpax-interpreter test` etc.
 
 ### Deploy: `inpax.bimmerz.app`
 
-`.github/workflows/deploy-web.yml` builds `apps/inpax-web` and publishes
+`.github/workflows/deploy-web.yml` builds `apps/web` and publishes
 it via `actions/deploy-pages` with a `CNAME` writing
 `inpax.bimmerz.app`. **Manual trigger only** (`workflow_dispatch`) —
 click "Run workflow" in the Actions tab. Concurrency-gated on the
@@ -199,16 +199,16 @@ in that case so the SPA shell doesn't intercept docs navigations.
 
 ### Browser bundle / OPFS
 
-- `apps/inpax-web/src/lib/bundled-install.ts` streams a
+- `apps/web/src/lib/bundled-install.ts` streams a
   `bimmerz-bundle` zip into OPFS. Surfaces per-file failures via a
   structured DevTools warning and an amber callout in Settings → Data;
   the install marker reflects what *actually* landed in OPFS, not what
   fflate decoded.
-- `apps/inpax-web/src/lib/connection.svelte.ts` owns the cable
+- `apps/web/src/lib/connection.svelte.ts` owns the cable
   transport lifecycle (Web Serial port pick + `SerialInterface`, or
   `GatewayClient`). Separate from `runtime.svelte.ts` (which is
   per-IPO) so switching scripts doesn't re-prompt for a port.
-- `apps/inpax-web/src/lib/runtime.svelte.ts` is the per-IPO runtime
+- `apps/web/src/lib/runtime.svelte.ts` is the per-IPO runtime
   graph — `Ediabas` + providers + dispatcher + main scheduler.
 
 ### Known limitations
@@ -250,7 +250,7 @@ in that case so the SPA shell doesn't intercept docs navigations.
 - **Conventional commit prefixes per scope:** `feat(inpax-web): …`,
   `fix(interpreter): …`, `chore: release …`, `docs(bimmerz-bundler): …`.
 - **Use the project's existing palette** in any UI work — defined in
-  `apps/inpax-web/src/lib/theme.ts`. The BMW INPA palette is the
+  `apps/web/src/lib/theme.ts`. The BMW INPA palette is the
   authoritative reference; don't introduce ad-hoc colour values.
 
 ---

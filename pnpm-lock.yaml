@@ -121,7 +121,7 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  apps/inpax-web:
+  apps/web:
     dependencies:
       '@emdzej/ediabasx-ediabas':
         specifier: ^0.2.7

@@ -119,7 +119,7 @@ inpax run MS43.IPO --tick 100
   interactive TUI for editing constants in a compiled `.IPO`, plus a
   patch-file system for distributing translations and overrides without
   shipping modified IPOs. `npm i -g @emdzej/inpax-ipo-editor`.
-- **[inpax-web](https://github.com/emdzej/inpax/tree/main/apps/inpax-web)** —
+- **[inpax-web](https://github.com/emdzej/inpax/tree/main/apps/web)** —
   same VM in the browser, paints onto a canvas, talks to a K+DCAN cable
   via Web Serial. No install — try at <https://inpax.bimmerz.app>.
 - **[ipo-community-patches](https://github.com/emdzej/ipo-community-patches)** —

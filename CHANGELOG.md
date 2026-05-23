@@ -167,7 +167,7 @@ bumps may carry new features and small breaking changes until 1.0.
   app's developer-mode toggle.** Added `log.debug(…)` calls in
   `dispatcher.runFsLesen` (entry / mid / exit with character count)
   and `ui-provider`'s `userBoxOpen` / `userBoxClose` (boxNum + state
-  snapshot). `apps/inpax-web/src/lib/settings.svelte.ts` flips the
+  snapshot). `apps/web/src/lib/settings.svelte.ts` flips the
   shared pino logger's level between `"debug"` and `"info"` whenever
   `settings.debugMode` toggles (and once on module load). Result:
   debug mode on → diagnostic taps appear in the browser console;
@@ -630,7 +630,7 @@ behaviour for:
 ### Added
 
 - **New package `@emdzej/inpax-web-provider`** — Svelte 5 UI provider +
-  reusable browser components, extracted from `apps/inpax-web` so future
+  reusable browser components, extracted from `apps/web` so future
   apps that embed the INPA runtime in a browser can consume them
   without duplicating the rendering layer. Ships:
   - `WebUIProvider` (concrete `UIProvider` subclass).
@@ -672,28 +672,28 @@ behaviour for:
 
 ### Changed
 
-- **`apps/inpax-web` consumes `@emdzej/inpax-web-provider`** instead of
+- **`apps/web` consumes `@emdzej/inpax-web-provider`** instead of
   hosting the components inline. `App.svelte` installs the theme
   context once at the root via `setLibTheme(...)` inside an `$effect`
   that tracks the existing `isDarkTheme()` store; `IpoRunner.svelte`
   imports components from the new package and wires the
   `<ScriptSelectDialog>`'s `loader` prop to its existing
   `loadScriptSelect(cfgdat, filename)` adapter. The 9 component files
-  + 3 lib modules previously in `apps/inpax-web/src/` are gone — same
+  + 3 lib modules previously in `apps/web/src/` are gone — same
   rendering, code lives in the library now. (`@emdzej/inpax-web`)
-- **`apps/inpax-web/tsconfig.json`: `verbatimModuleSyntax: false`.**
+- **`apps/web/tsconfig.json`: `verbatimModuleSyntax: false`.**
   Required because the library ships `.svelte.ts` source whose Svelte
   module parser rejects the `type` keyword in import specifiers; the
   consumer's tsc was descending into the package source and forcing
   the keyword. TS still elides type-only imports automatically.
   (`@emdzej/inpax-web`)
-- **`apps/inpax-web/vite.config.ts`: removed `@emdzej/inpax-web-provider`
+- **`apps/web/vite.config.ts`: removed `@emdzej/inpax-web-provider`
   from `optimizeDeps.include`.** Vite's pre-bundling step uses esbuild
   which doesn't run the Svelte plugin's TS preprocessor, so a `.svelte.ts`
   source file fails to parse at pre-bundle time. Leaving the package
   out of the include list routes it through the main transformation
   pipeline (which does include the plugin). (`@emdzej/inpax-web`)
-- **`apps/inpax-web/tailwind.config.ts`: scan the library's source.**
+- **`apps/web/tailwind.config.ts`: scan the library's source.**
   Tailwind's JIT only emits classes it finds in `content` paths;
   utilities used inside `packages/web-provider/src/**` weren't ending
   up in the CSS bundle, so library components rendered unstyled

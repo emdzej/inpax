@@ -163,13 +163,13 @@ Rendering:
 - Expose `setVisibleWindow(first, count, total)` and
   `scrollLines(delta)`.
 
-`apps/inpax-web/src/components/ScreenCanvas.svelte`:
+`apps/web/src/components/ScreenCanvas.svelte`:
 
 - React to `firstVisibleLine` / `totalLines` changes.
 - Draw a small green ▲/▼ glyph in the bottom-right corner when
   appropriate.
 
-`apps/inpax-web/src/components/IpoRunner.svelte` (or a new keymap
+`apps/web/src/components/IpoRunner.svelte` (or a new keymap
 hook):
 
 - Bind ↑/↓/PgUp/PgDn/Home/End to `provider.scrollLines(delta)` when

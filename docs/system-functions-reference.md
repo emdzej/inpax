@@ -70,7 +70,7 @@ owns the behaviour.
 | 0x16 | `togglelist` | 🔌 + ✅ | dispatcher → `ui.togglelist` ; candidates harvested from the active SCREEN via `ScreenExecutor.getToggleItems()` | INPA's "Please select the objects to be controlled" multi-select. Items live in the SCREEN's *empty* (`size === 0`) LineFunc sub-blocks — `LineHeader.arg1` carries the display name, `arg2` carries a 9-byte semicolon-hex control mask. The dispatcher reads them via `vm.getScreenExecutor()?.getToggleItems()` and hands them to `ui.togglelist(multipleSelect, argNum, items)`. The shared encoder in `@emdzej/inpax-interfaces` (`encodeTogglelistResult`) bitwise-ORs the picked masks (default — fed straight into `INPAapiJob "STEUERN_LEUCHTE"`) or formats them as space-separated 1-based indices when `ArgNumFlag` is set. Honours `MultipleSelectFlag` for radio vs checkbox mode. Reverse-engineering trail anchored at INPA.exe handler `0x004139f5` → router `FUN_00420cff` → list-iterator `FUN_0041acbe`. |
 | 0x17 | `printscreen` | 🔌 | dispatcher → `print.printScreen` | Null provider: no-op. |
 | 0x18 | `printfile` | 🔌 | dispatcher → `print.printFile` | Null provider: returns error code. |
-| 0x1A | `setcolor` | 🔌 | dispatcher → `ui.setColor` | INPA palette indices (`1=Black`, `0=White`, …); see `apps/inpax-web/src/lib/theme.ts`. |
+| 0x1A | `setcolor` | 🔌 | dispatcher → `ui.setColor` | INPA palette indices (`1=Black`, `0=White`, …); see `apps/web/src/lib/theme.ts`. |
 | 0x1B | `delay` | ✅ | interpreter | `await new Promise(setTimeout)`; matches `Sleep(ms)`. |
 | 0x1C | `getdate` | ✅ | interpreter | Locale-formatted; matches `GetLocalTime` formatting. |
 | 0x1D | `gettime` | ✅ | interpreter | Same. |
@@ -239,7 +239,7 @@ result set.
 ### `exit` (0x0C) / `exitwindows` (0x0D)
 
 Both emit `script:exit` on the UI provider. The host
-(`apps/inpax-web/src/components/IpoRunner.svelte`) listens, clears
+(`apps/web/src/components/IpoRunner.svelte`) listens, clears
 `app.selectedIpo` → the lifecycle `$effect` disposes the runtime →
 the canvas unmounts → user lands back on the welcome screen. The
 real INPA's `exitwindows` would have called `ExitWindowsEx`; we treat

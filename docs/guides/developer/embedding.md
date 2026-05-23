@@ -11,7 +11,7 @@ this guide shows how to assemble them. Two worked end-to-end
 examples already exist in the monorepo:
 
 - **CLI / terminal** — [`apps/cli`](../../../apps/cli) (Node + ink TUI).
-- **Browser SPA** — [`apps/inpax-web`](../../../apps/inpax-web) (Svelte 5 + Vite).
+- **Browser SPA** — [`apps/web`](../../../apps/web) (Svelte 5 + Vite).
 
 Read this guide for the conceptual shape; copy from the apps when you
 need a complete reference.
@@ -253,7 +253,7 @@ hardware and a transport — see §6.
 ```
 
 That's everything. Full reference at
-[`apps/inpax-web`](../../../apps/inpax-web) — `lib/runtime.svelte.ts`
+[`apps/web`](../../../apps/web) — `lib/runtime.svelte.ts`
 shows the production wiring with connection lifecycle, install
 persistence, and bundle-import support.
 
@@ -432,7 +432,7 @@ install persistence, settings storage, and PWA setup:
 
 - **`apps/cli`** — terminal runtime. `src/run/` shows the headless +
   TUI variants; `src/native-imports/` is the Node CALLE shim.
-- **`apps/inpax-web`** — browser SPA. `src/lib/runtime.svelte.ts` is
+- **`apps/web`** — browser SPA. `src/lib/runtime.svelte.ts` is
   the per-IPO graph builder; `src/lib/connection.svelte.ts` handles
   WebSerial vs gateway-WebSocket transport selection;
   `src/components/IpoRunner.svelte` is the orchestration shell.

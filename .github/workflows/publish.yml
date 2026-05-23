@@ -50,7 +50,7 @@ jobs:
         run: pnpm build
 
       # `pnpm -r publish` walks the workspace, skips private packages
-      # (currently `apps/inpax-web`), and forwards to `npm publish`
+      # (currently `apps/web`), and forwards to `npm publish`
       # per package. `--provenance` attaches a verifiable build
       # attestation — free when publishing via trusted publishing.
       - name: Publish packages

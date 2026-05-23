@@ -12,7 +12,7 @@ From the repo root:
 ```bash
 pnpm dev:web          # Vite dev server on http://localhost:5174
 pnpm dev:web:host     # same, but bound to 0.0.0.0 for LAN testing
-pnpm build:web        # production build into apps/inpax-web/dist
+pnpm build:web        # production build into apps/web/dist
 ```
 
 Or directly:
