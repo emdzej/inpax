@@ -13,7 +13,7 @@ import {
 import { ConstantPool } from './constant-pool.js';
 import {
   Instruction, alloc, alu, callExternal, callSystem, callUser, frame, instr,
-  jmp, jmpnz, load, loadInOutRef, logtable, move, pushImmInt, pushR, pushRefOut,
+  jmp, jmpz, load, loadInOutRef, logtable, move, pushImmInt, pushR, pushRefOut,
   pushRefStore, ret, typeMarkerFor,
 } from './encoding.js';
 import { ValueType as VT } from '@emdzej/inpax-core';
@@ -433,10 +433,12 @@ export class Codegen {
 
   private emitIf(out: Instruction[], stmt: IfStmt): void {
     this.emitCondition(out, stmt.condition);
-    // JMPNZ is the misnamed "jump if condition register is 0 (false)"
-    // — i.e. skip the THEN branch when the predicate evaluated false.
+    // JMPZ fires when the condition register is 0 (false) — so it
+    // skips the THEN branch when the predicate evaluated false. The
+    // operand is patched in `patchJump` once we know where THEN
+    // (or ELSE, if present) ends.
     const jumpToElse = out.length;
-    out.push(jmpnz());
+    out.push(jmpz());
     this.emitStatement(out, stmt.then);
     if (stmt.else) {
       const jumpToEnd = out.length;
@@ -453,7 +455,7 @@ export class Codegen {
     const loopStart = out.length;
     this.emitCondition(out, stmt.condition);
     const exitJump = out.length;
-    out.push(jmpnz());
+    out.push(jmpz());
     this.emitStatement(out, stmt.body);
     out.push(jmp(loopStart));
     this.patchJump(out, exitJump, out.length);
@@ -478,7 +480,7 @@ export class Codegen {
   /**
    * Emits a predicate expression followed by `MOVE 0,1`. The MOVE
    * (a) copies the top-of-stack bool into the VM's condition register
-   * (which JMPNZ reads) and (b) pops it so the stack stays balanced.
+   * (which JMPZ reads) and (b) pops it so the stack stays balanced.
    * This matches the pattern observed in real INPA bytecode — see the
    * comparison sequences in `disasm/alu.txt`.
    */
@@ -490,7 +492,7 @@ export class Codegen {
   private beginConditionalJump(out: Instruction[], expr: Expression): number {
     this.emitCondition(out, expr);
     const site = out.length;
-    out.push(jmpnz());
+    out.push(jmpz());
     return site;
   }
 
@@ -792,11 +794,11 @@ export class Codegen {
    * Replace the jump at `siteIndex` with one that targets `targetIndex`.
    * The VM treats the jump operand as an absolute instruction index
    * (within the current function), not a relative byte offset — see
-   * `opJmp` / `opJmpNZ` in packages/interpreter.
+   * `opJmp` / `opJmpZ` in packages/interpreter.
    */
   private patchJump(out: Instruction[], siteIndex: number, targetIndex: number): void {
     const existing = out[siteIndex];
-    if (existing.opcode !== Opcode.JMP && existing.opcode !== Opcode.JMPNZ) {
+    if (existing.opcode !== Opcode.JMP && existing.opcode !== Opcode.JMPZ) {
       throw new Error(`patch site is not a jump at ${siteIndex}`);
     }
     out[siteIndex] = instr(existing.opcode, existing.op1, targetIndex & 0xffff);

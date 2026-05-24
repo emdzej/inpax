@@ -6,6 +6,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.7.1] — 2026-05-24
+
+Maintenance release — VM-opcode rename to clean up a long-standing
+naming wart in the disassembly output, plus a tiny dev-script
+ergonomic tweak.
+
+### Changed
+
+- **VM opcode 0x0b renamed `JMPNZ → JMPZ`.** The byte at 0x0b jumps
+  when the condition register is **zero** (false), not non-zero —
+  the historical `JMPNZ` mnemonic flat contradicted the semantics
+  and three separate source files apologised for the misnaming in
+  comments. Renamed across the enum, codegen helper (`jmpnz()` →
+  `jmpz()`), VM method (`opJmpNZ()` → `opJmpZ()`), disassembly
+  mnemonic, and all internal references. Byte value unchanged →
+  emitted bytecode is byte-identical, roundtrip tests still pass.
+  User-visible change: `inpax decompile` now prints `JMPZ ; jump
+  if false` where it used to print `JMPNZ ; jump if true`.
+
+- **Root script `dev:web` → `web`.** Shorter, more honest — it's a
+  dev-server invocation but the long namespace doesn't add anything.
+  The `dev:web:host` variant (LAN-bound 0.0.0.0 server) is dropped;
+  if you need it, `pnpm --filter @emdzej/inpax-web dev -- --host
+  0.0.0.0` is one line.
+
 ## [0.7.0] — 2026-05-24
 
 Logger migration onto `@emdzej/bimmerz-logger` (matches the ediabasx

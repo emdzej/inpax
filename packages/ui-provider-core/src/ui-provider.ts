@@ -326,13 +326,13 @@ export abstract class UIProvider
     //   LOAD global[29]   ; initialised to int 0 in __inpa_startup__
     //   ALU EQ            ; (inputstate == 0)?
     //   MOVE 0, 1         ; condition = bool result
-    //   JMPNZ @51         ; semantics: jump-if-zero (matches INPA case 0xb)
+    //   JMPZ @51          ; skip the OK path if EQ was false
     //   …OK path…         ; only reached when cond != 0 — i.e. EQ true
     //                     ;   — i.e. inputstate == 0 — i.e. user pressed OK
     //
-    // The naming "JMPNZ" in our enum is historical; the *operation*
-    // matches INPA's `if (condition == 0) ip = target`. So for the
-    // OK path to execute, `getinputstate` must return 0 on submit.
+    // So for the OK path to execute, `getinputstate` must return 0
+    // on submit — the bytecode reads "if (inputstate == 0) { run OK
+    // path }". JMPZ matches INPA's `if (condition == 0) ip = target`.
     this._state.lastInputState = 0;
     this.emit('input:submit', { value });
     this.update();
@@ -359,7 +359,7 @@ export abstract class UIProvider
     // Cancel = non-zero error code. INPA convention treats 0 as
     // success; any non-zero is "something other than OK happened".
     // The script's `EQ inputstate, 0` check returns false here, the
-    // condition register stays 0, JMPNZ jumps past the OK path, and
+    // condition register stays 0, JMPZ jumps past the OK path, and
     // the cancel branch (typically a no-op / "skip the value
     // processing") runs as intended.
     this._state.lastInputState = 1;

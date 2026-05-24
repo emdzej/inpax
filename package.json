@@ -17,8 +17,7 @@
     "compile": "node apps/cli/dist/index.js compile",
     "compile:debug": "node --inspect-brk apps/cli/dist/index.js compile",
     "editor": "node apps/cli/dist/index.js edit",
-    "dev:web": "pnpm --filter @emdzej/inpax-web dev",
-    "dev:web:host": "pnpm --filter @emdzej/inpax-web dev -- --host 0.0.0.0",
+    "web": "pnpm --filter @emdzej/inpax-web dev",
     "build:web": "pnpm --filter @emdzej/inpax-web build"
   },
   "devDependencies": {

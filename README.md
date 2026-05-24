@@ -66,7 +66,7 @@ pnpm cli decompile script.ipo
 pnpm cli run script.ipo --headless
 
 # Browser runtime (dev server)
-pnpm dev:web
+pnpm web
 # open http://localhost:5173 — pick your INPA install folder, then a script
 ```
 
@@ -147,7 +147,7 @@ Workspace shortcuts:
 pnpm cli <args>       # apps/cli — invokes dist/index.js
 pnpm compile          # alias for `pnpm cli compile`
 pnpm editor           # alias for `pnpm cli edit`
-pnpm dev:web          # apps/web — vite dev server on :5173
+pnpm web              # apps/web — vite dev server on :5173
 pnpm build:web        # apps/web — production bundle
 ```
 

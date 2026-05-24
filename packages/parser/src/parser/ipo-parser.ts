@@ -149,7 +149,7 @@ const V1_GLOBAL_TYPE_TO_VALUE_TYPE: Record<number, ValueType> = {
  * that v5.x renumbered.
  *
  * The first 12 opcodes (`0x01`–`0x0C`: LOAD/PUSHREF/LOADINOUTREF/NOP/
- * MOVE/PUSHR/PUSHREFSTORE/ALLOC/ALU/JMP/JMPNZ/CALL) are bit-for-bit
+ * MOVE/PUSHR/PUSHREFSTORE/ALLOC/ALU/JMP/JMPZ/CALL) are bit-for-bit
  * identical between versions and don't need remapping. So is the AluOp
  * sub-vocabulary (`0x60`–`0x71`, consumed by opcode `0x09` ALU).
  *

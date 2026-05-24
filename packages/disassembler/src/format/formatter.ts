@@ -26,7 +26,7 @@ export const OPCODE_NAMES: Record<number, string> = {
   [Opcode.ALLOC]: 'ALLOC',
   [Opcode.ALU]: 'ALU',
   [Opcode.JMP]: 'JMP',
-  [Opcode.JMPNZ]: 'JMPNZ',
+  [Opcode.JMPZ]: 'JMPZ',
   [Opcode.CALL]: 'CALL',
   [Opcode.CALLE]: 'CALLE',
   [Opcode.RET]: 'RET',
@@ -136,7 +136,7 @@ function getColors(options: DisassemblyOptions): ColorScheme {
 function getMnemonicColor(opcode: number, colors: ColorScheme): ChalkInstance {
   switch (opcode) {
     case Opcode.JMP:
-    case Opcode.JMPNZ:
+    case Opcode.JMPZ:
       return colors.mnemonicJump;
     case Opcode.CALL:
     case Opcode.CALLE:
@@ -220,7 +220,7 @@ function formatOperands(
     case Opcode.ALLOC:
       return c.number(op2.toString());
     case Opcode.JMP:
-    case Opcode.JMPNZ:
+    case Opcode.JMPZ:
       return c.label(`@${op2}`);
     case Opcode.ALU:
       return c.operand(ALU_NAMES[op1 as AluOp] || `op_${op1.toString(16)}`);
@@ -278,7 +278,7 @@ function formatConstant(index: number, ipo: IpoFile | undefined, c: ColorScheme)
 
 function getComment(opcode: number): string {
   switch (opcode) {
-    case Opcode.JMPNZ: return 'jump if true';
+    case Opcode.JMPZ: return 'jump if false';
     case Opcode.FRAME: return 'push call frame';
     case Opcode.MOVE: return 'assign';
     case Opcode.RET: return 'return';
@@ -309,7 +309,7 @@ export function disassembleFunction(
   const jumpTargets = new Set<number>();
   if (opts.resolveLabels) {
     for (const i of func.instructions) {
-      if ([Opcode.JMP, Opcode.JMPNZ].includes(i.opcode)) {
+      if ([Opcode.JMP, Opcode.JMPZ].includes(i.opcode)) {
         jumpTargets.add(i.operand2);
       }
     }
@@ -521,7 +521,7 @@ function disassembleFunctionBody(
   const jumpTargets = new Set<number>();
   if (opts.resolveLabels) {
     for (const i of func.instructions) {
-      if ([Opcode.JMP, Opcode.JMPNZ].includes(i.opcode)) {
+      if ([Opcode.JMP, Opcode.JMPZ].includes(i.opcode)) {
         jumpTargets.add(i.operand2);
       }
     }

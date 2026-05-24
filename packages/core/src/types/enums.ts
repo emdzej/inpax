@@ -65,7 +65,7 @@ export enum Opcode {
     ALLOC = 0x08,        // was JMP - allocate local variable
     ALU = 0x09,          // was JMPZ - arithmetic/logic operations
     JMP = 0x0a,          // was JMPNZ - unconditional jump
-    JMPNZ = 0x0b,        // was ALU - conditional jump (if not zero)
+    JMPZ = 0x0b,         // was ALU - conditional jump (skip THEN when condition register is 0 / false)
     CALL = 0x0c,
     CALLE = 0x0d,        // was IMPORT32 - external DLL call
     RET = 0x0e,

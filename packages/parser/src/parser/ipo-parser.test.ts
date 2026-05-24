@@ -263,7 +263,7 @@ describe('IpoParser — v1.x opcode remap', () => {
 
   it('leaves opcodes 0x01–0x0C unchanged in v1.x', () => {
     // The shared opcodes (LOAD/PUSHREF/LOADINOUTREF/NOP/MOVE/PUSHR/
-    // PUSHREFSTORE/ALLOC/ALU/JMP/JMPNZ/CALL) are bit-identical between
+    // PUSHREFSTORE/ALLOC/ALU/JMP/JMPZ/CALL) are bit-identical between
     // v1.x and v5.x. The remap table must not touch them.
     const builder = new IpoBuilder().header(1, 2).block({
       type: BlockType.Function,

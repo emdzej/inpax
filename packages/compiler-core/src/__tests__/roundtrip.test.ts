@@ -151,7 +151,7 @@ describe('stage 2a — minimal compile/disasm round trips', () => {
 });
 
 describe('stage 2b — control flow', () => {
-  it('if-else: predicate + MOVE-to-condition + JMPNZ to else + JMP past else', () => {
+  it('if-else: predicate + MOVE-to-condition + JMPZ to else + JMP past else', () => {
     const { ipo } = compileFixture('if-else');
     const ins = ipo.functions.get(2)!.instructions;
 
@@ -164,12 +164,12 @@ describe('stage 2b — control flow', () => {
     expect(ins[3]).toMatchObject({ opcode: 0x09, operand1: 0x68 });
     expect(ins[4]).toMatchObject({ opcode: 0x05, operand2: 1 });
 
-    // JMPNZ -> else; ELSE entry index is the position after THEN+JMP.
-    const jmpnz = ins.findIndex((i) => i.opcode === 0x0b);
-    const jmpPastElse = ins.findIndex((i, idx) => i.opcode === 0x0a && idx > jmpnz);
-    expect(jmpnz).toBeGreaterThanOrEqual(0);
-    expect(jmpPastElse).toBeGreaterThan(jmpnz);
-    expect(ins[jmpnz].operand2).toBe(jmpPastElse + 1);
+    // JMPZ -> else; ELSE entry index is the position after THEN+JMP.
+    const jmpz = ins.findIndex((i) => i.opcode === 0x0b);
+    const jmpPastElse = ins.findIndex((i, idx) => i.opcode === 0x0a && idx > jmpz);
+    expect(jmpz).toBeGreaterThanOrEqual(0);
+    expect(jmpPastElse).toBeGreaterThan(jmpz);
+    expect(ins[jmpz].operand2).toBe(jmpPastElse + 1);
     expect(ins[jmpPastElse].operand2).toBe(ins.length - 1);
     expect(ins[ins.length - 1].opcode).toBe(0x0e);
   });
@@ -181,19 +181,19 @@ describe('stage 2b — control flow', () => {
     // ALLOC INT prelude
     expect(ins[0]).toMatchObject({ opcode: 0x08, operand1: 0x51 });
 
-    // First JMPNZ exits the loop; the LAST jump in the function is the
+    // First JMPZ exits the loop; the LAST jump in the function is the
     // back-edge.
-    const jmpnz = ins.findIndex((i) => i.opcode === 0x0b);
+    const jmpz = ins.findIndex((i) => i.opcode === 0x0b);
     const lastJmp = findLastIndex(ins, (i) => i.opcode === 0x0a);
-    expect(jmpnz).toBeGreaterThan(0);
-    expect(lastJmp).toBeGreaterThan(jmpnz);
+    expect(jmpz).toBeGreaterThan(0);
+    expect(lastJmp).toBeGreaterThan(jmpz);
 
     // back-edge target is the start of the condition (instruction just
     // after the last assign before condition reload)
     const condStart = ins[lastJmp].operand2;
-    expect(condStart).toBeLessThan(jmpnz);
-    // JMPNZ targets the instruction right after the back-edge JMP
-    expect(ins[jmpnz].operand2).toBe(lastJmp + 1);
+    expect(condStart).toBeLessThan(jmpz);
+    // JMPZ targets the instruction right after the back-edge JMP
+    expect(ins[jmpz].operand2).toBe(lastJmp + 1);
     expect(ins[ins.length - 1].opcode).toBe(0x0e);
   });
 

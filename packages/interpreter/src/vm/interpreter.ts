@@ -385,8 +385,8 @@ export class VM {
                 this.opJmp(operand2);
                 return; // Don't increment IP
 
-            case Opcode.JMPNZ:
-                if (this.opJmpNZ(operand2)) return;
+            case Opcode.JMPZ:
+                if (this.opJmpZ(operand2)) return;
                 break;
 
             case Opcode.CALL:
@@ -557,7 +557,11 @@ export class VM {
         this.state.ip = offset;
     }
 
-    private opJmpNZ(offset: number): boolean {
+    private opJmpZ(offset: number): boolean {
+        // Jumps when the condition register is 0 (false) — the
+        // standard pattern is `predicate → MOVE → JMPZ skip_target`,
+        // so JMPZ skips the THEN body whenever the predicate
+        // evaluated false. Byte 0x0b in BMW's IPO bytecode.
         if (this.state.condition === 0) {
             this.state.ip = offset;
             return true;
@@ -652,7 +656,7 @@ export class VM {
         // and bitwise ops preserve the lhs type. Tagging the result
         // type correctly is load-bearing for `MOVE` (which copies the
         // top value into the condition register only when it sees a
-        // Bool on top) — without this, a `JMPNZ` after a string-vs-
+        // Bool on top) — without this, a `JMPZ` after a string-vs-
         // string comparison sees a stale condition and either always
         // jumps or never jumps. That's exactly what hid the F2-F9
         // conditional ftextouts in startus.ipo's main screen.

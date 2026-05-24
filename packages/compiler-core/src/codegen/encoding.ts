@@ -55,8 +55,8 @@ export function jmp(offset = 0): Instruction {
   return instr(Opcode.JMP, 0, offset);
 }
 
-export function jmpnz(offset = 0): Instruction {
-  return instr(Opcode.JMPNZ, 0, offset);
+export function jmpz(offset = 0): Instruction {
+  return instr(Opcode.JMPZ, 0, offset);
 }
 
 export function callUser(funcId: number): Instruction {
