@@ -438,7 +438,7 @@ importers:
         specifier: ^5.1.0
         version: 5.2.1(@types/react@18.3.28)(react@18.3.1)
       react:
-        specifier: ^18.3.1
+        specifier: '>=18.0.0'
         version: 18.3.1
     devDependencies:
       '@types/react':
