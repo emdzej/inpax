@@ -10,19 +10,47 @@
  * localStorage on every change.
  */
 
-import { logger } from "@emdzej/inpax-logger";
+import { configureLogger, type LogLevel } from "@emdzej/bimmerz-logger";
 
 export type ThemeChoice = "light" | "dark" | "system";
 
+export const LOG_LEVELS: readonly LogLevel[] = [
+  "trace",
+  "debug",
+  "info",
+  "warn",
+  "error",
+  "fatal",
+  "silent",
+];
+
 /**
- * Flip the shared pino logger between "debug" and "info" so the
- * diagnostic taps in `@emdzej/inpax-dispatcher`,
- * `@emdzej/inpax-ui-provider-core`, and friends only fire when the
- * user is in developer mode. Re-applied on settings load and on every
- * toggle of `settings.debugMode`.
+ * Persisted logger configuration. Mirrors `@emdzej/bimmerz-logger`'s
+ * `LoggerConfig` minus the sink (the web app always uses the console
+ * sink — no Node-style pino transport surface in the browser).
+ *
+ * Keys (category names) are dot-separated paths from
+ * `LOG_CATEGORIES` exports — `@emdzej/inpax-interpreter`'s INPAX.*
+ * tree plus `@emdzej/ediabasx-ediabas`'s EDIABASX.* tree (this app
+ * embeds both, so a single Settings panel covers them).
  */
-function applyLogLevel(debug: boolean): void {
-  logger.level = debug ? "debug" : "info";
+export interface WebLoggerConfig {
+  level?: LogLevel;
+  categories?: Record<string, LogLevel>;
+}
+
+/**
+ * Apply a logger config snapshot to bimmerz-logger's central config.
+ * Called at module init from the persisted settings, and from every
+ * mutator that touches `settings.logging`. Existing logger handles
+ * are proxies — they pick up the new config on the next emit, no
+ * component refresh needed.
+ */
+function applyLoggerConfig(logging?: WebLoggerConfig): void {
+  configureLogger({
+    level: logging?.level ?? "info",
+    categories: logging?.categories ?? {},
+  });
 }
 
 export interface WebSettings {
@@ -57,6 +85,14 @@ export interface WebSettings {
    * Ignored when debug mode is off.
    */
   tickMs: number;
+  /**
+   * Central bimmerz-logger configuration — level + per-category
+   * overrides. Applied at boot and on every Settings change. See
+   * `applyLoggerConfig` above and the LOG_CATEGORIES exports from
+   * `@emdzej/inpax-interpreter` + `@emdzej/ediabasx-ediabas` for
+   * the catalogue of known categories.
+   */
+  logging?: WebLoggerConfig;
 }
 
 /** Tick used when debug mode is disabled — matches real INPA's "no
@@ -87,6 +123,9 @@ const DEFAULTS: WebSettings = {
   theme: "system",
   debugMode: true,
   tickMs: 500,
+  logging: {
+    level: "info",
+  },
 };
 
 function load(): WebSettings {
@@ -103,9 +142,12 @@ function load(): WebSettings {
 
 export const settings = $state<WebSettings>(load());
 
-// Apply once at module init so the log level matches the persisted
-// `debugMode` before any provider has emitted its first event.
-applyLogLevel(settings.debugMode);
+// Apply the persisted logger config at module init so providers emit
+// their first events through the user's chosen level / categories.
+// `debugMode` no longer drives the logger directly — it's now a
+// UI-only toggle for the throttled-VM diagnostic settings; the
+// logger has its own dedicated panel surface.
+applyLoggerConfig(settings.logging);
 
 function persist(): void {
   if (typeof localStorage === "undefined") return;
@@ -156,7 +198,33 @@ export function cycleTheme(): void {
 
 export function setDebugMode(enabled: boolean): void {
   settings.debugMode = enabled;
-  applyLogLevel(enabled);
+  persist();
+}
+
+/** Set the default logger level. Empty `categories` rules survive untouched. */
+export function setLogLevel(level: LogLevel): void {
+  settings.logging = { ...(settings.logging ?? {}), level };
+  applyLoggerConfig(settings.logging);
+  persist();
+}
+
+/**
+ * Set / clear a per-category override. Pass `null` for `level` to
+ * drop the category-specific rule (it then inherits from the parent
+ * category or the default level via hierarchical resolution).
+ */
+export function setLogCategory(category: string, level: LogLevel | null): void {
+  const next = { ...(settings.logging?.categories ?? {}) };
+  if (level === null) {
+    delete next[category];
+  } else {
+    next[category] = level;
+  }
+  settings.logging = {
+    ...(settings.logging ?? {}),
+    categories: Object.keys(next).length > 0 ? next : undefined,
+  };
+  applyLoggerConfig(settings.logging);
   persist();
 }
 
@@ -222,11 +290,16 @@ export function applySettingsImport(raw: unknown): { config: unknown } {
       ? incoming.theme
       : DEFAULTS.theme;
   settings.debugMode = Boolean(incoming.debugMode);
-  applyLogLevel(settings.debugMode);
   settings.tickMs =
     typeof incoming.tickMs === "number" && Number.isFinite(incoming.tickMs)
       ? Math.max(50, Math.min(60_000, Math.round(incoming.tickMs)))
       : DEFAULTS.tickMs;
+  if (incoming.logging && typeof incoming.logging === "object") {
+    settings.logging = incoming.logging;
+  } else {
+    settings.logging = DEFAULTS.logging;
+  }
+  applyLoggerConfig(settings.logging);
   persist();
   return { config: data.config };
 }

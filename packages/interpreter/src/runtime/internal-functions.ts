@@ -7,9 +7,9 @@ import type { VM } from '../vm/interpreter.js';
 import type { ExecutionContext } from '../vm/execution-context.js';
 import { SystemFunction, ValueType } from '@emdzej/inpax-core';
 import { Stack } from '../vm/stack.js';
-import { getLogger } from '@emdzej/inpax-logger';
+import { getLogger } from '@emdzej/bimmerz-logger';
 
-const log = getLogger('internal-functions');
+const log = getLogger('INPAX.internal-functions');
 
 type InternalHandler = (ctx: ExecutionContext) => void;
 

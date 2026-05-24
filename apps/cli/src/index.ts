@@ -16,11 +16,26 @@
  * single `inpax` tool so users only install one global package.
  */
 import { Command } from 'commander';
+import { configureLogger } from '@emdzej/bimmerz-logger';
+import { resolveLoggerConfig } from './utils/logger-config.js';
 import { decompileCommand } from './commands/decompile.js';
 import { runCommand } from './commands/run.js';
 import { compileCommand } from './commands/compile.js';
 import { editCommand, patchCommand } from './commands/edit.js';
 import { bundleCommand } from './commands/bundle.js';
+
+// Configure the central bimmerz-logger from env vars BEFORE any
+// command runs. The logger library never reads `process.env` (it
+// has to stay browser-portable); the CLI is the host that
+// translates env vars (`INPAX_LOG_LEVEL`,
+// `INPAX_LOG_CATEGORIES`, `INPAX_LOG_DESTINATION`,
+// `INPAX_LOG_FORMAT`) into a `LoggerConfig`.
+configureLogger(
+  resolveLoggerConfig({
+    env: process.env,
+    isTty: process.stdout.isTTY ?? false,
+  }),
+);
 
 const program = new Command();
 

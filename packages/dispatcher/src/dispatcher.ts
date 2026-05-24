@@ -5,10 +5,10 @@
 
 import { SystemFunction, SystemFunctionMap, type StackEntry, type Scope, ValueType } from '@emdzej/inpax-core';
 import type { IInpaRuntime, IEdiabasProvider, IExternalProvider, ToggleItem } from '@emdzej/inpax-interfaces';
-import { getLogger } from '@emdzej/inpax-logger';
+import { getLogger } from '@emdzej/bimmerz-logger';
 import { formatFsLesenReport } from './format-fs.js';
 
-const log = getLogger('dispatcher');
+const log = getLogger('INPAX.dispatcher');
 
 /** Set of async function IDs */
 const ASYNC_FUNCTIONS = new Set<number>([

@@ -191,13 +191,44 @@ inpax bundle ~/inpa -i .bimmerzignore -o inpa-bundle.zip
 | `--dry-run` | Walk + match but don't write the zip |
 | `--verbose` | Log every kept and skipped file |
 
-## Tracing & logs
+## Logging
+
+Powered by [`@emdzej/bimmerz-logger`](https://github.com/emdzej/bimmerz/tree/main/packages/logger).
+The library never reads `process.env`; the CLI translates env vars
+into the central logger config at boot.
+
+| Variable | Values | Effect |
+|---|---|---|
+| `INPAX_LOG_LEVEL` | `trace\|debug\|info\|warn\|error\|fatal\|silent` | Default level |
+| `INPAX_LOG_CATEGORIES` | `cat=lvl,cat=lvl,…` | Per-category overrides (hierarchical) |
+| `INPAX_LOG_DESTINATION` | path | Write to file instead of stdout |
+| `INPAX_LOG_FORMAT` | `pretty\|json` | Output format |
+
+Examples:
 
 ```bash
-INPAX_LOG_LEVEL=debug inpax run MS43.IPO --trace 2> trace.log
+# Everything to debug
+INPAX_LOG_LEVEL=debug inpax run MS43.IPO --trace
+
+# Just the VM dispatcher + state machine
+INPAX_LOG_CATEGORIES="INPAX.vm=trace,INPAX.state-machine-executor=debug" \
+  inpax run MS43.IPO
+
+# JSON output to file
+INPAX_LOG_FORMAT=json INPAX_LOG_DESTINATION=/tmp/inpax.log \
+  inpax run MS43.IPO
 ```
 
-The shared logger reads `INPAX_LOG_LEVEL` (`trace|debug|info|warn|error|silent`) at process start.
+Categories: hierarchical dot-paths — a rule for `INPAX` covers every
+subcategory unless overridden. Current set: `INPAX`, `INPAX.vm`,
+`INPAX.dispatcher`, `INPAX.internal-functions`, `INPAX.main-scheduler`,
+`INPAX.screen-executor`, `INPAX.state-machine-executor`,
+`INPAX.signature-handler`, `INPAX.ui-provider`, `INPAX.interpreter-cli`.
+
+The web app's Settings dialog has the same surface plus the
+`EDIABASX.*` categories from `@emdzej/ediabasx-ediabas` — see
+[`@emdzej/bimmerz-logger`'s README](https://github.com/emdzej/bimmerz/tree/main/packages/logger)
+for the full API.
 
 ## Development
 

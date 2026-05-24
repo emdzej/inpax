@@ -3,11 +3,11 @@
  */
 
 import { SystemFunctionMap, ValueType, StackEntry, Scope } from '@emdzej/inpax-core';
-import { getLogger } from '@emdzej/inpax-logger';
+import { getLogger } from '@emdzej/bimmerz-logger';
 import type { Stack } from '../vm/stack.js';
 import type { ExecutionContext } from '../vm/execution-context.js';
 
-const log = getLogger('signature-handler');
+const log = getLogger('INPAX.signature-handler');
 
 export type ParamDirection = 'in' | 'out' | 'inout';
 

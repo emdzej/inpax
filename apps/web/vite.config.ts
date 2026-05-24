@@ -101,7 +101,7 @@ export default defineConfig({
       // include the svelte plugin) handle it on-demand.
       "@emdzej/inpax-ediabasx-provider",
       "@emdzej/inpax-ini-parser",
-      "@emdzej/inpax-logger",
+      "@emdzej/bimmerz-logger",
       "@emdzej/ediabasx-ediabas",
       // Browser-safe subpath: pulls in `GatewayClient` only, skipping
       // the gateway server (which statically requires `node:net` /

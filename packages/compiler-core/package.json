@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-compiler-core",
-  "version": "0.6.8",
+  "version": "0.7.0",
   "description": "INPA IPS to IPO compiler",
   "type": "module",
   "main": "dist/index.js",
@@ -24,9 +24,9 @@
     "iconv-lite": "^0.6.3"
   },
   "devDependencies": {
-    "@emdzej/inpax-parser": "workspace:*",
     "@emdzej/inpax-dis": "workspace:*",
     "@emdzej/inpax-interpreter": "workspace:*",
+    "@emdzej/inpax-parser": "workspace:*",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

@@ -7,9 +7,9 @@
 import { readFileSync } from 'fs';
 import { VM } from './index.js';
 import { parseIpo } from '@emdzej/inpax-parser';
-import { getLogger } from '@emdzej/inpax-logger';
+import { getLogger } from '@emdzej/bimmerz-logger';
 
-const log = getLogger('interpreter-cli');
+const log = getLogger('INPAX.interpreter-cli');
 
 function main(): void {
     const args = process.argv.slice(2);

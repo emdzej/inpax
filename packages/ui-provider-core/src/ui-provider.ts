@@ -27,10 +27,10 @@
 
 import { EventEmitter } from 'eventemitter3';
 import type { IUIProvider, ToggleItem, UIEvents } from '@emdzej/inpax-interfaces';
-import { getLogger } from '@emdzej/inpax-logger';
+import { getLogger } from '@emdzej/bimmerz-logger';
 import { ScreenBuffer } from './screen-buffer.js';
 
-const log = getLogger('ui-provider');
+const log = getLogger('INPAX.ui-provider');
 import {
   type UIProviderState,
   initialUIState,

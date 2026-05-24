@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-dispatcher",
-  "version": "0.6.8",
+  "version": "0.7.0",
   "description": "System function dispatcher for INPA runtime",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,10 +23,10 @@
     "@emdzej/inpax-interfaces": "workspace:*"
   },
   "peerDependencies": {
-    "@emdzej/inpax-logger": "workspace:*"
+    "@emdzej/bimmerz-logger": "^0.1.2"
   },
   "devDependencies": {
-    "@emdzej/inpax-logger": "workspace:*",
+    "@emdzej/bimmerz-logger": "^0.1.2",
     "typescript": "^5.3.3"
   },
   "repository": {

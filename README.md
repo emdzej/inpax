@@ -120,7 +120,6 @@ pnpm dev:web
 | [@emdzej/inpax-interpreter](./packages/interpreter) | BEST/2 VM + screen / state-machine schedulers |
 | [@emdzej/inpax-dispatcher](./packages/dispatcher) | System-function router (~250 calls) |
 | [@emdzej/inpax-ini-parser](./packages/ini-parser) | INPA/EDIABAS `.ini` reader |
-| [@emdzej/inpax-logger](./packages/logger) | Pino-based logger |
 | [@emdzej/inpax-ui-provider-core](./packages/ui-provider-core) | Shared UI provider plumbing |
 | [@emdzej/inpax-tui-provider](./packages/tui-provider) | Headless UI state (screen buffer, menu, userboxes, dialogs) |
 | [@emdzej/inpax-tui](./packages/tui) | ink-based renderer for the CLI runtime |

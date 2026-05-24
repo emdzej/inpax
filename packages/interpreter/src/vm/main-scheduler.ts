@@ -1,8 +1,8 @@
 import { EventEmitter } from 'eventemitter3';
-import { getLogger } from '@emdzej/inpax-logger';
+import { getLogger } from '@emdzej/bimmerz-logger';
 import type { VM } from './interpreter.js';
 
-const log = getLogger('main-scheduler');
+const log = getLogger('INPAX.main-scheduler');
 
 /**
  * Main scheduler events

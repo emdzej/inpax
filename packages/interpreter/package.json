@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-interpreter",
-  "version": "0.6.8",
+  "version": "0.7.0",
   "description": "INPA IPO bytecode interpreter",
   "type": "module",
   "main": "dist/index.js",
@@ -29,10 +29,10 @@
     "eventemitter3": "^5.0.1"
   },
   "peerDependencies": {
-    "@emdzej/inpax-logger": "workspace:*"
+    "@emdzej/bimmerz-logger": "^0.1.2"
   },
   "devDependencies": {
-    "@emdzej/inpax-logger": "workspace:*",
+    "@emdzej/bimmerz-logger": "^0.1.2",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

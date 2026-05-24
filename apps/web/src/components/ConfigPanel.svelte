@@ -30,9 +30,35 @@
     settings,
     setDebugMode,
     setTickMs,
+    setLogLevel,
+    setLogCategory,
     buildSettingsExport,
     applySettingsImport,
+    LOG_LEVELS,
+    type WebLoggerConfig,
   } from "../lib/settings.svelte";
+  import type { LogLevel } from "@emdzej/bimmerz-logger";
+  import { LOG_CATEGORIES as INPAX_LOG_CATEGORIES } from "@emdzej/inpax-interpreter";
+  import { LOG_CATEGORIES as EDIABASX_LOG_CATEGORIES } from "@emdzej/ediabasx-ediabas";
+
+  /**
+   * The Settings UI iterates the union of every embedded library's
+   * `LOG_CATEGORIES` export — no hardcoded category names here.
+   * Adding a category in `@emdzej/inpax-interpreter` or
+   * `@emdzej/ediabasx-ediabas` automatically shows up on next
+   * install. Order: inpax first (this is the inpax web app),
+   * ediabasx second.
+   */
+  const KNOWN_LOG_CATEGORIES = [
+    ...INPAX_LOG_CATEGORIES,
+    ...EDIABASX_LOG_CATEGORIES,
+  ];
+
+  /** Pull the value lazily so the binding tracks reactively. */
+  const loggingLevel = $derived<LogLevel>(settings.logging?.level ?? "info");
+  const loggingCategories = $derived<NonNullable<WebLoggerConfig["categories"]>>(
+    settings.logging?.categories ?? {},
+  );
   import { clearInstallHandle } from "../lib/install-storage";
   import {
     getInstallSource,
@@ -886,6 +912,73 @@ for /R "C:\EC-APPS" %f in (*.ini) do copy "%f" "%~dpnf.INIX"</code></pre>
                   </span>
                 </label>
               {/if}
+            </fieldset>
+
+            <!--
+              Logging — bimmerz-logger central config. Hierarchical
+              categories sourced from each embedded library's
+              `LOG_CATEGORIES` export (inpax-interpreter +
+              ediabasx-ediabas). Changes apply at runtime — every
+              cached logger handle picks up the new threshold on its
+              next emit.
+            -->
+            <fieldset class="flex flex-col gap-3 rounded border border-divider bg-elevated/60 p-3">
+              <legend class="px-1 text-xs font-bold uppercase tracking-wider text-faint">
+                Logging
+              </legend>
+              <label class="flex flex-col gap-1 text-xs text-muted">
+                Default level
+                <select
+                  class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
+                  value={loggingLevel}
+                  onchange={(e) =>
+                    setLogLevel((e.currentTarget as HTMLSelectElement).value as LogLevel)}
+                >
+                  {#each LOG_LEVELS as lvl (lvl)}
+                    <option value={lvl}>{lvl}</option>
+                  {/each}
+                </select>
+                <span class="text-faint">
+                  Applies to every category without a specific rule below.
+                </span>
+              </label>
+
+              <div class="pt-1">
+                <p class="mb-1 text-xs font-bold uppercase tracking-wider text-faint">
+                  Category overrides
+                </p>
+                <p class="mb-2 text-xs text-faint">
+                  Hierarchical — a rule for <code>INPAX</code> covers
+                  every <code>INPAX.*</code> child unless something
+                  more specific matches.
+                </p>
+                <ul class="space-y-1.5">
+                  {#each KNOWN_LOG_CATEGORIES as cat (cat.name)}
+                    {@const current = loggingCategories[cat.name] ?? ""}
+                    <li class="grid grid-cols-[1fr_8rem] items-baseline gap-2">
+                      <div class="min-w-0">
+                        <code class="text-xs text-foreground">{cat.name}</code>
+                        {#if cat.hint}
+                          <p class="text-xs text-faint">{cat.hint}</p>
+                        {/if}
+                      </div>
+                      <select
+                        class="rounded border border-divider bg-base px-2 py-1 text-xs text-foreground focus:border-accent focus:outline-none"
+                        value={current}
+                        onchange={(e) => {
+                          const v = (e.currentTarget as HTMLSelectElement).value;
+                          setLogCategory(cat.name, v === "" ? null : (v as LogLevel));
+                        }}
+                      >
+                        <option value="">(inherit)</option>
+                        {#each LOG_LEVELS as lvl (lvl)}
+                          <option value={lvl}>{lvl}</option>
+                        {/each}
+                      </select>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
             </fieldset>
           </div>
         {/if}

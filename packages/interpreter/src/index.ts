@@ -15,3 +15,7 @@
 
 export * from './vm/index.js';
 export * from './runtime/index.js';
+
+// Logger-category catalogue — consumed by host apps (web Settings UI)
+// to build per-category controls without hardcoding category names.
+export { LOG_CATEGORIES } from './log-categories.js';

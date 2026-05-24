@@ -6,6 +6,87 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.7.0] — 2026-05-24
+
+Logger migration onto `@emdzej/bimmerz-logger` (matches the ediabasx
+0.3.0 cut-over). The inpax-web Settings dialog gains a Logging
+section that controls both `INPAX.*` and `EDIABASX.*` categories
+from one panel.
+
+### Changed (breaking)
+
+- **`@emdzej/inpax-logger` deleted.** Consumers move to
+  [`@emdzej/bimmerz-logger`](https://www.npmjs.com/package/@emdzej/bimmerz-logger)
+  (peer dep for libraries, regular dep for apps). Same pino-shape
+  `Logger` interface plus hierarchical categories and runtime-mutable
+  central config. Migration for external consumers is a one-line
+  import swap:
+  ```ts
+  - import { getLogger } from '@emdzej/inpax-logger';
+  + import { getLogger } from '@emdzej/bimmerz-logger';
+  ```
+- **`INPAX_LOG_LEVEL` env-var reading moved to the CLI boundary.**
+  The library no longer reads `process.env`. The CLI parses the
+  full `INPAX_LOG_*` namespace (new — replaces the single
+  pre-0.7.0 var):
+
+  | Variable | Values | Purpose |
+  |---|---|---|
+  | `INPAX_LOG_LEVEL` | `trace\|debug\|info\|warn\|error\|fatal\|silent` | Default level |
+  | `INPAX_LOG_CATEGORIES` | `cat=lvl,cat=lvl,…` | Per-category overrides (hierarchical) |
+  | `INPAX_LOG_DESTINATION` | path | File output |
+  | `INPAX_LOG_FORMAT` | `pretty\|json` | Output format |
+
+- **Bumped to `@emdzej/ediabasx-*@^0.3.0`** across every consumer
+  (workspace-wide). Brings in the ediabasx logger migration + new
+  modal Run-job arg dialog + `LOG_CATEGORIES` export.
+
+### Added
+
+- **Hierarchical categories on every emit.** All `getLogger()` calls
+  now use the `INPAX.*` prefix:
+  - `INPAX.vm` — VM dispatch loop.
+  - `INPAX.dispatcher` — system-function dispatcher.
+  - `INPAX.internal-functions` — IPO-side helpers.
+  - `INPAX.main-scheduler` — top-level scheduler.
+  - `INPAX.screen-executor` — SCREEN block evaluation.
+  - `INPAX.state-machine-executor` — state-machine evaluator.
+  - `INPAX.signature-handler` — FFI / callee binding.
+  - `INPAX.ui-provider` — terminal / web / mock UI provider.
+  - `INPAX.interpreter-cli` — CLI-side interpreter wrapper.
+- **`@emdzej/inpax-interpreter` exports `LOG_CATEGORIES`** —
+  catalogue iterable from consuming apps so Settings UIs don't
+  hardcode category names. Drives the inpax-web Settings panel; web
+  hosts that bundle inpax can compose with their own catalogues
+  (e.g. ncsx-web combining inpax + ediabasx + ncsx categories).
+- **inpax-web Settings — Logging section.** Default-level dropdown
+  plus per-category override picker, **sourced from both
+  `@emdzej/inpax-interpreter`'s LOG_CATEGORIES and
+  `@emdzej/ediabasx-ediabas`'s** — the web app embeds both
+  libraries, so a single panel covers both subsystems. Changes apply
+  immediately at runtime (handles are proxies; every cached logger
+  picks up the new threshold on its next emit).
+- **`WebLoggerConfig`** + `setLogLevel` / `setLogCategory` mutators
+  in `settings.svelte.ts`. Persisted under
+  `settings.logging.{level,categories}`.
+
+### Removed
+
+- **`packages/logger/` (the old `@emdzej/inpax-logger`).** Was a
+  thin pino wrapper duplicated across our repos (ediabasx had the
+  same shape); consolidated into bimmerz-logger so the three tools
+  share one logger with one categorisation model.
+- **Pre-0.7.0 `debugMode` no longer drives the logger.** It stays as
+  a UI-only toggle for the VM-throttle / tick-ms diagnostic
+  settings; the logger has its own panel surface now.
+
+### Internal
+
+- All inpax packages bumped to **0.7.0** in lockstep.
+- ediabasx peer-dep range: `^0.3.0` (`^0.2.7` was the prior pin).
+- bimmerz-logger range: `^0.1.2` (gets the `LogCategory` type export
+  used by the new `LOG_CATEGORIES`).
+
 ## [0.6.8] — 2026-05-22
 
 ### Changed

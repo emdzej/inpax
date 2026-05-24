@@ -1,12 +1,12 @@
 import { EventEmitter } from 'eventemitter3';
-import { getLogger } from '@emdzej/inpax-logger';
+import { getLogger } from '@emdzej/bimmerz-logger';
 import type { ScreenBlock, LineBlock, FunctionBlock, Value } from '@emdzej/inpax-core';
 import { ValueType } from '@emdzej/inpax-core';
 import type { IInpaRuntime, ToggleItem } from '@emdzej/inpax-interfaces';
 import type { VM } from './interpreter.js';
 import { ExecutionContext } from './execution-context.js';
 
-const log = getLogger('screen-executor');
+const log = getLogger('INPAX.screen-executor');
 
 /**
  * Vertical stride between SCREEN LINE blocks, in screen rows. LINE N

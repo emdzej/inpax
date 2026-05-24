@@ -13,7 +13,7 @@ import {
 import type { IInpaRuntime, NativeImportParam } from '@emdzej/inpax-interfaces';
 import { SystemFunctionDispatcher } from '@emdzej/inpax-dispatcher';
 import { createNullRuntime } from '@emdzej/inpax-providers';
-import { getLogger } from '@emdzej/inpax-logger';
+import { getLogger } from '@emdzej/bimmerz-logger';
 import { Stack } from './stack.js';
 import { ExecutionContext } from './execution-context.js';
 import { InternalFunctions } from '../runtime/internal-functions.js';
@@ -21,7 +21,7 @@ import { ControlSession } from '../runtime/control-session.js';
 import { ScreenExecutor, type ScreenExecutorConfig } from './screen-executor.js';
 import { StateMachineExecutor, type StateMachineExecutorConfig } from './statemachine-executor.js';
 
-const log = getLogger('vm');
+const log = getLogger('INPAX.vm');
 
 interface ParsedNativeImport {
     importName: string;
