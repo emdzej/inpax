@@ -8,12 +8,18 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import chalk from 'chalk';
 import { parseIpo } from '@emdzej/inpax-parser';
 import { disassembleIpo, disassembleFunction, type DisassemblyOptions } from '@emdzej/inpax-dis';
+import { decompile } from '@emdzej/inpax-decompiler';
 
 export const decompileCommand = new Command('decompile')
-  .description('Decompile IPO bytecode into readable assembly')
+  .description('Decompile IPO bytecode into readable assembly or .IPS-like source')
   .argument('<file>', 'IPO file to decompile')
   .option('-o, --output <file>', 'Output file (default: stdout)')
-  .option('-f, --function <name>', 'Decompile a specific function only')
+  .option('-f, --function <name>', 'Decompile a specific function only (assembly mode)')
+  .option(
+    '--ips',
+    'Reconstruct IPS-like source instead of assembly (lifts FRAME+CALL → function calls, JMPZ patterns → if/else/while)',
+    false,
+  )
   .option('--no-color', 'Disable colored output')
   .option('--no-raw', 'Hide raw hex bytes')
   .option('--no-comments', 'Hide comments')
@@ -28,6 +34,27 @@ export const decompileCommand = new Command('decompile')
       console.error(chalk.gray(`Version: ${ipo.header.versionHi}.${ipo.header.versionLo}`));
       console.error(chalk.gray(`Functions: ${ipo.functions.size}`));
       console.error();
+
+      // --ips picks the source-level decompiler; everything else
+      // remains assembly mode. --function applies to assembly only —
+      // the source-level emitter walks the full IPO.
+      if (options.ips) {
+        if (options.function) {
+          console.error(
+            chalk.yellow(
+              'warning: --function is ignored in --ips mode (source-level emitter walks the full IPO)\n',
+            ),
+          );
+        }
+        const source = decompile(ipo);
+        if (options.output) {
+          writeFileSync(options.output, source);
+          console.error(chalk.green(`Output written to ${options.output}`));
+        } else {
+          console.log(source);
+        }
+        return;
+      }
 
       const disOptions: DisassemblyOptions = {
         showRaw: options.raw !== false,

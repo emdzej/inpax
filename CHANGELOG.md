@@ -6,6 +6,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.8.0] — 2026-05-26
+
+### Added
+
+- **`@emdzej/inpax-decompiler` package + `inpax decompile --ips` flag.**
+  Reconstructs IPS-like source from compiled `.IPO` bytecode.
+  Recognises function calls, simple/computed assignments, expression
+  trees with operator precedence, structured `if` / `if else`, and
+  `while` loops. Irreducible flow falls back to `goto L_XXXX;` + labels.
+  Default mode of `decompile` (ASM output) is unchanged — new
+  behaviour is opt-in via `--ips`.
+
+  ```
+  inpax decompile --ips path/to/script.ipo
+  ```
+
+  Patterns + scaffolding ported with permission from
+  [`qt-inpa-runtime`](https://github.com/mjaskols/qt-inpa-runtime)'s
+  `src/ipo_dumper.cpp`. Recompiling the output through
+  `@emdzej/inpax-compiler-core` is intended to produce semantically
+  equivalent bytecode, not byte-identical — original names, integer
+  radix, `for` / `switch` / `do/while` forms aren't preserved by the
+  IPO encoding. See `docs/proposals/ipo-to-ips-decompile.md` for the
+  recognised pattern catalogue + the prior-art relationship.
+
 ## [0.7.1] — 2026-05-24
 
 Maintenance release — VM-opcode rename to clean up a long-standing

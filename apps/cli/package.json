@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-cli",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "inpax CLI — decompile, run, compile, edit, patch, and bundle INPA scripts. One binary subsumes the toolchain (used to be split across inpax-compiler, ipo-editor, bimmerz-bundler).",
   "type": "module",
   "bin": {
@@ -19,6 +19,7 @@
     "@emdzej/inpax-compiler-core": "workspace:*",
     "@emdzej/inpax-core": "workspace:*",
     "@emdzej/inpax-dis": "workspace:*",
+    "@emdzej/inpax-decompiler": "workspace:*",
     "@emdzej/inpax-ediabasx-provider": "workspace:*",
     "@emdzej/inpax-ini-parser": "workspace:*",
     "@emdzej/inpax-interfaces": "workspace:*",

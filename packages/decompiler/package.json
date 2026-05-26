@@ -1,7 +1,7 @@
 {
-  "name": "@emdzej/inpax-parser",
+  "name": "@emdzej/inpax-decompiler",
   "version": "0.8.0",
-  "description": "INPA IPO bytecode parser",
+  "description": "INPA IPO bytecode decompiler — lifts compiled .IPO files back to readable .IPS-like source. Recognises function calls, assignments, expressions, structured if/else and while loops; falls back to goto+label for irreducible flow.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,30 +9,22 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run --passWithNoTests",
-    "lint": "eslint src/",
     "clean": "rm -rf dist/"
   },
   "keywords": [
     "inpa",
     "ipo",
-    "parser",
-    "bmw",
-    "diagnostics"
+    "decompiler",
+    "bmw"
   ],
   "license": "MIT",
   "dependencies": {
     "@emdzej/inpax-core": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@emdzej/inpax-parser": "workspace:*",
+    "@types/node": "^22.13.1",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/emdzej/inpax.git"
-  },
-  "publishConfig": {
-    "access": "public"
+    "vitest": "^2.1.8"
   }
 }

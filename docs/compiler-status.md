@@ -118,6 +118,12 @@ Two candidates:
    - **Verify `string[N]` runtime semantics** by compiling + running a fixture that exercises buffer-length-dependent code (`GetPrivateProfileString` write target).
    - **Bool / byte / real CALLE descriptor chars** — find a real `.ipo` that uses them and validate against the encoder.
 
+> ~~**B — `inpax decompile --ips` (bytecode → IPS source).**~~ ✅ delivered
+> in 0.8.0 as `@emdzej/inpax-decompiler` + the `--ips` flag. See
+> [`proposals/ipo-to-ips-decompile.md`](proposals/ipo-to-ips-decompile.md) for
+> the recognised pattern catalogue + prior-art relationship to
+> [`qt-inpa-runtime`](https://github.com/mjaskols/qt-inpa-runtime).
+
 ## Companion app: ipo-editor
 
 A separate TUI at `apps/ipo-editor/` lets you edit constants in compiled `.ipo` files (translation use case — change German strings to other languages without recompiling). Built on `ink` + `commander` + `iconv-lite`; depends on `@emdzej/inpax-parser` for the walk.
