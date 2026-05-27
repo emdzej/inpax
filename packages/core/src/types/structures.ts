@@ -18,7 +18,19 @@ export interface StackEntry {
 }
 
 /**
- * Reference info for stack entries
+ * Reference info for stack entries.
+ *
+ * `Scope.Local` refs are **frame-pinned**: `index` holds the absolute
+ * stack position at the moment the ref was created (typically by
+ * PUSHREF). This matters for cross-frame writes — a callee writing
+ * back through an out-param ref the caller passed must target the
+ * caller's stack slot, NOT `callee.frameOffset + callerLocalIndex`.
+ *
+ * Plain `LOAD` / `STORE` of a local without a ref still uses
+ * frame-relative arithmetic via the opcode operands.
+ *
+ * For `Scope.Global` / `Scope.Const` / UI scopes, `index` is the
+ * logical index into the corresponding store; no frame pinning needed.
  */
 export interface RefInfo {
     scope: Scope;

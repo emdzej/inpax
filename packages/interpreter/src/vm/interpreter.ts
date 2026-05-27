@@ -448,10 +448,9 @@ export class VM {
         // inout-arg arithmetic op.
         const slot = ctx.getVariable(scope, index);
         if (slot.refInfo) {
-            const target = ctx.getVariable(
-                slot.refInfo.scope as Scope,
-                slot.refInfo.index
-            );
+            // `getByRef` handles Local refs correctly — their `index`
+            // is absolute, not frame-relative (see `createRef`).
+            const target = ctx.getByRef(slot.refInfo);
             ctx.stack.push({ ...target, flags: 1 });
         } else {
             // Defensive: slot isn't actually a ref (caller forgot to
@@ -500,11 +499,11 @@ export class VM {
         const top = ctx.stack.peek();
         const refHolder = ctx.getVariable(scope, index);
         if (refHolder?.refInfo) {
-            ctx.setVariable(
-                refHolder.refInfo.scope as Scope,
-                refHolder.refInfo.index,
-                top
-            );
+            // `setByRef` handles Local refs correctly — their `index`
+            // is absolute, not frame-relative (see `createRef`). This
+            // is the cross-frame write case that motivated the
+            // frame-pinning fix.
+            ctx.setByRef(refHolder.refInfo, top);
         }
     }
 
@@ -794,7 +793,9 @@ export class VM {
             if (value === undefined) continue;
             const slot = slots[i];
             if (slot.refInfo) {
-                ctx.setVariable(slot.refInfo.scope as Scope, slot.refInfo.index, {
+                // Use `setByRef` to handle Local refs' absolute index
+                // (frame-pinned by `createRef`).
+                ctx.setByRef(slot.refInfo, {
                     type: slot.type,
                     flags: 1,
                     value: value as Value,

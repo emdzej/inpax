@@ -160,7 +160,6 @@ export function writeOutParams(
             continue;
         }
 
-        const { scope, index } = ref.refInfo;
         const valueType = inpaTypeToValueType(param.type);
 
         const newEntry: StackEntry = {
@@ -169,6 +168,7 @@ export function writeOutParams(
             value: value as StackEntry['value'],
         };
 
-        ctx.setVariable(scope as Scope, index, newEntry);
+        // `setByRef` handles Local refs (absolute index, frame-pinned).
+        ctx.setByRef(ref.refInfo, newEntry);
     }
 }

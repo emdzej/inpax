@@ -6,6 +6,34 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.8.1] — 2026-05-27
+
+### Fixed
+
+- **VM: cross-frame `Scope.Local` reference writes now target the
+  correct stack slot.** When a callee wrote back through a ref the
+  caller had passed (the canonical `out:` / `inout:` parameter
+  pattern), `PUSHREFSTORE` / `CALLE` / `LOADINOUTREF` /
+  `SignatureHandler` were resolving the destination via
+  `setVariable(Local, callerLocalIndex)` — which adds the **callee's**
+  `frameOffset` on top, landing in the wrong stack slot or throwing
+  `Stack index out of bounds`. Surfaces against BMW's NFS
+  `SG_PROGRAMMIEREN` IPO (`TestApiFehlerNoExit` helper crashed at
+  `pc=2` with `Stack index out of bounds: 30`).
+
+  Fix: `ExecutionContext.createRef` now frame-pins `Scope.Local` refs
+  by storing the **absolute** stack index in `refInfo.index` at PUSHREF
+  time. New `getByRef` / `setByRef` helpers bypass frame-relative
+  arithmetic; `setOutParam` and the affected interpreter call sites
+  use them. Other scopes (`Global`, `Const`, UI handles) are
+  unaffected — their `refInfo.index` is still the logical store index.
+
+  Plain `LOAD` / `STORE` of locals (frame-relative, no ref) is
+  unchanged. One existing test (`updates local references with a
+  non-zero frame offset`) was documenting the old broken behaviour
+  and is updated to use `setByRef`; a new `writes through a Local
+  ref across a frame boundary` test exercises the cross-frame path.
+
 ## [0.8.0] — 2026-05-26
 
 ### Added

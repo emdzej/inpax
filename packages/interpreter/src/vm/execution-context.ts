@@ -61,12 +61,37 @@ export class ExecutionContext {
   }
 
   /**
-   * Set out parameter by reference
+   * Read the slot a ref points to. Handles the frame-pinned Local
+   * case where `refInfo.index` is absolute, not frame-relative.
+   * Other scopes go through `getVariable` as normal.
+   */
+  getByRef(refInfo: { scope: Scope | number; index: number }): StackEntry {
+    if ((refInfo.scope as Scope) === Scope.Local) {
+      return this.stack.get(refInfo.index);
+    }
+    return this.getVariable(refInfo.scope as Scope, refInfo.index);
+  }
+
+  /**
+   * Write to the slot a ref points to. Handles the frame-pinned
+   * Local case where `refInfo.index` is absolute, not frame-relative.
+   * Other scopes go through `setVariable`.
+   */
+  setByRef(refInfo: { scope: Scope | number; index: number }, value: StackEntry): void {
+    if ((refInfo.scope as Scope) === Scope.Local) {
+      this.stack.set(refInfo.index, { ...value });
+      return;
+    }
+    this.setVariable(refInfo.scope as Scope, refInfo.index, value);
+  }
+
+  /**
+   * Set out parameter by reference. Thin wrapper around `setByRef`
+   * with a clearer name at the call site.
    */
   setOutParam(ref: StackEntry, value: StackEntry): void {
     if (!ref.refInfo) throw new Error('Expected reference for out parameter');
-    const { scope, index } = ref.refInfo;
-    this.setVariable(scope as Scope, index, value);
+    this.setByRef(ref.refInfo, value);
   }
 
   // ============ Variable Access ============
@@ -125,11 +150,16 @@ export class ExecutionContext {
     // a write target, so value is null.
     const isUiHandle =
       scope === Scope.Screen || scope === Scope.Menu || scope === Scope.StateMachine;
+    // Frame-pin `Scope.Local` refs at creation time — store the absolute
+    // stack index. Callees writing back through this ref then bypass
+    // frameOffset arithmetic in `setOutParam`. See `RefInfo` docstring
+    // in `@emdzej/inpax-core` for the full reasoning.
+    const refIndex = scope === Scope.Local ? this.frameOffset + index : index;
     return {
       type: entry.type,
       flags: StackEntryFlags.ByReference,
       value: isUiHandle ? entry.value : null,
-      refInfo: { scope, index },
+      refInfo: { scope, index: refIndex },
     };
   }
 

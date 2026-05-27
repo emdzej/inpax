@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-cli",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "inpax CLI — decompile, run, compile, edit, patch, and bundle INPA scripts. One binary subsumes the toolchain (used to be split across inpax-compiler, ipo-editor, bimmerz-bundler).",
   "type": "module",
   "bin": {

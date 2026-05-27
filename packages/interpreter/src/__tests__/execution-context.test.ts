@@ -68,10 +68,42 @@ describe('ExecutionContext', () => {
     ctx.stack.push(entry(ValueType.Int, 0));
     const ref = ctx.createRef(Scope.Local, 0);
 
-    ctx.setVariable(ref.refInfo!.scope as Scope, ref.refInfo!.index, entry(ValueType.Int, 7));
+    // Local refs are frame-pinned: `refInfo.index` is absolute, not
+    // frame-relative. Write via `setByRef` (handles the absolute
+    // Local case). The deprecated path —
+    // `setVariable(refInfo.scope, refInfo.index, ...)` — would
+    // erroneously add `frameOffset` again and target the wrong slot.
+    ctx.setByRef(ref.refInfo!, entry(ValueType.Int, 7));
 
     expect(ctx.getVariable(Scope.Local, 0).value).toBe(7);
     expect(ctx.stack.get(0).value).toBe(99);
+  });
+
+  it('writes through a Local ref across a frame boundary', () => {
+    // Reproduces the bug that motivated frame-pinning Local refs:
+    // a callee writing through a ref the caller passed must target
+    // the caller's stack slot, not callee.frameOffset + index.
+    const ctx = new ExecutionContext([], []);
+
+    // Caller frame at offset 0 with one local at stack[0].
+    ctx.pushFrame();
+    ctx.stack.setFrameOffset(ctx.stack.getTopFrameMarker());
+    ctx.stack.push(entry(ValueType.Int, 100));
+    const callerRef = ctx.createRef(Scope.Local, 0);
+
+    // Now switch to a "callee" frame — push a marker + a few locals
+    // so frameOffset advances.
+    ctx.stack.push(callerRef);
+    ctx.pushFrame();
+    ctx.stack.setFrameOffset(ctx.stack.getTopFrameMarker());
+    ctx.stack.push(entry(ValueType.Int, 1));
+    ctx.stack.push(entry(ValueType.Int, 2));
+
+    // Write through the caller's ref — should land at stack[0],
+    // not callee.frameOffset + ref.refInfo.index.
+    ctx.setByRef(callerRef.refInfo!, entry(ValueType.Int, 999));
+
+    expect(ctx.stack.get(0).value).toBe(999);
   });
 
   it('isolates locals between nested frames', () => {
