@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@emdzej/bimmerz-logger": "^0.1.2",
-    "@emdzej/ediabasx-ediabas": "^0.3.0",
-    "@emdzej/ediabasx-interfaces": "^0.3.0",
+    "@emdzej/ediabasx-ediabas": "^0.4.0",
+    "@emdzej/ediabasx-interfaces": "^0.4.0",
     "@emdzej/inpax-cli-provider": "workspace:*",
     "@emdzej/inpax-compiler-core": "workspace:*",
     "@emdzej/inpax-core": "workspace:*",
