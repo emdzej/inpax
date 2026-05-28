@@ -22,6 +22,10 @@ export default {
     // render unstyled (e.g. FKeyBar stacks vertically because
     // `flex` never made it into the CSS bundle).
     "../../packages/web-provider/src/**/*.{ts,svelte}",
+    // Shared UI components from @emdzej/ediabasx-web-ui live in
+    // node_modules — Tailwind's JIT needs to scan their source so
+    // the utility classes they reference actually get generated.
+    "../../node_modules/@emdzej/ediabasx-web-ui/src/**/*.{ts,svelte}",
   ],
   presets: [bimmerzPreset],
   theme: {

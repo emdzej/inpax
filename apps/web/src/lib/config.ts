@@ -16,7 +16,7 @@
  * per-install, not per-machine.
  */
 
-export type InterfaceType = "webserial" | "gateway";
+export type InterfaceType = "webserial" | "j2534" | "gateway";
 export type SerialProtocol = "uart" | "kwp" | "isotp" | "tp20";
 export type SerialInitMode = "fast" | "five-baud";
 
@@ -77,7 +77,9 @@ export function loadConfig(): WebConfig {
     // anything we no longer support back to the default so the UI
     // doesn't show a phantom selection.
     const iface: InterfaceType =
-      parsed.interface === "webserial" || parsed.interface === "gateway"
+      parsed.interface === "webserial" ||
+      parsed.interface === "j2534" ||
+      parsed.interface === "gateway"
         ? parsed.interface
         : DEFAULT_CONFIG.interface;
     return {

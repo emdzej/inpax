@@ -15,7 +15,7 @@ Two runtimes share the same VM, parser, dispatcher, and provider graph:
 - 🔧 **Decompiler** — IPO → readable assembly, names jobs/screens/menus.
 - ⚙️ **VM + scheduler** — runs INPA bytecode with screen / state-machine / F-key dispatch.
 - 🖥️ **TUI runtime** — terminal UI matching the original INPA look (ink-based).
-- 🌐 **Browser SPA** — same VM in the browser, paints onto a canvas, talks to ECUs via Web Serial.
+- 🌐 **Browser SPA** — same VM in the browser, paints onto a canvas, talks to ECUs via Web Serial (K+DCAN) or SAE J2534 (Tactrix OpenPort 2.0).
 - ⌨️ **IPS compiler** — IPS source → IPO bytecode (CLI + library).
 - ✏️ **IPO editor** — Ink TUI for editing constants inside compiled `.ipo` files.
 - 🩹 **Patch system** — declarative YAML patches (translations, overrides) applied non-interactively.

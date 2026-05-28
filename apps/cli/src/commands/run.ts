@@ -12,26 +12,19 @@
  *   (default)                EdiabasX simulation in the cwd
  */
 import { Command } from 'commander';
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve, basename, join } from 'node:path';
 import { homedir } from 'node:os';
 import chalk from 'chalk';
 import { MockEdiabasProvider } from '@emdzej/inpax-mock-provider';
 import { EdiabasXProvider, Inp1Adapter } from '@emdzej/inpax-ediabasx-provider';
 import type { IEdiabasProvider } from '@emdzej/inpax-interfaces';
+import {
+    DEFAULT_CONFIG_PATH as EDIABASX_USER_CONFIG_PATH,
+    loadConfig as loadEdiabasHostConfig,
+    type EdiabasHostConfig,
+} from '@emdzej/ediabasx-host-config';
 import { NodeNativeImportProvider } from '../native-imports/index.js';
-
-/**
- * Shape of `~/.config/ediabasx/config.json` — same one the ediabasx CLI
- * writes via `inpax-ediabasx configure`. Re-reading it here means the
- * user keeps a single source of truth for cable / transport settings;
- * inpax just needs the ecuPath (which comes from --sgbd or the script's
- * directory layout) on top of that.
- */
-interface EdiabasxCliConfig {
-    interface: string;
-    options?: Record<string, unknown>;
-}
 
 /**
  * Walk the conventional ediabasx default-config locations and return the
@@ -44,6 +37,10 @@ interface EdiabasxCliConfig {
  *   3. user config dir: $XDG_CONFIG_HOME/ediabasx/config.json
  *      (or ~/.config/ediabasx/config.json) — same location every other
  *      ediabasx tool uses, so one config drives all consumers.
+ *
+ * The shape + loader live in `@emdzej/ediabasx-host-config`; this
+ * function only deals with the file-system search order, which is
+ * inpax-specific (env var + cwd fallback above the XDG default).
  */
 function findDefaultEdiabasConfig(): string | null {
     const fromEnv = process.env.EDIABASX_CONFIG;
@@ -52,25 +49,13 @@ function findDefaultEdiabasConfig(): string | null {
     const cwdCandidate = resolve(process.cwd(), 'ediabasx.config.json');
     if (existsSync(cwdCandidate)) return cwdCandidate;
 
-    const xdg = process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
-    const userCandidate = join(xdg, 'ediabasx', 'config.json');
+    const xdg = process.env.XDG_CONFIG_HOME;
+    const userCandidate = xdg
+        ? join(xdg, 'ediabasx', 'config.json')
+        : EDIABASX_USER_CONFIG_PATH;
     if (existsSync(userCandidate)) return userCandidate;
 
     return null;
-}
-
-function readEdiabasxCliConfig(path: string): EdiabasxCliConfig {
-    const raw = readFileSync(path, 'utf-8');
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed.interface !== 'string') {
-        throw new Error(
-            `Invalid ediabasx config at ${path}: missing required "interface" string field`
-        );
-    }
-    return {
-        interface: parsed.interface,
-        options: parsed.options && typeof parsed.options === 'object' ? parsed.options : {},
-    };
 }
 
 /**
@@ -213,7 +198,7 @@ async function resolveEdiabasProvider(
             provider = await buildProviderFromCliConfig(configPath, ecuPath);
             iniPath = configPath;
             try {
-                interfaceName = readEdiabasxCliConfig(configPath).interface;
+                interfaceName = loadCliConfig(configPath).interface;
             } catch {
                 interfaceName = '';
             }
@@ -268,11 +253,22 @@ async function resolveEdiabasProvider(
  * EdiabasXProvider just wraps the resulting Ediabas instance — this
  * mirrors what `ediabasx run` does, so users keep one config file.
  */
+function loadCliConfig(path: string): EdiabasHostConfig {
+    // `loadConfig(path)` throws on missing-file when an explicit path
+    // is provided — exactly what we want, since callers only invoke
+    // this after `findDefaultEdiabasConfig()` returned a hit.
+    const cfg = loadEdiabasHostConfig(path);
+    if (!cfg) {
+        throw new Error(`ediabasx config not found at ${path}`);
+    }
+    return cfg;
+}
+
 async function buildProviderFromCliConfig(
     configPath: string,
     ecuPath: string
 ): Promise<IEdiabasProvider> {
-    const cliCfg = readEdiabasxCliConfig(configPath);
+    const cliCfg = loadCliConfig(configPath);
     const isSimulation = cliCfg.interface === 'simulation';
 
     let transport: unknown = undefined;

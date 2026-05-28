@@ -21,11 +21,10 @@
   import {
     resetConfig,
     saveConfig,
-    isWebSerialSupported,
     isSecureContext,
-    type InterfaceType,
   } from "../lib/config";
   import { connection, connect, disconnect } from "../lib/connection.svelte";
+  import { ConnectButton, InterfaceConfigPanel } from "@emdzej/ediabasx-web-ui";
   import {
     settings,
     setDebugMode,
@@ -227,19 +226,6 @@
     savedAt = Date.now();
   });
 
-  const interfaceOptions: Array<{ value: InterfaceType; label: string; help: string }> = [
-    {
-      value: "webserial",
-      label: "Web Serial (local cable)",
-      help: "K-line / K+DCAN over Chrome/Edge Web Serial API. The cable is plugged into this computer; pick it when you click Connect.",
-    },
-    {
-      value: "gateway",
-      label: "Remote gateway (WebSocket)",
-      help: "Connect to an `ediabasx gateway --transport websocket` server running where the cable is. Useful when the ECU is in the garage and you're upstairs.",
-    },
-  ];
-
   function reset(): void {
     const fresh = resetConfig();
     Object.assign(app.config, fresh);
@@ -392,163 +378,12 @@
       <div class="flex-1 overflow-auto p-4">
         {#if activeTab === "comm"}
           <div class="flex flex-col gap-6">
-            <fieldset class="flex flex-col gap-2">
-              <legend class="text-xs font-bold uppercase tracking-wider text-faint">
-                Interface
-              </legend>
-              <div class="flex flex-col gap-2">
-                {#each interfaceOptions as option (option.value)}
-                  <label
-                    class="flex cursor-pointer items-start gap-3 rounded border bg-surface p-3 hover:border-rule"
-                    class:border-accent={app.config.interface === option.value}
-                    class:border-divider={app.config.interface !== option.value}
-                  >
-                    <input
-                      type="radio"
-                      name="interface"
-                      value={option.value}
-                      bind:group={app.config.interface}
-                      class="mt-1 accent-accent"
-                    />
-                    <div class="flex flex-col">
-                      <span class="text-sm text-foreground">{option.label}</span>
-                      <span class="text-xs text-faint">{option.help}</span>
-                    </div>
-                  </label>
-                {/each}
-              </div>
-              {#if app.config.interface === "webserial" && !isWebSerialSupported()}
-                <div class="rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-xs text-amber-800 dark:text-amber-200">
-                  Your browser doesn't expose <code>navigator.serial</code>. Chrome, Edge, or
-                  Opera on a desktop OS is required.
-                </div>
-              {/if}
-            </fieldset>
+            <!-- Interface selector + per-interface fieldsets — shared
+                 across the bimmerz family via @emdzej/ediabasx-web-ui.
+                 Single source of truth: any new transport (e.g. j2534)
+                 added there shows up here without touching this app. -->
+            <InterfaceConfigPanel bind:config={app.config} />
 
-            {#if app.config.interface === "webserial"}
-              <fieldset class="grid grid-cols-2 gap-3">
-                <legend class="col-span-2 text-xs font-bold uppercase tracking-wider text-faint">
-                  Serial / K-line
-                </legend>
-                <label class="flex flex-col gap-1 text-xs text-muted">
-                  Baud rate
-                  <input
-                    type="number"
-                    class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
-                    bind:value={app.config.serial!.baudRate}
-                  />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-muted">
-                  Protocol
-                  <select
-                    class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
-                    bind:value={app.config.serial!.protocol}
-                  >
-                    <option value="uart">UART (K+DCAN, raw passthrough)</option>
-                    <option value="kwp">KWP2000 (K-line)</option>
-                    <option value="isotp">ISO-TP (D-CAN)</option>
-                    <option value="tp20">TP2.0 (VAG)</option>
-                  </select>
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-muted">
-                  Data bits
-                  <select
-                    class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
-                    bind:value={app.config.serial!.dataBits}
-                  >
-                    <option value={8}>8</option>
-                    <option value={7}>7</option>
-                  </select>
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-muted">
-                  Parity
-                  <select
-                    class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
-                    bind:value={app.config.serial!.parity}
-                  >
-                    <option value="none">none</option>
-                    <option value="even">even</option>
-                    <option value="odd">odd</option>
-                  </select>
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-muted">
-                  Stop bits
-                  <select
-                    class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
-                    bind:value={app.config.serial!.stopBits}
-                  >
-                    <option value={1}>1</option>
-                    <option value={2}>2</option>
-                  </select>
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-muted">
-                  Init mode
-                  <select
-                    class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
-                    bind:value={app.config.serial!.initMode}
-                  >
-                    <option value="fast">fast</option>
-                    <option value="five-baud">5-baud</option>
-                  </select>
-                </label>
-                <label class="col-span-2 flex flex-col gap-1 text-xs text-muted">
-                  Timeout (ms)
-                  <input
-                    type="number"
-                    class="rounded border border-divider bg-base px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
-                    bind:value={app.config.serial!.timeoutMs}
-                  />
-                </label>
-              </fieldset>
-            {/if}
-
-            {#if app.config.interface === "gateway"}
-              <fieldset class="flex flex-col gap-3">
-                <legend class="text-xs font-bold uppercase tracking-wider text-faint">
-                  Gateway · WebSocket URL
-                </legend>
-                <label class="flex flex-col gap-1 text-xs text-muted">
-                  URL
-                  <input
-                    type="url"
-                    placeholder="ws://localhost:6801"
-                    spellcheck="false"
-                    autocapitalize="off"
-                    autocomplete="off"
-                    class="rounded border border-divider bg-base px-2 py-1 font-mono text-sm text-foreground focus:border-accent focus:outline-none"
-                    bind:value={app.config.gateway!.url}
-                  />
-                  <span class="text-faint">
-                    Use <code class="text-muted">ws://host:port</code> for a
-                    plain local gateway, or <code class="text-muted">wss://…</code>
-                    when it's behind TLS / a reverse proxy. Default CLI port
-                    is <code class="text-muted">6801</code>.
-                  </span>
-                </label>
-                <div class="rounded border border-divider bg-elevated/60 p-3 text-xs text-muted">
-                  <p class="mb-1 text-foreground">Run this on the machine with the cable:</p>
-                  <pre class="overflow-auto whitespace-pre text-muted"><code
-                    >ediabasx gateway --transport websocket \
-  --interface kdcan --serial-port /dev/ttyUSB0</code></pre>
-                  <p class="mt-2">
-                    The gateway forwards <code class="text-foreground">setCommParameter</code>,
-                    <code class="text-foreground">setAnswerLength</code>,
-                    <code class="text-foreground">transmitData</code>, and the rest
-                    of the INPA runtime surface so <code class="text-foreground">INITIALISIERUNG</code>
-                    runs transparently from the browser.
-                  </p>
-                </div>
-                {#if isSecureContext() && app.config.gateway?.url?.startsWith("ws://")}
-                  <div class="rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-xs text-amber-800 dark:text-amber-200">
-                    This page is served over HTTPS but the gateway URL is
-                    plain <code>ws://</code>. Most browsers block mixed-content
-                    WebSockets — use <code>wss://</code> (e.g. behind a Caddy
-                    or nginx terminator) or load this app over plain HTTP for
-                    local development.
-                  </div>
-                {/if}
-              </fieldset>
-            {/if}
 
             <fieldset class="flex flex-col gap-2 rounded border border-divider bg-elevated/60 p-3">
               <legend class="px-1 text-xs font-bold uppercase tracking-wider text-faint">
@@ -574,24 +409,13 @@
                 >
                   {connection.message}
                 </span>
-                {#if connection.phase === "connected"}
-                  <button
-                    type="button"
-                    class="rounded border border-rule px-3 py-1 text-xs text-muted hover:border-rule hover:text-foreground"
-                    onclick={() => void disconnect()}
-                  >
-                    Disconnect
-                  </button>
-                {:else}
-                  <button
-                    type="button"
-                    class="rounded bg-accent px-3 py-1 text-xs font-medium text-zinc-950 hover:bg-accent-muted disabled:opacity-50"
-                    disabled={connection.phase === "connecting"}
-                    onclick={() => void connect()}
-                  >
-                    Connect
-                  </button>
-                {/if}
+                <ConnectButton
+                  phase={connection.phase}
+                  message={connection.message}
+                  errorMessage={connection.errorMessage ?? undefined}
+                  onconnect={connect}
+                  ondisconnect={disconnect}
+                />
               </div>
               {#if connection.errorMessage}
                 <p class="rounded border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-2 text-xs text-red-800 dark:text-red-300">

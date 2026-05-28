@@ -24,7 +24,8 @@
 
   import type { UIProvider, InputDialog } from "@emdzej/inpax-ui-provider-core";
   import { app } from "../lib/state.svelte";
-  import { connection, connect } from "../lib/connection.svelte";
+  import { connection, connect, disconnect } from "../lib/connection.svelte";
+  import { ConnectButton } from "@emdzej/ediabasx-web-ui";
 
   type Props = { ui: UIProvider };
   const { ui }: Props = $props();
@@ -193,14 +194,13 @@
             >
               Skip
             </button>
-            <button
-              type="button"
-              class="rounded bg-accent px-4 py-1 text-sm font-medium text-zinc-950 hover:bg-accent-muted disabled:opacity-50"
-              disabled={connection.phase === "connecting" || connection.phase === "connected"}
-              onclick={doConnect}
-            >
-              {connection.phase === "connecting" ? "Connecting…" : "Connect"}
-            </button>
+            <ConnectButton
+              phase={connection.phase}
+              message={connection.message}
+              errorMessage={connection.errorMessage ?? undefined}
+              onconnect={doConnect}
+              ondisconnect={disconnect}
+            />
           </div>
         </footer>
       {/if}

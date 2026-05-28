@@ -44,6 +44,9 @@ importers:
       '@emdzej/ediabasx-ediabas':
         specifier: ^0.4.0
         version: 0.4.0(@emdzej/bimmerz-logger@0.1.2)
+      '@emdzej/ediabasx-host-config':
+        specifier: ^0.4.0
+        version: 0.4.0
       '@emdzej/ediabasx-interfaces':
         specifier: ^0.4.0
         version: 0.4.0
@@ -138,12 +141,18 @@ importers:
       '@emdzej/ediabasx-interface-base':
         specifier: ^0.4.0
         version: 0.4.0
+      '@emdzej/ediabasx-interface-j2534':
+        specifier: ^0.4.0
+        version: 0.4.0(@emdzej/j2534-serial@0.2.0)(@emdzej/j2534-usb@0.2.0)
       '@emdzej/ediabasx-interface-serial':
         specifier: ^0.4.0
         version: 0.4.0
       '@emdzej/ediabasx-interfaces':
         specifier: ^0.4.0
         version: 0.4.0
+      '@emdzej/ediabasx-web-ui':
+        specifier: ^0.4.0
+        version: 0.4.0(@emdzej/bimmerz-theme@0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0)))(svelte@5.55.5(@typescript-eslint/types@8.54.0))(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))
       '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -174,6 +183,15 @@ importers:
       '@emdzej/inpax-web-provider':
         specifier: workspace:*
         version: link:../../packages/web-provider
+      '@emdzej/j2534-driver':
+        specifier: ^0.2.0
+        version: 0.2.0
+      '@emdzej/j2534-types':
+        specifier: ^0.2.0
+        version: 0.2.0
+      '@emdzej/j2534-webserial':
+        specifier: ^0.2.0
+        version: 0.2.0
       fflate:
         specifier: ^0.8.2
         version: 0.8.2
@@ -1080,6 +1098,9 @@ packages:
     peerDependencies:
       '@emdzej/bimmerz-logger': ^0.1.2
 
+  '@emdzej/ediabasx-host-config@0.4.0':
+    resolution: {integrity: sha512-Sj6AOpnc2HSt+viS5FUpB8MEVaY5YTGZkzIUeRSRG3juqX7Gptx8iSUzN4zPmmyDcmjiw6D4F1dpkKWV/5bAHg==}
+
   '@emdzej/ediabasx-interface-base@0.4.0':
     resolution: {integrity: sha512-eszGuP+mXf90Vxvb7a62efcfXekvwTT9VtC8sd0L8gh9mumPF+eJoybdx5UimJgdH8gVEBqlpvrWPuxpc3FIEg==}
 
@@ -1109,6 +1130,13 @@ packages:
   '@emdzej/ediabasx-protocol-uds@0.4.0':
     resolution: {integrity: sha512-893wMRchbOD7z7lCoNdtb3UbMELLIMG6I87TZbkxe0dBQDUvYH5gMnWUAOrLdAsaepOgvh6osR4IWhm7dad61w==}
 
+  '@emdzej/ediabasx-web-ui@0.4.0':
+    resolution: {integrity: sha512-XkJnkT2F/pKJxCJBM9pticd0qpp6uxMuIu1heLCBISy8SKXKx6V/UoxjsTf4fGUCZVI9MNZ9yLPdK5aBxQYtAw==}
+    peerDependencies:
+      '@emdzej/bimmerz-theme': ^0.1.0
+      svelte: ^5.0.0
+      tailwindcss: ^3.4.0
+
   '@emdzej/j2534-core@0.2.0':
     resolution: {integrity: sha512-gAWlgCT9ihLV/msXUaN0qhQ053q8aOUGnieJyGCeEcW5KYcyCweLWK2IxQcM5sSlZsafu33UAIN3MBYZSZtXKg==}
 
@@ -1123,6 +1151,9 @@ packages:
 
   '@emdzej/j2534-usb@0.2.0':
     resolution: {integrity: sha512-1tLIP3XpNMWNxx39fnn215fJBwIPngfvBEgnivQwfikMO0+lcFAuoF95+4CZEKKSLFqRB1x1XQuZxPZ2AyDrHQ==}
+
+  '@emdzej/j2534-webserial@0.2.0':
+    resolution: {integrity: sha512-alj2d5X+YeFUXPQCUdE1F7wcSBK4/Cj3GDr8Odql9GVe2wtnlMjkR2zXvzITnNkHdry/zabT0DutvSyuFo+XSw==}
 
   '@emnapi/runtime@1.10.0':
     resolution: {integrity: sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA==}
@@ -5219,6 +5250,14 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  '@emdzej/ediabasx-host-config@0.4.0':
+    dependencies:
+      '@emdzej/ediabasx-interfaces': 0.4.0
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   '@emdzej/ediabasx-interface-base@0.4.0': {}
 
   '@emdzej/ediabasx-interface-enet@0.4.0':
@@ -5269,6 +5308,12 @@ snapshots:
 
   '@emdzej/ediabasx-protocol-uds@0.4.0': {}
 
+  '@emdzej/ediabasx-web-ui@0.4.0(@emdzej/bimmerz-theme@0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0)))(svelte@5.55.5(@typescript-eslint/types@8.54.0))(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))':
+    dependencies:
+      '@emdzej/bimmerz-theme': 0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))
+      svelte: 5.55.5(@typescript-eslint/types@8.54.0)
+      tailwindcss: 3.4.19(tsx@4.21.0)(yaml@2.9.0)
+
   '@emdzej/j2534-core@0.2.0':
     dependencies:
       '@emdzej/j2534-types': 0.2.0
@@ -5291,6 +5336,10 @@ snapshots:
     dependencies:
       '@emdzej/j2534-types': 0.2.0
       usb: 2.17.0
+
+  '@emdzej/j2534-webserial@0.2.0':
+    dependencies:
+      '@emdzej/j2534-types': 0.2.0
 
   '@emnapi/runtime@1.10.0':
     dependencies:

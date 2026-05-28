@@ -18,6 +18,8 @@ import {
   WebSerialTransport,
   type WebSerialPortLike,
 } from "@emdzej/ediabasx-interface-serial";
+import { J2534Interface } from "@emdzej/ediabasx-interface-j2534";
+import { WebSerialTransport as J2534WebSerialTransport } from "@emdzej/j2534-webserial";
 import { GatewayClient } from "@emdzej/ediabasx-interfaces/client";
 import type { EdiabasConfig } from "@emdzej/ediabasx-ediabas";
 import { app } from "./state.svelte.js";
@@ -110,6 +112,28 @@ export async function connect(): Promise<void> {
       activeTransport = iface as unknown as EdiabasConfig["transport"];
       const baud = config.serial?.baudRate ?? 115200;
       setStatus("connected", `Connected · Web Serial @ ${baud}`);
+      return;
+    }
+
+    if (config.interface === "j2534") {
+      // J2534 via Tactrix OpenPort 2.0. The j2534-webserial transport
+      // pops the Web Serial port picker inside its own `open()` (so
+      // we still call connect() from the user gesture). DS2 framing
+      // is owned by J2534Interface — no echo/parity tweaks needed
+      // host-side; the device handles bit timing on K-line.
+      if (typeof navigator === "undefined" || !("serial" in navigator)) {
+        throw new Error("Web Serial API not available — Chrome / Edge / Opera on desktop required");
+      }
+      const j2534Transport = new J2534WebSerialTransport();
+      // DS2 @ 9600 is the seed for the initial channel; the SGBD's
+      // `INITIALISIERUNG` reconfigures via `setCommParameter`.
+      const iface = new J2534Interface({
+        transport: { kind: "instance", transport: j2534Transport },
+        protocol: "ds2",
+        baudRate: 9600,
+      });
+      activeTransport = iface as unknown as EdiabasConfig["transport"];
+      setStatus("connected", "Connected · J2534 (OpenPort 2.0)");
       return;
     }
 

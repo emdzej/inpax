@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-decompiler",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "INPA IPO bytecode decompiler — lifts compiled .IPO files back to readable .IPS-like source. Recognises function calls, assignments, expressions, structured if/else and while loops; falls back to goto+label for irreducible flow.",
   "type": "module",
   "main": "dist/index.js",

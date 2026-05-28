@@ -2,7 +2,7 @@
  * System Function Signature Parser and Argument Handler
  */
 
-import { SystemFunctionMap, ValueType, StackEntry, Scope } from '@emdzej/inpax-core';
+import { SystemFunctionMap, ValueType, StackEntry } from '@emdzej/inpax-core';
 import { getLogger } from '@emdzej/bimmerz-logger';
 import type { Stack } from '../vm/stack.js';
 import type { ExecutionContext } from '../vm/execution-context.js';

@@ -6,6 +6,46 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.9.0] — 2026-05-28
+
+Pulls in the ediabasx 0.4.0 release: SAE J2534 transport via Tactrix
+OpenPort 2.0, the new shared UI components, and the slow-K-line-ECU
+fix. Web app moves to the shared `@emdzej/bimmerz-theme` palette and
+deduplicates its interface-config UI against the rest of the bimmerz
+family.
+
+### Added
+
+- **SAE J2534 transport in the web app** — pick "J2534 (OpenPort 2.0)"
+  in Settings to drive a Tactrix OpenPort 2.0 over Web Serial. Same
+  cluster / IKE / body-module reads that previously only worked over
+  K+DCAN now work over OpenPort thanks to the host-side `ParRegenTime`
+  enforcement in `@emdzej/ediabasx-interface-j2534`.
+- **Shared UI components from `@emdzej/ediabasx-web-ui`** — the
+  interface configuration panel and the Connect/Disconnect pill come
+  from the shared package now. Adding a new transport upstream (e.g.
+  another J2534 device family) shows up in inpax-web automatically.
+
+### Changed
+
+- **`apps/cli` now uses `@emdzej/ediabasx-host-config`** for loading
+  `~/.config/ediabasx/config.json`. Same file, same XDG search order;
+  the schema + parser are now shared with the ediabasx CLI. Removes
+  ~50 lines of duplicated `EdiabasxCliConfig` / `readEdiabasxCliConfig`.
+- **Web app adopts `@emdzej/bimmerz-theme`.** Tailwind preset +
+  shared `tokens.css` replace the local `:root` / `.dark` block.
+  Class names unchanged (`bg-surface`, `text-muted`, …) so component
+  code is untouched. Subtle hue shift from inpax's historical
+  zinc neutrals to bimmerz's slate-tinted palette — kept consistent
+  with the rest of the family.
+- **All `@emdzej/ediabasx-*` deps bumped to `^0.4.0`** in cli, web,
+  and ediabasx-provider.
+
+### Fixed
+
+- **`packages/interpreter`: unused `Scope` import** that was breaking
+  CI lint.
+
 ## [0.8.1] — 2026-05-27
 
 ### Fixed
