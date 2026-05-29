@@ -6,6 +6,69 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.10.0] — 2026-05-29
+
+Pulls in [ediabasx 0.5.0](https://github.com/emdzej/ediabasx/releases/tag/0.5.0)
+— the FTDI / J2534 / Gateway sweep. No inpax-side code changes; the
+behavioural improvements come from the upgraded transports.
+
+### Changed
+
+- **`@emdzej/ediabasx-*` deps bumped `^0.4.0` → `^0.5.0`** across
+  `inpax-ediabasx-provider`, `inpax-cli`, and `inpax-web`. Pulls in:
+  - **FTDI USB-side latency timer auto-tuning** on `interface-serial` —
+    K+DCAN cables now drop from 16 ms to 1 ms latency on connect via OS-
+    specific paths (Linux sysfs, macOS via the new
+    `@emdzej/ediabasx-mac-ftdi-latency` native addon, Windows hint).
+    Slow K-line ECUs (cluster, IKE) negotiate cleanly instead of timing
+    out the inter-byte window.
+  - **Gateway default transport flipped TCP → WebSocket** — Node 22+
+    clients and browsers speak the same dialect now. `inpax-web`
+    through Gateway works without specifying `transport: "websocket"`
+    explicitly.
+  - **Gateway forwards the previously-missing methods**:
+    `transmitFrequent` / `receiveFrequent` / `stopFrequent` (closes the
+    `xfrequent` silent-no-op gap), `getIgnitionStatus` /
+    `getAdapterType` / `getAdapterVersion`, plus `getInterfaceType` /
+    `getInterfaceVersion` (the `xtype` / `xvers` ones — eagerly
+    prefetched into sync cached fields at `connect()`).
+  - **`UTILITY.PRG INTERFACE` now returns the right `TYP` / `VERSION`**
+    across every transport. Match BMW's OBD32.dll reference (`"OBD"` /
+    `0xD1` = 209) on K+DCAN, J2534 (deliberately masquerading), and
+    through the gateway. ENET reports `"ENET"` / `1`.
+  - **J2534 safety blacklist now lives in `@emdzej/j2534-driver` 0.3.0**
+    — sending the previously-bricking SET_CONFIG params (P1_MIN /
+    P2_MIN / P2_MAX / P3_MAX / P4_MAX) silently drops them, mirroring
+    Tactrix's `op20pt32.dll` behaviour. Stops a class of OpenPort 2.0
+    persistent-config corruption regressions.
+- **`@emdzej/j2534-*` peer deps bumped to `^0.3.0`** in `inpax-web`.
+
+### Notes
+
+- ediabasx's `@emdzej/ediabasx-mac-ftdi-latency` is an
+  `optionalDependency` of `interface-serial` with `"os": ["darwin"]`,
+  so non-mac inpax installs skip the gyp build. macOS users get the
+  N-API addon compiled on `pnpm install`, requires Xcode CLT.
+- **macOS users must explicitly approve the native build.** pnpm ≥ 10
+  ignores dependency `install` / `postinstall` scripts by default for
+  supply-chain safety. After `pnpm install` you'll see:
+  ```
+  ╭ Warning ─────────────────────────────────────────────────────────╮
+  │   Ignored build scripts: @emdzej/ediabasx-mac-ftdi-latency@…     │
+  │   Run "pnpm approve-builds" to pick which dependencies should    │
+  │   be allowed to run scripts.                                     │
+  ╰──────────────────────────────────────────────────────────────────╯
+  ```
+  Run `pnpm approve-builds`, select `@emdzej/ediabasx-mac-ftdi-latency`
+  (and any other build scripts you trust), then `pnpm rebuild` to
+  compile the `.node` binary. Without this, the macOS FTDI latency
+  path silently degrades to the gateway-recommendation hint — slow
+  K-line ECUs over a local K+DCAN cable will keep hitting the 16 ms
+  latency wall until the addon is built. Linux/Windows installs are
+  unaffected (no native addon to build).
+- Lockstep bump across all 19 inpax packages 0.9.0 → 0.10.0. No
+  user-facing API changes; this is a transport-layer upgrade.
+
 ## [0.9.0] — 2026-05-28
 
 Pulls in the ediabasx 0.4.0 release: SAE J2534 transport via Tactrix
