@@ -23,6 +23,7 @@ import { runCommand } from './commands/run.js';
 import { compileCommand } from './commands/compile.js';
 import { editCommand, patchCommand } from './commands/edit.js';
 import { bundleCommand } from './commands/bundle.js';
+import { dataCommand } from './commands/data.js';
 
 // Configure the central bimmerz-logger from env vars BEFORE any
 // command runs. The logger library never reads `process.env` (it
@@ -52,6 +53,7 @@ program.addCommand(compileCommand);
 program.addCommand(editCommand);
 program.addCommand(patchCommand);
 program.addCommand(bundleCommand);
+program.addCommand(dataCommand);
 
 program.parseAsync(process.argv).catch((err) => {
   process.stderr.write(`Fatal: ${(err as Error).message}\n`);

@@ -34,6 +34,7 @@ inpax --help
 | `inpax patch apply <file> <patch…>` | Apply one or more YAML patches to an `.ipo`. |
 | `inpax bundle <input-dir>` | Walk an INPA / EDIABAS / NCS install, apply `.bimmerzignore`, write a zip. |
 | `inpax bundle init` | Scaffold a starter `.bimmerzignore`. |
+| `inpax data index <dir>` | Recursively write per-directory `index.json` listings of an INPA data tree. |
 
 Run any subcommand with `--help` for the full flag list.
 
@@ -190,6 +191,54 @@ inpax bundle ~/inpa -i .bimmerzignore -o inpa-bundle.zip
 | `--no-default-ignore` | Skip the built-in install-junk patterns |
 | `--dry-run` | Walk + match but don't write the zip |
 | `--verbose` | Log every kept and skipped file |
+
+### `inpax data`
+
+Umbrella for INPA data-management routines. Today: `index` (per-directory
+JSON listings). Reserved for future cataloguing / normalisation /
+validation subcommands.
+
+#### `inpax data index`
+
+Walk a directory tree and drop an `index.json` in every directory listing
+the entries directly inside it (no recursion in the listing itself; one
+`index.json` per level). Designed for environments that can't `readdir` —
+static HTTP hosts, OPFS-mounted bundles, browser `fetch` of an extracted
+INPA tree. Consumers traverse by reading `index.json` at each level and
+following `type: "dir"` entries.
+
+```bash
+# Index a directory in place
+inpax data index ~/inpa-extracted
+
+# Preview without writing
+inpax data index ~/inpa-extracted --dry-run --verbose
+
+# Custom ignore file
+inpax data index ~/inpa-extracted -i my.indexignore
+```
+
+| Flag | Description |
+|---|---|
+| `-i, --ignore <file>` | Gitignore-style file (default `<dir>/.indexignore` if present) |
+| `--dry-run` | Walk + match but don't write any `index.json` files |
+| `--verbose` | Log every `index.json` written (or that would be written) |
+
+Each entry in `index.json` has the shape:
+
+```jsonc
+{
+  "type": "file" | "dir" | "link",
+  "name": "ms43",            // lowercased basename; extension stripped for files
+  "fullName": "ms43.ipo",    // lowercased basename with extension
+  "originalName": "MS43",    // original-cased basename (extension stripped for files)
+  "originalFullName": "MS43.IPO",
+  "size": 12345              // bytes — 0 for directories
+}
+```
+
+`index.json` and `.indexignore` are never listed themselves, so re-running
+the indexer is idempotent and ignore files stay invisible to consumers.
 
 ## Logging
 
