@@ -42,20 +42,20 @@ importers:
         specifier: ^0.1.2
         version: 0.1.2
       '@emdzej/ediabasx-client':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       '@emdzej/ediabasx-ediabas':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       '@emdzej/ediabasx-host-config':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       '@emdzej/ediabasx-interface-base':
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.7.1
+        version: 0.7.1
       '@emdzej/ediabasx-interfaces':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       '@emdzej/inpax-cli-provider':
         specifier: workspace:*
         version: link:../../packages/cli-provider
@@ -139,29 +139,29 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
       '@emdzej/ediabasx-client':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       '@emdzej/ediabasx-core':
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.7.1
+        version: 0.7.1
       '@emdzej/ediabasx-ediabas':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       '@emdzej/ediabasx-interface-base':
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.7.1
+        version: 0.7.1
       '@emdzej/ediabasx-interface-j2534':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       '@emdzej/ediabasx-interface-serial':
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.7.1
+        version: 0.7.1
       '@emdzej/ediabasx-interfaces':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       '@emdzej/ediabasx-web-ui':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/bimmerz-theme@0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0)))(svelte@5.55.5(@typescript-eslint/types@8.54.0))(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/bimmerz-theme@0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0)))(svelte@5.55.5(@typescript-eslint/types@8.54.0))(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))
       '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -368,14 +368,14 @@ importers:
         version: 5.0.4
     devDependencies:
       '@emdzej/ediabasx-client':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       '@emdzej/ediabasx-core':
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.7.1
+        version: 0.7.1
       '@emdzej/ediabasx-ediabas':
-        specifier: ^0.7.0
-        version: 0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+        specifier: ^0.7.1
+        version: 0.7.1(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -1109,33 +1109,33 @@ packages:
   '@emdzej/bimmerz-vfs@0.1.0':
     resolution: {integrity: sha512-B7X3HJiWr61Ny2Zu4BGmh7N5BGJT+XyuyZYvyWKgapEPycPw7+nrXcIWEYihxjCEZQ/A48mpv7aYRRHhHLUF6A==}
 
-  '@emdzej/ediabasx-best-parser@0.7.0':
-    resolution: {integrity: sha512-suNX6PU9fOIxIChdkbWmtMcAa31dIBjp3bF8iMGhxHyoAiMDQs2z07+6iAZ1PCx8PAuDsjWKvR9xfdrbBebM+g==}
+  '@emdzej/ediabasx-best-parser@0.7.1':
+    resolution: {integrity: sha512-ymQ6NdwJOm6QR3KU+kXyTnBsVag/rNWYes/9PVpwqbMBurv56MujOVPpVsPEEsZF4Z2aRRqA8BO1wEGK8i+DBg==}
     peerDependencies:
       '@emdzej/bimmerz-logger': ^0.1.2
 
-  '@emdzej/ediabasx-client@0.7.0':
-    resolution: {integrity: sha512-wpjErw4jxlkCogu3yQT2+ug2C0F5uBuIiPQX7Xyha33IOW3FANwxVF/ygQhJSnGrzEfny1IE89UoYbts5//08g==}
+  '@emdzej/ediabasx-client@0.7.1':
+    resolution: {integrity: sha512-rlpZiPay5TzFEdnid8FtfG23X6R1s5OGl9SFPe5ZLiFFvyOeOgEDpTgYyDc5CFCbM1u3CDEd2XaNJFNac8ghGQ==}
 
-  '@emdzej/ediabasx-core@0.7.0':
-    resolution: {integrity: sha512-hwef/0VrYxjDJdNwJn88vs1p1ZeI48izvn2WKGtCdOa0kGaiiHxHX3jSFgLC6UHAj0P9IS5c5naIfkuGcK7XRQ==}
+  '@emdzej/ediabasx-core@0.7.1':
+    resolution: {integrity: sha512-ZtfVKiOKd7Mfp9OKu6HIlEMDuDmcJSczqCj5dnUh67W3Q7u/oRLqZ+Yvjif3PdM4AbcCgVApknuegieRmEExwA==}
 
-  '@emdzej/ediabasx-ediabas@0.7.0':
-    resolution: {integrity: sha512-k9ibn2/p7K3rkvsrmfsd7H+aJdH9/BsNrsUgTWUTjZ8imftk4h2/XzfXEiQjyuEKTit/N1scAK9d2zSl3pXA5w==}
+  '@emdzej/ediabasx-ediabas@0.7.1':
+    resolution: {integrity: sha512-a56IEQgxbidkSS+9/dNH4wpGsgtUbVOpPk3yskPwMJQ7YFYrW6JnBwift8LwyC4rcWz6m+dhuHvM5jsdnodWbw==}
     peerDependencies:
       '@emdzej/bimmerz-logger': ^0.1.2
 
-  '@emdzej/ediabasx-host-config@0.7.0':
-    resolution: {integrity: sha512-34MucAHvzWTMWAv8TwnyLyv9iVwKQWoNYcE1K9DvL+vl65WkrH5tLIeXtwoKDcQ2unpzDFuFYQbuK61Pn6LgeA==}
+  '@emdzej/ediabasx-host-config@0.7.1':
+    resolution: {integrity: sha512-x3BticY6+m8m/H9dt/Qfm+zhCUxSC8n1N7A/W4e6aY8C99s1aLhiCYV2LCt7z7EAKuKQw/87dCsbSSC5rz/arQ==}
 
-  '@emdzej/ediabasx-interface-base@0.7.0':
-    resolution: {integrity: sha512-Z2BvnlIqQbfUgfU1gCizknoKbo6Hhg6T8knbL1xV9h/p6r5msPx3D9Ottnnww9yi/hpg1KNTPhLNWhJoKTrp+g==}
+  '@emdzej/ediabasx-interface-base@0.7.1':
+    resolution: {integrity: sha512-lld6LFYa3tX8yEXsyPHrDFnn8AJu/Va4Y9Nq/d2xrSMkTNA0dwomguiuH6S5k4Uzg3VRc+vRvXGoPyiSOEVzDw==}
 
-  '@emdzej/ediabasx-interface-enet@0.7.0':
-    resolution: {integrity: sha512-ny+jbOXtkUB2uOjDe/Lt6IaJ1oiDiIxbJZGvebZ4YkBdwxTfhA1LCmEp0HXR8Cd23hCFIqRMr7BaRgSxFmB/RQ==}
+  '@emdzej/ediabasx-interface-enet@0.7.1':
+    resolution: {integrity: sha512-Qp3nqM4+oJbB/KrfInuDrOoJu4elungn+8/l2ySSCl9yDp4tggZGM50ZjyTfUeUGw5j9z+7nM92VdwoOw68NeA==}
 
-  '@emdzej/ediabasx-interface-j2534@0.7.0':
-    resolution: {integrity: sha512-XSCcF0Z9HJ1UmlT0DlxH6beZDBb57j/ZcMKL3KaFV4bQn2VNzB6E6RFUsko9pmqZy/dXRssGS1x+unryaDCzNQ==}
+  '@emdzej/ediabasx-interface-j2534@0.7.1':
+    resolution: {integrity: sha512-onFIfNTkFQcFSjqm4q5MytzAie3nSVbGSXIoybTysQa3yaasaMORcCpYVZ1Iwk11KSSn2ml22TrfKYetkARM/A==}
     peerDependencies:
       '@emdzej/j2534-driver': ^0.3.0
       '@emdzej/j2534-serial': ^0.3.0
@@ -1147,11 +1147,11 @@ packages:
       '@emdzej/j2534-usb':
         optional: true
 
-  '@emdzej/ediabasx-interface-serial@0.7.0':
-    resolution: {integrity: sha512-++8EC6Mo3hCgb+tDTPdI3wFjUavPcdglb2ENM6A6XvmJhc7cqXxqLSvhqUpDSIqahBQmk57TFJCU1+yWP9ZbZg==}
+  '@emdzej/ediabasx-interface-serial@0.7.1':
+    resolution: {integrity: sha512-Az2DFf4FBdGKVjyKU/aiPq7mBctjpZKOE2VAb38XA/r/i9L52SudosJVu1AipmPw4s4dsIJQahFATssTIvstbg==}
 
-  '@emdzej/ediabasx-interfaces@0.7.0':
-    resolution: {integrity: sha512-a6MJl+LzRHxXklDnIeV0jP6X2Hg2sgVR3ZKIL2109JTkja1bKRbGbLYdXPbQ5xMZcjbfNHDA+qZQFbGi6q1Wlw==}
+  '@emdzej/ediabasx-interfaces@0.7.1':
+    resolution: {integrity: sha512-kt1Fs4pjzPT/ceRlbKDpawhROKgE4NLQ7ZXvtP6rGWDFJnFJsSizA4fEuuVfUZw8gZZXt8ccZZy2QBn+aAfoQA==}
     peerDependencies:
       '@emdzej/j2534-driver': ^0.3.0
       '@emdzej/j2534-serial': ^0.3.0
@@ -1163,18 +1163,18 @@ packages:
       '@emdzej/j2534-usb':
         optional: true
 
-  '@emdzej/ediabasx-interpreter@0.7.0':
-    resolution: {integrity: sha512-k1PShQeIAUJVpn+6aWIvGZgdOKfAWis8f0SQxJfUK/IinkaM7h1CVh/c+Rsjb7y9NKBhBjUd16HHiUUpn7lSVQ==}
+  '@emdzej/ediabasx-interpreter@0.7.1':
+    resolution: {integrity: sha512-GrPouejKpJMQA22jizs00wMhDkS3l1R5LuuDzZfeV4lUf+AOaRF74K0JY7Yv/8bRd28uTeH0J/klZq3UqJXwlg==}
 
-  '@emdzej/ediabasx-mac-ftdi-latency@0.7.0':
-    resolution: {integrity: sha512-jGfSHThZuKt1GyTSGXgtRxGcqhe0eUHwe+aoaKiDDeFVhgwnhV3tFaCi04HY7x3qybmqQSeyx8KCoFF3KsHR9g==}
+  '@emdzej/ediabasx-mac-ftdi-latency@0.7.1':
+    resolution: {integrity: sha512-o+yFNcJLQoQLsm5LonO5H9zi1DEuhWGZfVGcxx1cq53Zch60TeL6ZH4mBmiPc/WMTU2GA5Tf2E/ID5O98XRxLQ==}
     os: [darwin]
 
-  '@emdzej/ediabasx-protocol-uds@0.7.0':
-    resolution: {integrity: sha512-HtZYyOqCdCHsLzHG6FkxbttZ8Dr4EFv0/igI7ariZInVHHGQwmVxO5YikccJZW50cQcF//TpEtDbv6DHTDJdUQ==}
+  '@emdzej/ediabasx-protocol-uds@0.7.1':
+    resolution: {integrity: sha512-3Z6jNtZVm6JSEj76oayj087NIQoNQw180km2L/QtLFgD24I8H3aYTAY4xopZ7lPZEtxgYNhblF/BuWV3Iy1xoA==}
 
-  '@emdzej/ediabasx-web-ui@0.7.0':
-    resolution: {integrity: sha512-NN1C92dG2LbtNgQ34q+JIKAwc9bccyqsJ50VQhLdvaAo6D8Gcfb8gggkFsZhKFp/sfrFAm20uSzT7f9/OkuWzA==}
+  '@emdzej/ediabasx-web-ui@0.7.1':
+    resolution: {integrity: sha512-zNreHDN4qRFhF/65cvETo2ed8hG9pWznd9EsaMUtxtQCdcq5OU9EmeFqo4p84O0wwWnNAanrZBqsVy+KNum8Sg==}
     peerDependencies:
       '@emdzej/bimmerz-theme': ^0.1.0
       svelte: ^5.0.0
@@ -5488,17 +5488,17 @@ snapshots:
 
   '@emdzej/bimmerz-vfs@0.1.0': {}
 
-  '@emdzej/ediabasx-best-parser@0.7.0(@emdzej/bimmerz-logger@0.1.2)':
+  '@emdzej/ediabasx-best-parser@0.7.1(@emdzej/bimmerz-logger@0.1.2)':
     dependencies:
       '@emdzej/bimmerz-logger': 0.1.2
-      '@emdzej/ediabasx-core': 0.7.0
+      '@emdzej/ediabasx-core': 0.7.1
       chalk: 5.6.2
 
-  '@emdzej/ediabasx-client@0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
+  '@emdzej/ediabasx-client@0.7.1(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
     dependencies:
-      '@emdzej/ediabasx-core': 0.7.0
-      '@emdzej/ediabasx-ediabas': 0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
-      '@emdzej/ediabasx-interface-base': 0.7.0
+      '@emdzej/ediabasx-core': 0.7.1
+      '@emdzej/ediabasx-ediabas': 0.7.1(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+      '@emdzej/ediabasx-interface-base': 0.7.1
     transitivePeerDependencies:
       - '@emdzej/bimmerz-logger'
       - '@emdzej/j2534-driver'
@@ -5509,18 +5509,18 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@emdzej/ediabasx-core@0.7.0': {}
+  '@emdzej/ediabasx-core@0.7.1': {}
 
-  '@emdzej/ediabasx-ediabas@0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
+  '@emdzej/ediabasx-ediabas@0.7.1(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
     dependencies:
       '@emdzej/bimmerz-logger': 0.1.2
-      '@emdzej/ediabasx-best-parser': 0.7.0(@emdzej/bimmerz-logger@0.1.2)
-      '@emdzej/ediabasx-core': 0.7.0
-      '@emdzej/ediabasx-interface-base': 0.7.0
-      '@emdzej/ediabasx-interface-enet': 0.7.0
-      '@emdzej/ediabasx-interface-serial': 0.7.0
-      '@emdzej/ediabasx-interfaces': 0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
-      '@emdzej/ediabasx-interpreter': 0.7.0(@emdzej/bimmerz-logger@0.1.2)
+      '@emdzej/ediabasx-best-parser': 0.7.1(@emdzej/bimmerz-logger@0.1.2)
+      '@emdzej/ediabasx-core': 0.7.1
+      '@emdzej/ediabasx-interface-base': 0.7.1
+      '@emdzej/ediabasx-interface-enet': 0.7.1
+      '@emdzej/ediabasx-interface-serial': 0.7.1
+      '@emdzej/ediabasx-interfaces': 0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+      '@emdzej/ediabasx-interpreter': 0.7.1(@emdzej/bimmerz-logger@0.1.2)
       zod: 4.4.3
     transitivePeerDependencies:
       - '@emdzej/j2534-driver'
@@ -5531,9 +5531,9 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@emdzej/ediabasx-host-config@0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
+  '@emdzej/ediabasx-host-config@0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
     dependencies:
-      '@emdzej/ediabasx-interfaces': 0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+      '@emdzej/ediabasx-interfaces': 0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
     transitivePeerDependencies:
       - '@emdzej/j2534-driver'
       - '@emdzej/j2534-serial'
@@ -5543,35 +5543,35 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@emdzej/ediabasx-interface-base@0.7.0': {}
+  '@emdzej/ediabasx-interface-base@0.7.1': {}
 
-  '@emdzej/ediabasx-interface-enet@0.7.0':
+  '@emdzej/ediabasx-interface-enet@0.7.1':
     dependencies:
-      '@emdzej/ediabasx-interface-base': 0.7.0
+      '@emdzej/ediabasx-interface-base': 0.7.1
 
-  '@emdzej/ediabasx-interface-j2534@0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
+  '@emdzej/ediabasx-interface-j2534@0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
     dependencies:
-      '@emdzej/ediabasx-interface-base': 0.7.0
+      '@emdzej/ediabasx-interface-base': 0.7.1
       '@emdzej/j2534-driver': 0.3.0
       '@emdzej/j2534-types': 0.3.0
 
-  '@emdzej/ediabasx-interface-serial@0.7.0':
+  '@emdzej/ediabasx-interface-serial@0.7.1':
     dependencies:
-      '@emdzej/ediabasx-core': 0.7.0
-      '@emdzej/ediabasx-interface-base': 0.7.0
-      '@emdzej/ediabasx-protocol-uds': 0.7.0
+      '@emdzej/ediabasx-core': 0.7.1
+      '@emdzej/ediabasx-interface-base': 0.7.1
+      '@emdzej/ediabasx-protocol-uds': 0.7.1
       serialport: 12.0.0
     optionalDependencies:
-      '@emdzej/ediabasx-mac-ftdi-latency': 0.7.0
+      '@emdzej/ediabasx-mac-ftdi-latency': 0.7.1
     transitivePeerDependencies:
       - supports-color
 
-  '@emdzej/ediabasx-interfaces@0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
+  '@emdzej/ediabasx-interfaces@0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)':
     dependencies:
-      '@emdzej/ediabasx-interface-base': 0.7.0
-      '@emdzej/ediabasx-interface-enet': 0.7.0
-      '@emdzej/ediabasx-interface-j2534': 0.7.0(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
-      '@emdzej/ediabasx-interface-serial': 0.7.0
+      '@emdzej/ediabasx-interface-base': 0.7.1
+      '@emdzej/ediabasx-interface-enet': 0.7.1
+      '@emdzej/ediabasx-interface-j2534': 0.7.1(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
+      '@emdzej/ediabasx-interface-serial': 0.7.1
       '@emdzej/j2534-driver': 0.3.0
       '@emdzej/j2534-types': 0.3.0
       ws: 8.19.0
@@ -5580,15 +5580,15 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@emdzej/ediabasx-interpreter@0.7.0(@emdzej/bimmerz-logger@0.1.2)':
+  '@emdzej/ediabasx-interpreter@0.7.1(@emdzej/bimmerz-logger@0.1.2)':
     dependencies:
-      '@emdzej/ediabasx-best-parser': 0.7.0(@emdzej/bimmerz-logger@0.1.2)
-      '@emdzej/ediabasx-core': 0.7.0
-      '@emdzej/ediabasx-interface-base': 0.7.0
+      '@emdzej/ediabasx-best-parser': 0.7.1(@emdzej/bimmerz-logger@0.1.2)
+      '@emdzej/ediabasx-core': 0.7.1
+      '@emdzej/ediabasx-interface-base': 0.7.1
     transitivePeerDependencies:
       - '@emdzej/bimmerz-logger'
 
-  '@emdzej/ediabasx-mac-ftdi-latency@0.7.0':
+  '@emdzej/ediabasx-mac-ftdi-latency@0.7.1':
     dependencies:
       node-addon-api: 8.8.0
       node-gyp: 11.5.0
@@ -5596,9 +5596,9 @@ snapshots:
       - supports-color
     optional: true
 
-  '@emdzej/ediabasx-protocol-uds@0.7.0': {}
+  '@emdzej/ediabasx-protocol-uds@0.7.1': {}
 
-  '@emdzej/ediabasx-web-ui@0.7.0(@emdzej/bimmerz-theme@0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0)))(svelte@5.55.5(@typescript-eslint/types@8.54.0))(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))':
+  '@emdzej/ediabasx-web-ui@0.7.1(@emdzej/bimmerz-theme@0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0)))(svelte@5.55.5(@typescript-eslint/types@8.54.0))(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))':
     dependencies:
       '@emdzej/bimmerz-theme': 0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))
       svelte: 5.55.5(@typescript-eslint/types@8.54.0)

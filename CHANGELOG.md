@@ -6,6 +6,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.11.1] — 2026-06-05
+
+Dependency bump only — picks up
+[ediabasx 0.7.1](https://github.com/emdzej/ediabasx/releases/tag/0.7.1)
+across `inpax-ediabasx-provider`, `inpax-cli`, and `inpax-web`. The
+ediabasx release widens `IEdiabas.job` params to
+`string | Uint8Array | (string | Uint8Array)[]` so the apiJobData
+channel (binary params — `pary` / `parb` / `parw` / `parl` / `parr`)
+is reachable through the unified interface. Inpax doesn't currently
+use binary params (all its jobs are reads — IDENT, MESSWERTBLOCK_LESEN,
+STATUS_LESEN — which pass strings), so this is an inert uplift for
+inpax itself; it unblocks downstream consumers (ncsx) that share the
+same provider chain and need binbuf-driven writes (NCS coding's
+`C_S_SCHREIBEN` / `C_S_AUFTRAG` / `C_FA_AUFTRAG`).
+
+No inpax-side API changes — the `IEdiabas.job` widening is purely
+additive (existing `params?: string` call sites keep working).
+
+### Changed
+
+- **`@emdzej/ediabasx-*` deps bumped `^0.7.0` → `^0.7.1`** in
+  `inpax-ediabasx-provider`, `inpax-cli`, `inpax-web`. Lockfile
+  refresh; no transient dep updates.
+
 ## [0.11.0] — 2026-06-05
 
 Pulls in [ediabasx 0.7.0](https://github.com/emdzej/ediabasx/releases/tag/0.7.0).
