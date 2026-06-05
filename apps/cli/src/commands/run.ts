@@ -208,11 +208,15 @@ async function resolveEdiabasProvider(
             // No config anywhere — fall back to in-memory simulation rooted
             // at the chosen ecuPath. Scripts that touch a real ECU will
             // still fail; the summary makes it obvious why.
+            const { EmbeddedEdiabas } = await import('@emdzej/ediabasx-client');
+            const { SimulationInterface } = await import(
+                '@emdzej/ediabasx-interface-base'
+            );
             provider = new EdiabasXProvider({
-                config: {
-                    ecuPath,
-                    simulation: true,
-                },
+                instance: new EmbeddedEdiabas({
+                    sgbdPath: ecuPath,
+                    interface: new SimulationInterface(),
+                }),
                 autoConnect: true,
             });
             interfaceName = 'simulation';
@@ -271,26 +275,29 @@ async function buildProviderFromCliConfig(
     const cliCfg = loadCliConfig(configPath);
     const isSimulation = cliCfg.interface === 'simulation';
 
-    let transport: unknown = undefined;
-    if (!isSimulation) {
+    const { EmbeddedEdiabas } = await import('@emdzej/ediabasx-client');
+    let iface;
+    if (isSimulation) {
+        const { SimulationInterface } = await import(
+            '@emdzej/ediabasx-interface-base'
+        );
+        iface = new SimulationInterface();
+    } else {
         const { createInterface } = await import('@emdzej/ediabasx-interfaces');
         // ediabasx CLI's loadConfig validates `options` as a plain object;
         // its actual shape is interface-specific (port/baudRate/host/...).
         // Cast at the boundary — createInterface narrows per interface.
-        transport = createInterface(
+        iface = createInterface(
             cliCfg.interface,
             (cliCfg.options ?? {}) as Parameters<typeof createInterface>[1]
         );
     }
 
     return new EdiabasXProvider({
-        config: {
-            ecuPath,
-            simulation: isSimulation,
-            // EdiabasConfig accepts `transport` for live mode — same field
-            // ediabasx CLI's run command uses.
-            ...(transport ? { transport } : {}),
-        } as never,
+        instance: new EmbeddedEdiabas({
+            sgbdPath: ecuPath,
+            interface: iface,
+        }),
         autoConnect: true,
     });
 }

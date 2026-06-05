@@ -32,6 +32,12 @@ interface AppState {
   config: WebConfig;
   /** Settings modal visibility. */
   showSettings: boolean;
+  /** Bimmerz Connect: transient session ID (not persisted). */
+  connectSessionId: string | null;
+  /** Bimmerz Connect: transient initiator token (not persisted). */
+  connectToken: string | null;
+  /** Bimmerz Connect: session prompt modal visibility. */
+  showConnectSession: boolean;
 }
 
 export const app = $state<AppState>({
@@ -42,4 +48,7 @@ export const app = $state<AppState>({
   error: null,
   config: loadConfig(),
   showSettings: false,
+  connectSessionId: null,
+  connectToken: null,
+  showConnectSession: false,
 });

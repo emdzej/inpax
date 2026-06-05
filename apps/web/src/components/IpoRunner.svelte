@@ -13,7 +13,7 @@
    */
 
   import { app } from "../lib/state.svelte";
-  import { getActiveTransport } from "../lib/connection.svelte";
+  import { getActiveIEdiabas } from "../lib/connection.svelte";
   import { startInpaRuntime, type RuntimeHandle } from "../lib/runtime.svelte";
   import { isDarkTheme } from "../lib/settings.svelte";
   import {
@@ -238,7 +238,12 @@
   $effect(() => {
     const ipo = app.selectedIpo;
 
-    if (!ipo || !app.install) {
+    /* In embedded mode, an INPA install is required (SGBD files are
+       resolved locally). In client mode the server owns the SGBD
+       catalogue, so the install is optional — IPO can run without
+       one being picked. */
+    const needsInstall = app.config.mode === "embedded";
+    if (!ipo || (needsInstall && !app.install)) {
       runtime?.dispose();
       runtime = null;
       return;
@@ -252,8 +257,7 @@
     startInpaRuntime({
       install: app.install,
       ipo,
-      getTransport: () => getActiveTransport()?.transport ?? null,
-      timeoutMs: app.config.serial?.timeoutMs ?? 5000,
+      getInstance: () => getActiveIEdiabas(),
     })
       .then((handle) => {
         if (cancelled) {

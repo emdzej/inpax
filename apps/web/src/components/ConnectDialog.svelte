@@ -146,8 +146,18 @@
       {:else}
         <section class="space-y-3 px-4 py-4 text-sm text-muted">
           <div class="flex items-center justify-between">
-            <span class="text-muted">Interface</span>
-            <span class="font-mono text-foreground">{app.config.interface}</span>
+            <span class="text-muted">Connection</span>
+            <span class="font-mono text-foreground">
+              {#if app.config.mode === "client"}
+                {#if app.config.connectionMethod === "connect"}
+                  Bimmerz Connect
+                {:else}
+                  {app.config.serverUrl ?? "(server URL not set)"}
+                {/if}
+              {:else}
+                {app.config.interface}
+              {/if}
+            </span>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-muted">Status</span>

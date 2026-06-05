@@ -25,33 +25,32 @@ import { EdiabasXProvider, Inp1Adapter } from "@emdzej/inpax-ediabasx-provider";
 import {
   BrowserExternalProvider,
   BrowserNativeImportProvider,
-  makeBrowserSgbdResolver,
   type InpaInstall,
   type IpoEntry,
 } from "@emdzej/inpax-web-provider";
 import { settings, RUNTIME_TICK_MS_FAST, debugLog } from "./settings.svelte.js";
 import { app } from "./state.svelte.js";
-import { Ediabas, type EdiabasConfig } from "@emdzej/ediabasx-ediabas";
+import type { IEdiabas } from "@emdzej/ediabasx-core";
 
 export interface RuntimeOptions {
-  install: InpaInstall;
+  install: InpaInstall | null;
   ipo: IpoEntry;
   /**
-   * Callback that returns the current comm transport whenever the
-   * provider needs one (i.e. on `INPAapiInit`). The script drives
-   * the connection lifecycle: when `INPAapiInit` fires, the
-   * dispatcher first awaits `ui.ensureConnected()` (which opens the
-   * settings/connect modal and waits for the user); only then does
-   * the provider's `init()` run and pull the now-ready transport.
+   * Callback that returns the current IEdiabas implementation
+   * (either `EmbeddedEdiabas` for local cable or `EdiabasClient`
+   * for a remote server). Invoked at `provider.init()` time — the
+   * script drives connection lifecycle: when `INPAapiInit` fires,
+   * the dispatcher awaits `ui.ensureConnected()` (opens settings,
+   * waits for the user); only then does the provider's `init()` run
+   * and pull the now-ready IEdiabas.
    *
-   * The caller (typically `connection.svelte.ts.getActiveTransport`)
-   * may return `null` when no cable has been opened yet; the
-   * provider lets the subsequent `connect()` fail naturally and the
-   * dispatcher's loop turns it into a job:error / retry dialog.
+   * The caller (typically `connection.svelte.ts.getActiveIEdiabas`)
+   * may return `null` when nothing's been connected yet; the
+   * provider lets the subsequent `connect failed` event surface
+   * naturally and the dispatcher's loop turns it into a
+   * `job:error` / retry dialog.
    */
-  getTransport: () => EdiabasConfig["transport"] | null;
-  /** Default per-request timeout in ms. Passed to `Ediabas`. */
-  timeoutMs?: number;
+  getInstance: () => IEdiabas | null;
 }
 
 export interface RuntimeHandle {
@@ -103,10 +102,6 @@ export interface RuntimeHandle {
 export async function startInpaRuntime(
   options: RuntimeOptions
 ): Promise<RuntimeHandle> {
-  if (!options.install.ecu) {
-    throw new Error("INPA install has no Ecu/ directory — re-pick the install folder");
-  }
-
   // 1. Read + parse the IPO. Browser File API gives us an ArrayBuffer
   //    which the parser accepts directly (its constructor handles
   //    Uint8Array | ArrayBufferLike after the browser-safety pass).
@@ -120,30 +115,20 @@ export async function startInpaRuntime(
   const ui = new WebUIProvider();
   const screen = ui.getScreenBuffer();
 
-  // 3. EDIABAS — real instance with transport supplied by the caller.
-  //    `loadSgbdResolver` is the browser hook for SGBD reads: both
-  //    initial `loadSgbd` and the post-IDENTIFIKATION `.grp → .prg`
-  //    swap route through it, so neither path touches `node:fs` /
-  //    `node:path` (which Vite externalises into broken stubs).
-  // No transport at construction — the script's `INPAapiInit` drives
-  // the cable open, via `ui.ensureConnected()` → user opens settings
-  // → user clicks Connect (Web Serial port pick happens inside that
-  // user gesture) → `connection.svelte.ts` builds the transport →
-  // provider's `init()` pulls it via `getTransport`. Pre-binding the
-  // transport here would require the user to click Connect BEFORE
-  // picking an IPO, which is the old gate flow we removed.
-  const ediabas = new Ediabas({
-    ecuPath: "", // browser path; resolver below reads from the dir handle
-    simulation: false,
-    timeout: options.timeoutMs ?? 5000,
-    loadSgbdResolver: makeBrowserSgbdResolver(options.install.ecu),
-  });
+  // 3. EDIABAS provider — wraps an `IEdiabas` implementation that the
+  //    connection module builds when the user clicks Connect.
+  //    Embedded mode → `EmbeddedEdiabas` over Web Serial / J2534 /
+  //    Gateway. Client mode → `EdiabasClient` over JSON-RPC.
+  //
+  //    We use the `getInstance` factory pattern (provider 0.10+) so
+  //    the IEdiabas can be built AFTER provider construction — the
+  //    IPO mounts first, the script's `INPAapiInit` then triggers
+  //    `ui.ensureConnected()`, the user picks a cable / server, and
+  //    only THEN does `connection.svelte.ts` build the IEdiabas.
+  //    Pre-binding here would require Connect BEFORE picking an IPO,
+  //    the old gate flow we removed.
   const ediabasProvider = new EdiabasXProvider({
-    instance: ediabas,
-    // autoConnect=true (default): the dispatcher's `INPAapiInit` now
-    // calls `provider.init()` which will `ediabas.connect()` once the
-    // transport callback returns something.
-    getTransport: options.getTransport,
+    getInstance: options.getInstance,
   });
 
   // Surface job-execution failures to the user, not just the console.
@@ -175,18 +160,30 @@ export async function startInpaRuntime(
   //    to the right backend.
   const inp1Provider = new Inp1Adapter(ediabasProvider);
 
-  // 5. Native imports — INI lookups for F-key bindings etc. Cache the
-  //    INPA.INI / EDIABAS.INI eagerly so the synchronous CALLE handler
-  //    has data to return.
-  const nativeImports = new BrowserNativeImportProvider({
-    install: options.install,
-    ediabasConfig: {
-      ecuPath: options.install.ecu.name,
-      interfaceName: "serial",
-      iniPath: "",
-    },
-  });
-  await nativeImports.prefetchIniFiles();
+  /* 5. Native imports — INI lookups for F-key bindings etc. Cache
+        the INPA.INI / EDIABAS.INI eagerly so the synchronous CALLE
+        handler has data to return.
+
+        In client mode (no local install), scripts that depend on
+        INI lookups via CALLE degrade to empty results. The null
+        stub returns empty arrays so the dispatcher's "no handler"
+        warning fires once per import, instead of a hard TypeError. */
+  const install = options.install;
+  const nativeImports = install && install.ecu
+    ? await (async () => {
+        const ecuDir = install.ecu!;
+        const provider = new BrowserNativeImportProvider({
+          install,
+          ediabasConfig: {
+            ecuPath: ecuDir.name,
+            interfaceName: "serial",
+            iniPath: "",
+          },
+        });
+        await provider.prefetchIniFiles();
+        return provider;
+      })()
+    : { call: (): unknown[] => [] };
 
   // 6. VM. Browser-side has no real hardware for simulation / print /
   //    pem / dtm / sps yet — wire the null providers so scripts that

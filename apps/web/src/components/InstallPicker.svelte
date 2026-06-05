@@ -342,6 +342,26 @@
             >Make one with bimmerz-bundle.</a>
           </span>
         </button>
+        <button
+          type="button"
+          class="flex flex-1 flex-col items-center gap-2 rounded border border-rule bg-surface p-4 text-center transition hover:border-accent hover:bg-elevated"
+          onclick={() => {
+            /* Client mode — the server owns the SGBD catalogue, no
+               local install needed. Flip the mode in config and jump
+               straight to the browse view; the user wires the server
+               URL (or Bimmerz Connect session) from Settings. */
+            app.config.mode = "client";
+            app.view = "browse";
+            app.showSettings = true;
+          }}
+        >
+          <span class="font-semibold text-foreground">Connect to remote server</span>
+          <span class="text-xs text-faint">
+            Talk to a running <code class="text-muted">ediabasx-server</code> over
+            WebSocket — direct or via Bimmerz Connect relay. No local
+            install needed; the server resolves SGBDs.
+          </span>
+        </button>
       </div>
       <input
         bind:this={zipInput}

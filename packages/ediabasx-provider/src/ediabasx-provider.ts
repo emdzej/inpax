@@ -2,69 +2,62 @@
  * EdiabasX provider for the INPA interpreter.
  *
  * Binds the 13 `INPAapi*` system functions defined in
- * `@emdzej/inpax-interfaces` to a real `@emdzej/ediabasx-ediabas`
- * runtime. The dispatcher routes opcodes 0x60–0x6C here; this class is
- * what the INPA bytecode actually hits when it asks the ECU a question.
+ * `@emdzej/inpax-interfaces` to any `IEdiabas` implementation
+ * (`EmbeddedEdiabas` for local cable / simulation, `EdiabasClient`
+ * for remote server). The dispatcher routes opcodes 0x60–0x6C here;
+ * this class is what the INPA bytecode actually hits when it asks
+ * the ECU a question.
+ *
+ * The caller owns IEdiabas construction — picks the concrete
+ * implementation (`EmbeddedEdiabas` / `EdiabasClient`), wires the
+ * interface / transport / loadSgbdResolver / server URL, and hands
+ * the result here as `instance`. Provider stays purely about
+ * adapting `IEdiabas` to the INPA result/status surface.
  */
 
 import { EventEmitter } from 'eventemitter3';
-import { Ediabas } from '@emdzej/ediabasx-ediabas';
 import type {
-  EdiabasConfig,
-  EdiabasJobResult,
-} from '@emdzej/ediabasx-ediabas';
+  IEdiabas,
+  EdiabasJobResponse,
+  EdiabasResultEntry,
+  EdiabasResultSet,
+} from '@emdzej/ediabasx-core';
+import type { EdiabasJobResult } from '@emdzej/ediabasx-ediabas';
 import { formatSingle } from '@emdzej/inpax-core';
 import type { IEdiabasProvider, EdiabasEvents } from '@emdzej/inpax-interfaces';
 
 export interface EdiabasXProviderConfig {
   /**
-   * Pre-built `Ediabas` instance to wrap directly. Browser hosts
-   * build this themselves (file picked via `FileSystemDirectoryHandle`,
-   * transport via Web Serial); Node hosts can use the convenience
-   * `createNodeProvider` helper in `/node` instead, which still
-   * accepts a path to an `ediabas.config.json`.
+   * Pre-built `IEdiabas` implementation — caller picks
+   * `EmbeddedEdiabas` (local cable / Web Serial / J2534 / Gateway /
+   * simulation) or `EdiabasClient` (remote JSON-RPC server, direct
+   * WebSocket or Bimmerz Connect relay) and builds it before
+   * handing it here.
    *
-   * Mutually exclusive with `config`.
+   * Mutually exclusive with `getInstance`. Both modes converge on
+   * the same surface: `init`/`end`/`job(ecu, name, params?)`.
+   * Provider doesn't care which.
    */
-  instance?: Ediabas;
+  instance?: IEdiabas;
   /**
-   * Direct EdiabasX configuration. Mutually exclusive with
-   * `instance`. Falls back to in-memory simulation if neither is
-   * supplied (mainly useful for unit tests).
+   * Lazy factory invoked at `init()` time. Use this when the
+   * IEdiabas isn't ready at provider-construction (e.g., inpax's
+   * deferred-Connect flow: the IPO mounts and the provider is built
+   * BEFORE the user clicks Connect; the script's `INPAapiInit`
+   * triggers `ui.ensureConnected()`, the user picks a cable /
+   * server, and only THEN can the IEdiabas be built). Return
+   * `null` if no IEdiabas is ready yet — the provider's subsequent
+   * `connect failed` event surfaces it cleanly.
+   *
+   * Mutually exclusive with `instance`.
    */
-  config?: EdiabasConfig;
+  getInstance?: () => IEdiabas | null;
   /**
    * Establish the comm link during `init()`. Set false if the
    * caller wants to defer connection until the first job runs.
    * Defaults to true.
    */
   autoConnect?: boolean;
-  /**
-   * How to load an SGBD when the script switches ECUs.
-   *
-   * Default (Node hosts): the provider calls `ediabas.loadSgbd(filename)`
-   * which reads from the filesystem via `node:fs`. Browser hosts pass a
-   * function that reads bytes from a `FileSystemDirectoryHandle` (or
-   * any other browser source) and hands them to
-   * `ediabas.loadSgbdFromBuffer(bytes, name)` themselves. The provider
-   * resolves the filename via the same `.prg` / `.grp` extension dance
-   * and calls this callback when present, fallback otherwise.
-   */
-  loadSgbd?: (filename: string, ediabas: Ediabas) => Promise<void>;
-  /**
-   * Pull the current comm transport on `init()`. Browser hosts hand
-   * us a callback that reads the user's most recently established
-   * Web Serial / simulation transport from their UI state — the
-   * transport isn't known at runtime construction (the user picks
-   * the cable after the IPO mounts, via the script-driven
-   * `ensureConnected` flow), so we can't bake it into the `instance`
-   * passed in.
-   *
-   * Called once per `init()`. Return `null` if no transport is
-   * ready; the provider will still proceed to `connect()` and let
-   * the resulting error surface as a `job:error`.
-   */
-  getTransport?: () => EdiabasConfig['transport'] | null;
 }
 
 /**
@@ -82,23 +75,26 @@ export class EdiabasXProvider
   extends EventEmitter<EdiabasEvents>
   implements IEdiabasProvider
 {
-  private ediabas: Ediabas | null = null;
+  private ediabas: IEdiabas | null = null;
   private readonly providerConfig: EdiabasXProviderConfig;
 
-  /** Cached so we only re-load the SGBD when the bytecode names a new ECU. */
-  private currentEcu: string | null = null;
-
-  /** Result sets from the most recent job, in emission order. */
+  /**
+   * Result sets from the most recent job (DATA sets only, not the
+   * system set at index 0 — see `job()` for the slice). INPA's
+   * `result*(name, set)` accessors are 1-based on data sets, so
+   * `lastResults[0]` corresponds to INPA `set=1`.
+   */
   private lastResults: JobResultSet[] = [];
 
   /**
-   * Metadata / system result snapshot from `ediabas.getSystemResults()` —
-   * populated at SGBD load time (VARIANTE from the basename, plus the
-   * INFO job's ECU / ORIGIN / REVISION / AUTHOR / COMMENT / PACKAGE /
-   * SPRACHE) and refreshed on every executeJob (JOB_STATUS). Used as
-   * a by-name fallback when the per-set lookup misses — matches what
-   * native EDIABAS exposes to scripts that read SGBD metadata without
-   * knowing which set holds it.
+   * Metadata / system result snapshot from the most recent job's
+   * `sets[0]` (the system set built fresh per job by
+   * `Ediabas.buildSystemSet` — mirrors C# `CreateSystemResultDict`).
+   * Carries VARIANTE / OBJECT / JOBNAME / SAETZE / GRUPPE / FAMILIE
+   * plus the persistent metadata accumulator (ECU / ORIGIN /
+   * REVISION / AUTHOR / COMMENT / PACKAGE / SPRACHE / JOB_STATUS …).
+   * Used as a by-name fallback when per-set lookup misses, and the
+   * target of the INPA `set=0` "transparent metadata" idiom.
    */
   private systemResults: Map<string, EdiabasJobResult> = new Map();
 
@@ -128,7 +124,7 @@ export class EdiabasXProvider
    */
   private inFlight = 0;
 
-  constructor(config: EdiabasXProviderConfig = {}) {
+  constructor(config: EdiabasXProviderConfig) {
     super();
     this.providerConfig = config;
   }
@@ -159,41 +155,32 @@ export class EdiabasXProvider
   async init(): Promise<void> {
     this.beginBusy();
     try {
-      if (this.providerConfig.instance) {
-        this.ediabas = this.providerConfig.instance;
-      } else if (this.providerConfig.config) {
-        this.ediabas = new Ediabas(this.providerConfig.config);
-      } else {
-        // No config supplied — fall back to an empty simulation. The
-        // ecuPath default used to be `process.cwd()`, which broke
-        // browser bundles; an empty string is safe in both runtimes
-        // and the simulation interface doesn't actually touch disk
-        // unless the host supplies sim data.
-        this.ediabas = new Ediabas({
-          ecuPath: '',
-          simulation: true,
-        });
-      }
+      /* Caller-built IEdiabas — could be EmbeddedEdiabas (with its
+         own interface/transport baked in at construction time) or
+         EdiabasClient (with server URL + transport choice).
+         Either way: just bind and init.
 
-      // Pull the latest transport from the host before connecting.
-      // Browser hosts only know the transport AFTER the user clicks
-      // Connect in the settings panel; that happens during the
-      // script-driven `ensureConnected` flow, which fires BEFORE
-      // this `init()`. The callback returns the freshly-built
-      // transport (or null if the user skipped).
-      const transportFromHost = this.providerConfig.getTransport?.() ?? null;
-      if (transportFromHost) {
-        this.ediabas.setTransport(transportFromHost);
+         When the caller supplied a `getInstance` factory instead of
+         a direct `instance`, resolve it now — this is inpax's
+         deferred-Connect path where the IEdiabas isn't ready until
+         `ui.ensureConnected()` has run. */
+      const resolved =
+        this.providerConfig.instance ?? this.providerConfig.getInstance?.() ?? null;
+      if (!resolved) {
+        throw new Error(
+          'No IEdiabas available — provider was given neither `instance` nor a `getInstance` factory returning a non-null value',
+        );
       }
+      this.ediabas = resolved;
 
       if (this.providerConfig.autoConnect !== false) {
         try {
-          await this.ediabas.connect();
+          await this.ediabas.init();
           this.emit('connection:restored');
         } catch (err) {
-          // Some scripts run only metadata-style jobs and never need
-          // the link. Don't fatal-error here; surface on `job:error`
-          // when a job actually fails.
+          /* Some scripts run only metadata-style jobs and never need
+             the link. Don't fatal-error here; surface on `job:error`
+             when a job actually fails. */
           const message = err instanceof Error ? err.message : String(err);
           this.emit('job:error', { code: -1, message: `connect failed: ${message}` });
         }
@@ -207,18 +194,22 @@ export class EdiabasXProvider
     }
   }
 
+  /**
+   * Detach from the underlying IEdiabas. **Does NOT call `end()` on
+   * the IEdiabas itself** — the IEdiabas is owned by the caller
+   * (typically inpax's `connection.svelte.ts`, which manages its
+   * lifecycle independently of per-IPO runtime mounts). If we
+   * tore it down here, switching IPOs would close the shared
+   * connection (and for `EdiabasClient` over a relay socket, that
+   * means closing the WebSocket — fatal for the next IPO mount).
+   *
+   * Callers that want to explicitly disconnect the IEdiabas should
+   * do so directly (e.g. `connection.disconnect()` in inpax-web).
+   */
   async end(): Promise<void> {
     this.beginBusy();
     try {
-      if (this.ediabas) {
-        try {
-          await this.ediabas.disconnect();
-        } catch {
-          /* ignore — we're tearing down anyway */
-        }
-        this.ediabas = null;
-      }
-      this.currentEcu = null;
+      this.ediabas = null;
       this.lastResults = [];
       this.lastJobStatus = '';
       this.emit('connection:lost');
@@ -234,76 +225,67 @@ export class EdiabasXProvider
       this.emit('job:error', { code: -1, message: 'Not initialized — call init() first' });
       return;
     }
+    void arg2; /* INPA's RESULTS filter — not yet supported in IEdiabas.job */
 
     this.beginBusy();
     try {
-      // Load the SGBD on the first hit and whenever the script switches
-      // ECUs. INPA scripts often hit multiple ECUs in sequence
-      // (e.g. DME → EGS → CAS); only the first call per ECU pays the
-      // file-load cost.
-      if (this.currentEcu !== ecu) {
-        const filename = this.resolveSgbdFile(ecu);
-        if (this.providerConfig.loadSgbd) {
-          await this.providerConfig.loadSgbd(filename, this.ediabas);
-        } else {
-          await this.ediabas.loadSgbd(filename);
-        }
-        this.currentEcu = ecu;
-      }
+      /* INPA's `apiJob(ECU, JOB, PARAMS, RESULTS)` follows BMW EDIABAS
+         convention: PARAMS is a single semicolon-delimited string that
+         EDIABAS splits into individual `par(0)`, `par(1)`, … `par(N)`
+         slots before the BEST2 program runs. `IEdiabas.job(ecu, job,
+         params)` takes that exact string — so we pass `arg1` straight
+         through, no split needed (no semicolons → empty becomes
+         `undefined` so no `par()` slots are set, matching the
+         no-params case). `RESULTS` is a result-name filter; the
+         IEdiabas surface doesn't yet expose it, so we drop it.
 
-      // INPA's `apiJob(ECU, JOB, PARAMS, RESULTS)` follows BMW EDIABAS
-      // convention: **`PARAMS` is a single semicolon-delimited string**
-      // that EDIABAS splits into individual `par(0)`, `par(1)`, … `par(N)`
-      // slots before the BEST2 program runs. `RESULTS` is a result-name
-      // filter — not a parameter — and our `executeJob` doesn't yet
-      // support filtering, so we drop it.
-      //
-      // Real-world examples that pin this down:
-      //   • STEUERN_ANZEIGE  arg1="TACHO;40"                    → par(0)="TACHO", par(1)="40"
-      //   • STEUERN_LEUCHTE  arg1="0xFF;0xFF;0xFF;0xFF;0xFF;0xFF" → par(0..5)="0xFF"
-      //   • IDENT            arg1=""                            → no params
-      //
-      // Pre-fix we passed `[arg1, arg2]` verbatim as a 2-element array,
-      // so STEUERN_LEUCHTE ended up with `par(0)` set to the entire
-      // "0xFF;0xFF;…" blob — the SGBD's per-lamp control bytes
-      // collapsed into one giant string, the ECU saw nothing valid,
-      // and the dashboard needle (or lamp) didn't move.
-      const params = arg1 === '' ? [] : arg1.split(';');
+         The IEdiabas implementation (EmbeddedEdiabas / EdiabasClient)
+         handles SGBD load + INITIALISIERUNG + IDENT + variant swap
+         internally. We don't need a parallel currentEcu cache —
+         EmbeddedEdiabas tracks `loadedSgbdPath` itself; EdiabasClient
+         delegates to the server's persistent Ediabas. */
+      const params = arg1 === '' ? undefined : arg1;
 
-      const sets = await this.ediabas.executeJob(jobName, { params });
+      const response = await this.ediabas.job(ecu, jobName, params);
 
-      // EdiabasX returns one entry per emitted `enewset` group. INPA
-      // exposes them through `resultSets()` (1-based count) and the
-      // `set` argument on every `result*()` lookup. Keep the order
-      // and build a name-indexed map per set for O(1) reads.
-      this.lastResults = sets.map((set) => ({
-        results: new Map(set.map((r) => [r.name.toUpperCase(), r])),
+      /* The IEdiabas response shape is `{ sets: EdiabasResultSet[] }`
+         where `sets[0]` is the system set (VARIANTE/OBJECT/JOBNAME/
+         SAETZE/GRUPPE/FAMILIE + persistent metadata) and `sets[1..N]`
+         are the bytecode-emitted data sets. INPA's 1-based-on-data-
+         sets convention maps cleanly onto `sets[1..N]` — slice off
+         sets[0] for the system-set fallback map. Mirrors native
+         EDIABAS `apiResultText(name, 0, …)` reading the system set
+         and `apiResultText(name, 1..N, …)` reading data sets. */
+      const allSets = response.sets;
+      const systemSet = allSets[0];
+      const dataSets = allSets.slice(1);
+
+      this.lastResults = dataSets.map((set) => ({
+        results: new Map(
+          Object.values(set).map((entry: EdiabasResultEntry) => [
+            entry.name.toUpperCase(),
+            convertEntry(entry),
+          ]),
+        ),
       }));
 
-      // Snapshot the system result set (VARIANTE + INFO job outputs +
-      // most recent JOB_STATUS) so by-name lookups that miss the per-
-      // job sets transparently fall through to SGBD metadata. The map
-      // is re-keyed by uppercase name for case-insensitive lookups.
+      /* System set (sets[0]) keyed by uppercase for case-insensitive
+         lookups. Already includes JOB_STATUS via the persistent
+         accumulator merge in `Ediabas.buildSystemSet`, so the
+         reverse-scan over `lastResults` that the pre-IEdiabas
+         provider did is no longer needed — pull JOB_STATUS straight
+         from systemResults. */
       this.systemResults = new Map(
-        Array.from(this.ediabas.getSystemResults(), ([name, value]) => [
-          name.toUpperCase(),
-          value,
-        ])
+        systemSet
+          ? Object.values(systemSet).map((entry: EdiabasResultEntry) => [
+              entry.name.toUpperCase(),
+              convertEntry(entry),
+            ])
+          : [],
       );
 
-      // Capture JOB_STATUS for `checkJobStatus()`. EDIABAS emits it
-      // somewhere in the result stream — usually set 1 — but a few
-      // jobs put it on the trailing set. Scan in reverse so the
-      // most-recent emission wins (mirrors how the BEST2 `_resultDict`
-      // behaves before `enewset` commits).
-      this.lastJobStatus = '';
-      for (let i = this.lastResults.length - 1; i >= 0; i--) {
-        const status = this.lastResults[i].results.get(SYSTEM_JOB_STATUS);
-        if (status !== undefined) {
-          this.lastJobStatus = this.coerceText(status.value);
-          break;
-        }
-      }
+      const status = this.systemResults.get(SYSTEM_JOB_STATUS);
+      this.lastJobStatus = status ? this.coerceText(status.value) : '';
 
       this.emit('job:complete', {
         ecu,
@@ -477,33 +459,19 @@ export class EdiabasXProvider
 
   // === Helpers ===
 
-  /**
-   * BMW SGBDs are stored as `.prg` (compiled per-ECU bytecode) or
-   * `.grp` (group definitions that delegate to ECU-specific PRGs).
-   * Pass the raw name through if the caller already supplied an
-   * extension; otherwise default to `.prg` (the common case for
-   * INPA scripts that name an ECU directly).
-   */
-  private resolveSgbdFile(ecu: string): string {
-    if (ecu.toLowerCase().endsWith('.prg') || ecu.toLowerCase().endsWith('.grp')) {
-      return ecu;
-    }
-    return `${ecu}.prg`;
-  }
-
   private getResult(name: string, set: number): EdiabasJobResult | undefined {
-    // INPA uses 1-based set indexing throughout. Convert before
-    // touching the array.
+    /* INPA uses 1-based set indexing on DATA sets — `set=1` is the
+       first data set, which is `lastResults[0]` after the `sets[0]`
+       slice. `set=0` is the native EDIABAS system-result idiom;
+       falls through to the systemResults map. */
     const key = name.toUpperCase();
     const setIndex = set - 1;
     if (setIndex >= 0 && setIndex < this.lastResults.length) {
       const hit = this.lastResults[setIndex].results.get(key);
       if (hit !== undefined) return hit;
     }
-    // Transparent metadata fallback. Scripts read VARIANTE / ECU /
-    // REVISION / etc. by name without caring which set holds them —
-    // and `set=0` lookups (the native EDIABAS system-result idiom)
-    // bypass the per-set range entirely and land here.
+    /* Transparent metadata fallback. Scripts read VARIANTE / ECU /
+       REVISION / etc. by name without caring which set holds them. */
     return this.systemResults.get(key);
   }
 
@@ -516,11 +484,38 @@ export class EdiabasXProvider
   }
 
   /**
-   * Get the underlying Ediabas instance — escape hatch for callers
+   * Get the underlying IEdiabas instance — escape hatch for callers
    * that want to drive it directly (e.g. running a job not exposed
    * through the INPAapi surface).
    */
-  getEdiabas(): Ediabas | null {
+  getEdiabas(): IEdiabas | null {
     return this.ediabas;
+  }
+}
+
+/* ── EdiabasResultEntry (wire) → EdiabasJobResult (local) ────────── */
+
+/**
+ * Convert an IEdiabas-wire `EdiabasResultEntry` (where binary values
+ * arrive as `number[]` and types use the wire vocabulary) to the
+ * `EdiabasJobResult` shape the rest of the INPA stack expects
+ * (`Uint8Array` for binary, interpreter-native type names). Same
+ * conversion ediabasx-web's runtime.svelte.ts does.
+ */
+function convertEntry(entry: EdiabasResultEntry): EdiabasJobResult {
+  return {
+    name: entry.name,
+    type: wireTypeToLocal(entry.type),
+    value: Array.isArray(entry.value) ? new Uint8Array(entry.value) : entry.value,
+    unit: entry.unit,
+    comment: entry.comment,
+  };
+}
+
+function wireTypeToLocal(wireType: EdiabasResultEntry['type']): EdiabasJobResult['type'] {
+  switch (wireType) {
+    case 'integer': return 'int';
+    case 'text': return 'string';
+    default: return wireType as EdiabasJobResult['type'];
   }
 }

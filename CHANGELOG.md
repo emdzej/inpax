@@ -6,6 +6,109 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.11.0] — 2026-06-05
+
+Pulls in [ediabasx 0.7.0](https://github.com/emdzej/ediabasx/releases/tag/0.7.0).
+The provider switches from the concrete `Ediabas` class to the
+`IEdiabas` interface — same shape for local cable and remote server,
+so inpax-web gains a **client mode** that talks JSON-RPC to a remote
+`ediabasx-server` (direct WebSocket or Bimmerz Connect relay). In
+client mode, the server owns the SGBD catalogue + the cable — no
+local INPA install needed.
+
+### Breaking
+
+- **`@emdzej/inpax-ediabasx-provider` API:**
+  `EdiabasXProviderConfig.instance` is now typed as `IEdiabas`
+  (previously `Ediabas`). `config: EdiabasConfig`, `loadSgbd`, and
+  `getTransport` callbacks are removed — the caller builds the right
+  `IEdiabas` (`EmbeddedEdiabas` or `EdiabasClient`) and passes it
+  directly. New `getInstance: () => IEdiabas | null` factory option
+  for hosts that build the IEdiabas after provider construction
+  (inpax-web's deferred-Connect flow).
+- **`@emdzej/inpax-ediabasx-provider/node`'s `createNodeProvider`**:
+  now requires a `configFile`. Internally builds an `EmbeddedEdiabas`
+  (instead of a bare `Ediabas`) so all consumers go through the
+  IEdiabas surface.
+- **Provider `end()` no longer calls `IEdiabas.end()`** on the
+  underlying instance. The connection lifetime is per-session
+  (owned by the caller, typically `connection.svelte.ts` in
+  inpax-web); per-IPO `runtime.dispose()` calls only release the
+  provider's reference, not the socket. Critical for switching IPOs
+  over a Bimmerz Connect relay — the previous behaviour closed the
+  WebSocket on every IPO switch and the next IPO couldn't reconnect.
+
+### Added
+
+- **inpax-web — Client mode.** A new top-level mode (alongside the
+  existing embedded mode) lets the user talk to a remote
+  `ediabasx-server`. Two connection methods:
+  - Direct WebSocket — `ws://host:port` to a server on the LAN.
+  - Bimmerz Connect relay — paste the `sessionId.token` blob from
+    `ediabasx serve --connect`, dial through `connect.bimmerz.app`.
+  In client mode, the install picker is skipped — the server
+  resolves SGBDs. A new "Connect to remote server" button on the
+  welcome screen jumps straight to the browse view with Settings
+  open.
+- **`ModeConfigPanel` / `ServerConfigPanel` / `ConnectConfigPanel`**
+  adopted from `@emdzej/ediabasx-web-ui` in inpax-web's Settings
+  panel — consistent UX with ediabasx-web.
+- **`ConnectSessionDialog`** — Bimmerz Connect session-token prompt.
+  User pastes `sessionId.token`, we split on the first dot and dial.
+
+### Changed
+
+- **`@emdzej/ediabasx-*` deps bumped `^0.5.0` → `^0.7.0`** across
+  `inpax-ediabasx-provider`, `inpax-cli`, and `inpax-web`. Adds
+  `@emdzej/ediabasx-client@^0.7.0` to web (the `IEdiabas`
+  implementations live there); web also gains
+  `@emdzej/swsrs-client@^0.2.2` for the Bimmerz Connect relay path.
+- **Result-set indexing internally aligned with native EDIABAS
+  C-API.** The provider now slices the system set (sets[0]) off the
+  IEdiabas response into the by-name metadata fallback map, keeping
+  INPA's 1-based-on-data-sets convention intact for scripts. No
+  observable change at the INPA layer — every `result*(name, set)`
+  call returns the same value as before. JOB_STATUS now sourced from
+  the system set (which always carries it via
+  `Ediabas.buildSystemSet`) instead of the per-job reverse-scan.
+- **Connect button promoted to the top bar.** The Settings panel's
+  Connect fieldset (status pill + button) is gone — the top bar now
+  carries the `ConnectButton` directly, with state (idle / connecting
+  / connected / error) encoded in the button itself. Hover shows the
+  device descriptor (`Connected: Web Serial @ 9600`,
+  `Connected: ws://192.168.1.50:6802`, `Connected: Bimmerz Connect`).
+- **"EDIABAS Connection" dialog row** shows the actual connection
+  descriptor — interface name (embedded mode), server URL (client +
+  direct), or "Bimmerz Connect" (client + relay) — instead of the
+  raw `app.config.interface` field which was meaningless in client
+  mode.
+- **Connect button calls `init()` eagerly.** Previously the
+  IEdiabas was built at Connect-time but `init()` was deferred to the
+  script's `INPAapiInit`. The idle gap let Bimmerz Connect's relay
+  close the socket before the first job. `connect()` now awaits
+  `instance.init()` in-line; the script's later `provider.init()`
+  hits the server's idempotent `handleInit` cheaply.
+
+### Fixed
+
+- **GRP→PRG variant swap regression in inpax-web.** The browser-side
+  SGBD resolver only probed the requested extension (or its
+  `.prg ↔ .grp` swap), missing extension-less names entirely — and
+  INPA scripts always pass bare ECU names like `D_000D`. Now probes
+  both `.prg` and `.grp` when no extension is given, matching native
+  EDIABAS `ResolveSgbdFile`.
+
+### Notes
+
+- ediabasx 0.7.0's main breaking changes (renames around the EDIABAS
+  communication-layer naming — `EdiabasConfig.transport` → `interface`,
+  `Ediabas.setTransport()` → `setInterface()`, `simulation` flag
+  removed) are absorbed transparently by the provider migration. Inpax
+  consumers never touch `EdiabasConfig` directly.
+- Inpax CLI keeps the embedded path (no client mode wiring) per the
+  current scope — but builds via `EmbeddedEdiabas` now, so it shares
+  the same `IEdiabas` surface as inpax-web.
+
 ## [0.10.0] — 2026-05-29
 
 Pulls in [ediabasx 0.5.0](https://github.com/emdzej/ediabasx/releases/tag/0.5.0)

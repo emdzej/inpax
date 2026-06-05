@@ -23,8 +23,13 @@
     saveConfig,
     isSecureContext,
   } from "../lib/config";
-  import { connection, connect, disconnect } from "../lib/connection.svelte";
-  import { ConnectButton, InterfaceConfigPanel } from "@emdzej/ediabasx-web-ui";
+  import { connection } from "../lib/connection.svelte";
+  import {
+    InterfaceConfigPanel,
+    ModeConfigPanel,
+    ServerConfigPanel,
+    ConnectConfigPanel,
+  } from "@emdzej/ediabasx-web-ui";
   import {
     settings,
     setDebugMode,
@@ -378,51 +383,28 @@
       <div class="flex-1 overflow-auto p-4">
         {#if activeTab === "comm"}
           <div class="flex flex-col gap-6">
-            <!-- Interface selector + per-interface fieldsets — shared
-                 across the bimmerz family via @emdzej/ediabasx-web-ui.
-                 Single source of truth: any new transport (e.g. j2534)
-                 added there shows up here without touching this app. -->
-            <InterfaceConfigPanel bind:config={app.config} />
+            <!-- Mode toggle (embedded / client) + server URL —
+                 picks whether the browser drives the cable locally
+                 or talks to a remote ediabasx-server. -->
+            <ModeConfigPanel bind:config={app.config} />
 
+            {#if app.config.mode === "client"}
+              <!-- Direct WebSocket vs Bimmerz Connect relay. Only
+                   meaningful in client mode. -->
+              <ConnectConfigPanel bind:config={app.config} />
+              <ServerConfigPanel bind:config={app.config} />
+            {:else}
+              <!-- Embedded mode: pick a local interface (Web Serial /
+                   J2534 / Gateway). Single source of truth across the
+                   bimmerz family via @emdzej/ediabasx-web-ui. -->
+              <InterfaceConfigPanel bind:config={app.config} />
+            {/if}
 
-            <fieldset class="flex flex-col gap-2 rounded border border-divider bg-elevated/60 p-3">
-              <legend class="px-1 text-xs font-bold uppercase tracking-wider text-faint">
-                Connection
-              </legend>
-              <div class="flex items-center gap-3">
-                <span
-                  class="rounded px-2 py-0.5 text-xs font-medium"
-                  class:bg-green-100={connection.phase === "connected"}
-                  class:text-green-800={connection.phase === "connected"}
-                  class:dark:bg-green-900={connection.phase === "connected"}
-                  class:dark:text-green-200={connection.phase === "connected"}
-                  class:bg-amber-100={connection.phase === "connecting"}
-                  class:text-amber-800={connection.phase === "connecting"}
-                  class:dark:bg-amber-900={connection.phase === "connecting"}
-                  class:dark:text-amber-200={connection.phase === "connecting"}
-                  class:bg-red-100={connection.phase === "error"}
-                  class:text-red-800={connection.phase === "error"}
-                  class:dark:bg-red-900={connection.phase === "error"}
-                  class:dark:text-red-200={connection.phase === "error"}
-                  class:bg-elevated={connection.phase === "idle" || connection.phase === "disconnected"}
-                  class:text-muted={connection.phase === "idle" || connection.phase === "disconnected"}
-                >
-                  {connection.message}
-                </span>
-                <ConnectButton
-                  phase={connection.phase}
-                  message={connection.message}
-                  errorMessage={connection.errorMessage ?? undefined}
-                  onconnect={connect}
-                  ondisconnect={disconnect}
-                />
-              </div>
-              {#if connection.errorMessage}
-                <p class="rounded border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-2 text-xs text-red-800 dark:text-red-300">
-                  {connection.errorMessage}
-                </p>
-              {/if}
-            </fieldset>
+            {#if connection.errorMessage}
+              <p class="rounded border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-2 text-xs text-red-800 dark:text-red-300">
+                {connection.errorMessage}
+              </p>
+            {/if}
           </div>
         {:else if activeTab === "data"}
           {@const installSource = getInstallSource()}
