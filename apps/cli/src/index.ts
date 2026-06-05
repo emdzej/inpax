@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * INPAX CLI — one binary subsuming the whole toolchain.
+ * INPAX CLI — one binary subsuming the INPA toolchain.
  *
  * Subcommands:
  *   inpax decompile   — print BEST/2 bytecode as readable assembly
@@ -8,12 +8,9 @@
  *   inpax compile     — IPS source → IPO bytecode (with `compile new` scaffold)
  *   inpax edit        — Ink-based TUI for editing constants in a compiled .ipo
  *   inpax patch       — non-interactive constant patches (init / apply)
- *   inpax bundle      — curate a BMW install into a small zip (with `bundle init`)
  *
- * The compile / edit+patch / bundle paths used to ship as the separate
- * `@emdzej/inpax-compiler`, `@emdzej/inpax-ipo-editor`, and
- * `@emdzej/bimmerz-bundler` binaries; they're now subcommands of the
- * single `inpax` tool so users only install one global package.
+ * Bundle and data-management commands live in the separate
+ * `@emdzej/bimmerz-cli` package (`bimmerz bundle`, `bimmerz data`).
  */
 import { Command } from 'commander';
 import { configureLogger } from '@emdzej/bimmerz-logger';
@@ -22,8 +19,6 @@ import { decompileCommand } from './commands/decompile.js';
 import { runCommand } from './commands/run.js';
 import { compileCommand } from './commands/compile.js';
 import { editCommand, patchCommand } from './commands/edit.js';
-import { bundleCommand } from './commands/bundle.js';
-import { dataCommand } from './commands/data.js';
 
 // Configure the central bimmerz-logger from env vars BEFORE any
 // command runs. The logger library never reads `process.env` (it
@@ -52,8 +47,6 @@ program.addCommand(runCommand);
 program.addCommand(compileCommand);
 program.addCommand(editCommand);
 program.addCommand(patchCommand);
-program.addCommand(bundleCommand);
-program.addCommand(dataCommand);
 
 program.parseAsync(process.argv).catch((err) => {
   process.stderr.write(`Fatal: ${(err as Error).message}\n`);

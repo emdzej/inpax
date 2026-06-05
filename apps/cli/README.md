@@ -1,18 +1,21 @@
 # @emdzej/inpax-cli
 
-The full inpax toolchain in a single binary. **Decompile**, **run**,
-**compile**, **edit**, **patch**, and **bundle** — all behind one
-`inpax` command on your `PATH`.
+The inpax toolchain in a single binary. **Decompile**, **run**,
+**compile**, **edit**, and **patch** — all behind one `inpax` command
+on your `PATH`.
 
 Same VM that powers the [browser SPA](../web). Same parser used to
 patch constants. Same compiler used to turn `.IPS` source into `.IPO`
 bytecode.
 
-> **Heads-up:** as of inpax 0.6.8 the older `@emdzej/inpax-compiler`,
-> `@emdzej/inpax-ipo-editor`, and `@emdzej/bimmerz-bundler` binaries are
-> folded into this CLI. Replace
-> `npm i -g @emdzej/inpax-compiler` etc. with
-> `npm i -g @emdzej/inpax-cli`; the old packages are deprecated on npm.
+> **Bundling installs?** Use [`@emdzej/bimmerz-cli`](https://github.com/emdzej/bimmerz/tree/main/apps/cli) instead.
+> `bimmerz bundle` and `bimmerz data` are the dedicated tools for packaging
+> BMW INPA / EDIABAS / NCS installs and indexing data trees for web tools.
+
+> **Migrating from older packages?** `@emdzej/inpax-compiler` and
+> `@emdzej/inpax-ipo-editor` are folded into this CLI — replace them with
+> `npm i -g @emdzej/inpax-cli`. The former `@emdzej/bimmerz-bundler` is now
+> `@emdzej/bimmerz-cli` (`npm i -g @emdzej/bimmerz-cli`).
 
 ## Install
 
@@ -32,9 +35,9 @@ inpax --help
 | `inpax edit <file>` | Open an Ink TUI to edit constants in a compiled `.ipo`. |
 | `inpax patch init <file>` | Emit a starter YAML patch listing the IPO's current constants. |
 | `inpax patch apply <file> <patch…>` | Apply one or more YAML patches to an `.ipo`. |
-| `inpax bundle <input-dir>` | Walk an INPA / EDIABAS / NCS install, apply `.bimmerzignore`, write a zip. |
-| `inpax bundle init` | Scaffold a starter `.bimmerzignore`. |
-| `inpax data index <dir>` | Recursively write per-directory `index.json` listings of an INPA data tree. |
+
+> **`inpax bundle` / `inpax data` have moved.** Use `bimmerz bundle` and
+> `bimmerz data` from [`@emdzej/bimmerz-cli`](https://github.com/emdzej/bimmerz/tree/main/apps/cli).
 
 Run any subcommand with `--help` for the full flag list.
 
@@ -166,79 +169,16 @@ The patch format is small enough to hand-edit; see the
 [ipo-community-patches](https://github.com/emdzej/ipo-community-patches)
 repo for examples.
 
-### `inpax bundle`
+### `bimmerz bundle` / `bimmerz data`
 
-Curate a BMW software install (INPA / EDIABAS / NCS) into a small zip
-the web tools can mount into OPFS. `.bimmerzignore` patterns work like
-`.gitignore` and are matched case-insensitively.
+These commands have moved to [`@emdzej/bimmerz-cli`](https://github.com/emdzej/bimmerz/tree/main/apps/cli).
 
 ```bash
-# One-shot
-inpax bundle ~/inpa -o inpa-bundle.zip
-
-# Custom ignore + dry-run preview
-inpax bundle ~/inpa -i my-ignore --dry-run --verbose
-
-# Scaffold the default ignore file to edit
-inpax bundle init
-inpax bundle ~/inpa -i .bimmerzignore -o inpa-bundle.zip
+npm i -g @emdzej/bimmerz-cli
+bimmerz bundle ~/inpa -o inpa-bundle.zip   # zip a BMW install for web tools
+bimmerz bundle init                         # scaffold a .bimmerzignore
+bimmerz data index ~/inpa-extracted         # write index.json per directory
 ```
-
-| Flag | Description |
-|---|---|
-| `-o, --output <file>` | Output zip path (default `./bimmerz-bundle.zip`) |
-| `-i, --ignore <file>` | Gitignore-style file (default `<input>/.bimmerzignore` if present) |
-| `--no-default-ignore` | Skip the built-in install-junk patterns |
-| `--dry-run` | Walk + match but don't write the zip |
-| `--verbose` | Log every kept and skipped file |
-
-### `inpax data`
-
-Umbrella for INPA data-management routines. Today: `index` (per-directory
-JSON listings). Reserved for future cataloguing / normalisation /
-validation subcommands.
-
-#### `inpax data index`
-
-Walk a directory tree and drop an `index.json` in every directory listing
-the entries directly inside it (no recursion in the listing itself; one
-`index.json` per level). Designed for environments that can't `readdir` —
-static HTTP hosts, OPFS-mounted bundles, browser `fetch` of an extracted
-INPA tree. Consumers traverse by reading `index.json` at each level and
-following `type: "dir"` entries.
-
-```bash
-# Index a directory in place
-inpax data index ~/inpa-extracted
-
-# Preview without writing
-inpax data index ~/inpa-extracted --dry-run --verbose
-
-# Custom ignore file
-inpax data index ~/inpa-extracted -i my.indexignore
-```
-
-| Flag | Description |
-|---|---|
-| `-i, --ignore <file>` | Gitignore-style file (default `<dir>/.indexignore` if present) |
-| `--dry-run` | Walk + match but don't write any `index.json` files |
-| `--verbose` | Log every `index.json` written (or that would be written) |
-
-Each entry in `index.json` has the shape:
-
-```jsonc
-{
-  "type": "file" | "dir" | "link",
-  "name": "ms43",            // lowercased basename; extension stripped for files
-  "fullName": "ms43.ipo",    // lowercased basename with extension
-  "originalName": "MS43",    // original-cased basename (extension stripped for files)
-  "originalFullName": "MS43.IPO",
-  "size": 12345              // bytes — 0 for directories
-}
-```
-
-`index.json` and `.indexignore` are never listed themselves, so re-running
-the indexer is idempotent and ignore files stay invisible to consumers.
 
 ## Logging
 

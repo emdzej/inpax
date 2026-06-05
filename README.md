@@ -6,7 +6,7 @@ Cross-platform reimplementation of BMW INPA (INterface for Programming Applicati
 
 Two runtimes share the same VM, parser, dispatcher, and provider graph:
 
-- **CLI (`inpax`)** — one terminal binary that decompiles, runs, compiles, edits, patches, and bundles INPA scripts.
+- **CLI (`inpax`)** — one terminal binary that decompiles, runs, compiles, edits, and patches INPA scripts.
 - **Web SPA** — pick an INPA install on disk, browse and run `.ipo` scripts in the browser, talk to a real ECU over Web Serial.
 
 ## Features
@@ -19,8 +19,9 @@ Two runtimes share the same VM, parser, dispatcher, and provider graph:
 - ⌨️ **IPS compiler** — IPS source → IPO bytecode (CLI + library).
 - ✏️ **IPO editor** — Ink TUI for editing constants inside compiled `.ipo` files.
 - 🩹 **Patch system** — declarative YAML patches (translations, overrides) applied non-interactively.
-- 📦 **Install bundler** — turn an INPA / EDIABAS / NCS install into a small zip the web tools can mount in OPFS.
 - 🔌 **Provider system** — pluggable UI, EDIABAS, INP1, simulation, print, external surfaces.
+
+> **Bundling installs?** Use [`@emdzej/bimmerz-cli`](https://github.com/emdzej/bimmerz/tree/main/apps/cli) — `bimmerz bundle` and `bimmerz data` are the dedicated tools for packaging BMW INPA / EDIABAS / NCS installs into zips and indexing data trees for web tools.
 
 ## Embedding inpax in your own app
 
@@ -50,9 +51,15 @@ inpax compile new my-script.ips             # scaffold a starter .ips
 inpax edit script.ipo                       # Ink TUI to edit constants
 inpax patch init script.ipo                 # emit a starter patch file
 inpax patch apply script.ipo script.patch.yaml
+```
 
-inpax bundle ~/inpa                         # zip a BMW install for web tools
-inpax bundle init                           # scaffold a .bimmerzignore
+To bundle an INPA / EDIABAS / NCS install for web tools, use the dedicated **bimmerz CLI**:
+
+```bash
+npm i -g @emdzej/bimmerz-cli
+bimmerz bundle ~/inpa                       # zip a BMW install for web tools
+bimmerz bundle init                         # scaffold a .bimmerzignore
+bimmerz data index ~/inpa-extracted         # write index.json per directory
 ```
 
 ### From source
@@ -76,7 +83,7 @@ pnpm web
 ┌──────────────────────────────────────────────────────────────────┐
 │ Apps                                                              │
 │   apps/cli   single binary — decompile / run / compile / edit /  │
-│              patch / bundle                                       │
+│              patch                                                │
 │   apps/web   browser SPA — canvas runtime + Web Serial            │
 ├──────────────────────────────────────────────────────────────────┤
 │ Dispatcher (packages/dispatcher) — routes ~250 system functions  │
@@ -103,10 +110,10 @@ pnpm web
 
 | Package | Description |
 |---------|-------------|
-| [@emdzej/inpax-cli](./apps/cli) | One binary, six subcommands: `decompile`, `run`, `compile`, `edit`, `patch`, `bundle`. |
+| [@emdzej/inpax-cli](./apps/cli) | One binary, five subcommands: `decompile`, `run`, `compile`, `edit`, `patch`. |
 | [@emdzej/inpax-web](./apps/web) | Browser SPA — canvas runtime + Web Serial transport. |
 
-> **Heads-up:** the older `@emdzej/inpax-compiler`, `@emdzej/inpax-ipo-editor`, and `@emdzej/bimmerz-bundler` packages have been folded into the single `inpax` CLI. They're being deprecated on npm with a pointer to the new home; existing global installs keep working but should be replaced with `npm i -g @emdzej/inpax-cli`.
+> **Migrating from older packages?** `@emdzej/inpax-compiler` and `@emdzej/inpax-ipo-editor` are folded into this CLI — replace them with `npm i -g @emdzej/inpax-cli`. The former `@emdzej/bimmerz-bundler` is now `@emdzej/bimmerz-cli` — use `npm i -g @emdzej/bimmerz-cli` for `bimmerz bundle` and `bimmerz data`.
 
 ### Runtime libraries
 
