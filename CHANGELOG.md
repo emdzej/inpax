@@ -55,6 +55,31 @@ local INPA install needed.
   panel — consistent UX with ediabasx-web.
 - **`ConnectSessionDialog`** — Bimmerz Connect session-token prompt.
   User pastes `sessionId.token`, we split on the first dot and dial.
+- **HTTP-backed remote install via `@emdzej/bimmerz-vfs@^0.1.0`.** A
+  third install tile on the welcome screen — "Mount a remote folder" —
+  takes a URL pointing at a tree of `index.json` listings and treats it
+  as a read-only INPA root. Same code path as local-folder and
+  OPFS-bundle installs: a single `VirtualDirectory` abstraction
+  (`FsaDirectory` for local, `HttpDirectory` for remote) flows through
+  `discoverInpaInstall`, `listIpoFiles`, the SGBD resolver, and the
+  native-imports loader. Useful for shared lab installs and for
+  driving inpax-web from a server-side INPA tree without round-tripping
+  bytes through the user's browser. `bimmerz data index` (in the bimmerz
+  CLI) generates the required `index.json` files.
+- **Top-bar install + connection pills.** Two small badges sit next
+  to the Connect button: a **folder icon** showing where the install
+  is loaded from (`local` / `bundled` / `remote`) and a **plug icon**
+  showing the active comm path (`web serial` / `j2534` / `gateway` /
+  `ws server` / `bimmerz connect`). Both carry the concrete endpoint
+  in the tooltip (folder name, URL, baud rate, relay URL), so the
+  user can confirm at a hover without opening Settings. Borderless +
+  faded — metadata, not chrome.
+- **Sticky `SHIFT` toggle on the F-key bar.** Touch users (and laptops
+  with no physical function row) now have a way to reach F11–F20: tap
+  the leading `SHIFT` cell to arm, then tap any F-key — auto-releases
+  after the selection. Doubles as a visual modifier indicator for
+  keyboard users; both input modes share state so a keyboard Shift
+  press also lights up the on-screen toggle.
 
 ### Changed
 
@@ -82,6 +107,21 @@ local INPA install needed.
   direct), or "Bimmerz Connect" (client + relay) — instead of the
   raw `app.config.interface` field which was meaningless in client
   mode.
+- **`inpax-web-provider` browser file APIs unified on `VirtualDirectory`.**
+  `discoverInpaInstall`, `listIpoFiles`, `sgbd-loader`, `script-select`,
+  and `native-imports` all take a `VirtualDirectory` from
+  `@emdzej/bimmerz-vfs` instead of a raw
+  `FileSystemDirectoryHandle`. Local-folder picks wrap the FSA handle
+  in `FsaDirectory`; remote installs use `HttpDirectory`. Drops the
+  duplicated FSA-specific traversal helpers.
+- **`listIpoFiles` is now lazy** — each `IpoEntry` carries an `open()`
+  thunk that resolves the underlying `VirtualFile` on demand instead of
+  resolving every IPO at listing time. Real INPA installs have hundreds
+  of IPOs, and FSA's per-`getFile()` cost was making the sidebar mount
+  feel hung. Old `.handle.arrayBuffer()` call sites still work via a
+  back-compat alias.
+- **"Make one with bimmerz CLI tools"** link on the install picker —
+  was previously pointing at the obsolete `bimmerz-bundler` repo.
 - **Connect button calls `init()` eagerly.** Previously the
   IEdiabas was built at Connect-time but `init()` was deferred to the
   script's `INPAapiInit`. The idle gap let Bimmerz Connect's relay
@@ -97,6 +137,27 @@ local INPA install needed.
   INPA scripts always pass bare ECU names like `D_000D`. Now probes
   both `.prg` and `.grp` when no extension is given, matching native
   EDIABAS `ResolveSgbdFile`.
+- **Bimmerz Connect relay timing out before the first job.** The
+  IEdiabas was built at Connect time but `init()` was deferred to the
+  script — the idle gap let the relay drop the socket. `connect()`
+  now awaits `instance.init()` eagerly; the script's later
+  `provider.init()` hits the server's idempotent path cheaply.
+- **IPO switch tearing down the Bimmerz Connect relay.** The provider's
+  per-script `end()` was calling `IEdiabas.end()` on the underlying
+  instance, which closed the WebSocket. Provider `end()` now only
+  releases its own reference; the IEdiabas lifetime is owned by the
+  Connect/Disconnect button. Switching IPOs over a relay session
+  works without a reconnect now.
+- **"Forget folder" not clearing the remote install URL.** Settings →
+  Change folder used to leave the localStorage-pinned remote URL
+  behind, so the picker would silently re-mount the same remote install
+  on the next refresh. Now also clears the remote URL marker.
+- **Install-source pill showing `?` after a mid-session FS change.**
+  The `installPill` derived was reading `getInstallSource()` (raw
+  localStorage), which Svelte's reactivity can't track. Source marker
+  is now mirrored into reactive `app.installSource` and updated by every
+  mounting site, so the pill flips without a reload when the user
+  switches between local / bundled / remote.
 
 ### Notes
 

@@ -47,7 +47,8 @@ export type InstallSource =
       importedAt: string; // ISO timestamp
       fileCount: number;
       bytes: number; // uncompressed sum
-    };
+    }
+  | { source: "remote" };
 
 /** Read the current source marker, or `null` if none set yet. */
 export function getInstallSource(): InstallSource | null {

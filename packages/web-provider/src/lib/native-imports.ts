@@ -1,7 +1,8 @@
 /**
  * Browser-side INativeImportProvider — handles the INPA CALLE
- * imports that inpax scripts use, reading via FileSystemDirectoryHandle
- * instead of `node:fs`.
+ * imports that inpax scripts use, reading via `@emdzej/bimmerz-vfs`'s
+ * `VirtualDirectory` instead of `node:fs`. The same code path works
+ * for local FSA installs, OPFS bundles, AND remote HTTP installs.
  *
  * Mirrors `apps/cli/src/native-imports/*` per DLL family (INI,
  * config, system, strings, file). Browser-specific adaptations:
@@ -21,6 +22,7 @@
  * the script's pre-call buffers stay in place.
  */
 
+import type { VirtualDirectory } from "@emdzej/bimmerz-vfs";
 import { formatMany } from "@emdzej/inpax-core";
 import { parse as parseIni, getFirst, type IniFile } from "@emdzej/inpax-ini-parser";
 import type {
@@ -131,7 +133,7 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
   }
 
   private async cacheIniFile(
-    dir: FileSystemDirectoryHandle,
+    dir: VirtualDirectory,
     filename: string,
     keyAlias: string
   ): Promise<void> {
@@ -146,14 +148,14 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
       // hardcode `INPA.INI` / `EDIABAS.INI`) find it unchanged.
       // See `docs/research/chrome-ini-blocklist.md`.
       const inixFilename = filename.replace(/\.ini$/i, ".INIX");
-      let handle = await findCaseInsensitive(dir, filename);
+      let file = await dir.file(filename);
       let foundAs = filename;
-      if (!handle && inixFilename !== filename) {
-        handle = await findCaseInsensitive(dir, inixFilename);
-        if (handle) foundAs = inixFilename;
+      if (!file && inixFilename !== filename) {
+        file = await dir.file(inixFilename);
+        if (file) foundAs = inixFilename;
       }
 
-      if (!handle) {
+      if (!file) {
         // Surface the alphabetical neighbourhood + the .ini siblings
         // so the user can tell at a glance whether the file is
         // genuinely missing (no near match in either pool) or just
@@ -181,8 +183,8 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
         );
       }
 
-      const file = await handle.getFile();
-      const content = await file.text();
+      const bytes = await file.arrayBuffer();
+      const content = new TextDecoder().decode(bytes);
       const parsed = parseIni(content);
       // Store under every reasonable lookup form: bare basename
       // (canonical `.ini` even when we read `.inix`), the INPA-style
@@ -224,17 +226,16 @@ export class BrowserNativeImportProvider implements INativeImportProvider {
  * Walks `entries()` exactly once.
  */
 async function listDirNeighbourhood(
-  dir: FileSystemDirectoryHandle,
+  dir: VirtualDirectory,
   target: string
 ): Promise<{ nearby: string[]; iniFiles: string[]; totalEntries: number }> {
   const prefix = target.toLowerCase().slice(0, 3);
   const nearby: string[] = [];
   const iniFiles: string[] = [];
-  let totalEntries = 0;
-  for await (const [name, entry] of dir.entries()) {
-    totalEntries++;
-    const display = entry.kind === "directory" ? `${name}/` : name;
-    const lower = name.toLowerCase();
+  const entries = await dir.entries();
+  for (const entry of entries) {
+    const display = entry.kind === "dir" ? `${entry.name}/` : entry.name;
+    const lower = entry.name.toLowerCase();
     if (lower.startsWith(prefix) && nearby.length < 10) {
       nearby.push(display);
     }
@@ -246,7 +247,7 @@ async function listDirNeighbourhood(
     a.toLowerCase().localeCompare(b.toLowerCase());
   nearby.sort(sortAsc);
   iniFiles.sort(sortAsc);
-  return { nearby, iniFiles, totalEntries };
+  return { nearby, iniFiles, totalEntries: entries.length };
 }
 
 function emptyResults(call: NativeImportCall): unknown[] {
@@ -540,15 +541,3 @@ const FILE_HANDLERS: Array<[string, Handler]> = [
   ["kernel32::OpenFile", openFile],
 ];
 
-async function findCaseInsensitive(
-  dir: FileSystemDirectoryHandle,
-  filename: string
-): Promise<FileSystemFileHandle | null> {
-  const target = filename.toLowerCase();
-  for await (const [name, entry] of dir.entries()) {
-    if (entry.kind === "file" && name.toLowerCase() === target) {
-      return entry as FileSystemFileHandle;
-    }
-  }
-  return null;
-}

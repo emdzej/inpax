@@ -145,3 +145,41 @@ export async function requestHandlePermission(
     return "denied";
   }
 }
+
+/* ── Remote VFS URL persistence (no permission grants needed) ────── */
+
+const REMOTE_URL_KEY = "inpax.web.install.remoteUrl";
+
+/**
+ * Persist the URL of a remote VFS install root (HttpDirectory base
+ * URL — points to a tree of `index.json` files served over HTTP).
+ * No permission grants involved; just localStorage.
+ */
+export function saveRemoteInstallUrl(url: string): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(REMOTE_URL_KEY, url);
+  } catch (err) {
+    console.warn("[inpax-web/install-storage] save remote URL failed:", err);
+  }
+}
+
+/** Read the previously-saved remote VFS URL, or `null`. */
+export function loadRemoteInstallUrl(): string | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    return localStorage.getItem(REMOTE_URL_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Remove the persisted remote URL. */
+export function clearRemoteInstallUrl(): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.removeItem(REMOTE_URL_KEY);
+  } catch (err) {
+    console.warn("[inpax-web/install-storage] clear remote URL failed:", err);
+  }
+}

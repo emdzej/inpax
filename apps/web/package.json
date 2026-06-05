@@ -14,6 +14,7 @@
   "dependencies": {
     "@emdzej/bimmerz-logger": "^0.1.2",
     "@emdzej/bimmerz-theme": "^0.1.0",
+    "@emdzej/bimmerz-vfs": "^0.1.0",
     "@emdzej/ediabasx-client": "^0.7.0",
     "@emdzej/ediabasx-core": "^0.7.0",
     "@emdzej/ediabasx-ediabas": "^0.7.0",

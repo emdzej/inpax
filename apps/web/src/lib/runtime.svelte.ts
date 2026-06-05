@@ -102,11 +102,9 @@ export interface RuntimeHandle {
 export async function startInpaRuntime(
   options: RuntimeOptions
 ): Promise<RuntimeHandle> {
-  // 1. Read + parse the IPO. Browser File API gives us an ArrayBuffer
-  //    which the parser accepts directly (its constructor handles
-  //    Uint8Array | ArrayBufferLike after the browser-safety pass).
-  const ipoFile = await options.ipo.handle.getFile();
-  const ipoBytes = new Uint8Array(await ipoFile.arrayBuffer());
+  /* 1. Read + parse the IPO. VFS's `VirtualFile.arrayBuffer()` works
+        the same against FSA, OPFS, and remote HTTP backings. */
+  const ipoBytes = new Uint8Array(await options.ipo.handle.arrayBuffer());
   const ipo = parseIpo(ipoBytes);
 
   // 2. UI provider — feeds the ScreenBuffer that the canvas component

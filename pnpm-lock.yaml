@@ -135,6 +135,9 @@ importers:
       '@emdzej/bimmerz-theme':
         specifier: ^0.1.0
         version: 0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))
+      '@emdzej/bimmerz-vfs':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@emdzej/ediabasx-client':
         specifier: ^0.7.0
         version: 0.7.0(@emdzej/bimmerz-logger@0.1.2)(@emdzej/j2534-driver@0.3.0)(@emdzej/j2534-types@0.3.0)
@@ -546,6 +549,9 @@ importers:
 
   packages/web-provider:
     dependencies:
+      '@emdzej/bimmerz-vfs':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@emdzej/inpax-core':
         specifier: workspace:*
         version: link:../core
@@ -1099,6 +1105,9 @@ packages:
     resolution: {integrity: sha512-LaYUlTFSGLL848uQ7AUizbwux57fmbYeNO//8iWlDU204+WbN2bDQk5mJAp9XMx0vfedShSZLBgWQeKTcpb0Jw==}
     peerDependencies:
       tailwindcss: ^3.4.0
+
+  '@emdzej/bimmerz-vfs@0.1.0':
+    resolution: {integrity: sha512-B7X3HJiWr61Ny2Zu4BGmh7N5BGJT+XyuyZYvyWKgapEPycPw7+nrXcIWEYihxjCEZQ/A48mpv7aYRRHhHLUF6A==}
 
   '@emdzej/ediabasx-best-parser@0.7.0':
     resolution: {integrity: sha512-suNX6PU9fOIxIChdkbWmtMcAa31dIBjp3bF8iMGhxHyoAiMDQs2z07+6iAZ1PCx8PAuDsjWKvR9xfdrbBebM+g==}
@@ -5476,6 +5485,8 @@ snapshots:
   '@emdzej/bimmerz-theme@0.1.0(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.9.0))':
     dependencies:
       tailwindcss: 3.4.19(tsx@4.21.0)(yaml@2.9.0)
+
+  '@emdzej/bimmerz-vfs@0.1.0': {}
 
   '@emdzej/ediabasx-best-parser@0.7.0(@emdzej/bimmerz-logger@0.1.2)':
     dependencies:

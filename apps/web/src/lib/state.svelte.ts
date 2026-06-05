@@ -14,6 +14,7 @@
 
 import type { InpaInstall, IpoEntry } from "@emdzej/inpax-web-provider";
 import { loadConfig, type WebConfig } from "./config.js";
+import { getInstallSource, type InstallSource } from "./bundled-install.js";
 
 export type AppView = "welcome" | "install" | "browse";
 
@@ -22,6 +23,15 @@ interface AppState {
   view: AppView;
   /** Resolved INPA install layout, once the user picks a root. */
   install: InpaInstall | null;
+  /**
+   * Where the currently-loaded install came from — FSA folder pick,
+   * OPFS bundle import, or remote VFS URL. Reactive mirror of the
+   * localStorage marker (`getInstallSource()`); the UI's source-pill
+   * tooltip and the picker's restore logic read from here so they
+   * update mid-session when the user switches sources without
+   * reloading the page.
+   */
+  installSource: InstallSource | null;
   /** IPO files under SGDAT + CFGDAT, post-discovery. */
   ipoFiles: IpoEntry[];
   /** Currently selected IPO (UI-side only — not parsed/loaded yet). */
@@ -43,6 +53,7 @@ interface AppState {
 export const app = $state<AppState>({
   view: "welcome",
   install: null,
+  installSource: getInstallSource(),
   ipoFiles: [],
   selectedIpo: null,
   error: null,

@@ -21,6 +21,7 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@emdzej/bimmerz-vfs": "^0.1.0",
     "@emdzej/inpax-core": "workspace:*",
     "@emdzej/inpax-ini-parser": "workspace:*",
     "@emdzej/inpax-interfaces": "workspace:*",

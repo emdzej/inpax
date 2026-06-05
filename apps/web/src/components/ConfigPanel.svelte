@@ -63,7 +63,7 @@
   const loggingCategories = $derived<NonNullable<WebLoggerConfig["categories"]>>(
     settings.logging?.categories ?? {},
   );
-  import { clearInstallHandle } from "../lib/install-storage";
+  import { clearInstallHandle, clearRemoteInstallUrl } from "../lib/install-storage";
   import {
     getInstallSource,
     getBundledStats,
@@ -301,15 +301,20 @@
   }
 
   async function changeFolder(): Promise<void> {
-    // Drop the persisted install handle, clear the source marker
-    // (otherwise a bundled-active user clicking "Switch to folder
-    // pick" reloads straight back into the bundle), and reset
-    // selection state so the welcome screen comes back clean. The
-    // Settings panel itself closes so the user lands on the picker.
+    /* Drop everything persisted about the current install so the
+       welcome screen comes back clean:
+         • FSA directory handle (IndexedDB)
+         • Remote VFS URL (localStorage)
+         • Source marker (otherwise a bundled / remote install
+           would silently restore on the next reload)
+       Then reset in-memory selection state and close Settings so
+       the user lands on the picker. */
     await clearInstallHandle();
+    clearRemoteInstallUrl();
     clearInstallSource();
     app.view = "welcome";
     app.install = null;
+    app.installSource = null;
     app.ipoFiles = [];
     app.selectedIpo = null;
     app.showSettings = false;

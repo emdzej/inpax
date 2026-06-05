@@ -33,6 +33,7 @@ import { EdiabasInterface } from "@emdzej/ediabasx-interface-base";
 import { EdiabasClient, EmbeddedEdiabas } from "@emdzej/ediabasx-client";
 import type { IEdiabas } from "@emdzej/ediabasx-core";
 import type { EdiabasConfig } from "@emdzej/ediabasx-ediabas";
+import { makeBrowserSgbdResolver } from "@emdzej/inpax-web-provider";
 import { app } from "./state.svelte.js";
 
 export type ConnectionPhase =
@@ -94,14 +95,13 @@ function getSerial(): WebNavigatorSerial | null {
 /**
  * Browser-side SGBD bytes resolver for `EmbeddedEdiabas.loadSgbdResolver`.
  *
- * Walks the INPA install's discovered Ecu directory (via the
- * `FileSystemDirectoryHandle` the user picked) and returns the bytes
- * for a requested SGBD name, with case-insensitive matching and a
- * `.prg ↔ .grp` extension swap fallback (mirrors the Node-fs side's
- * `resolveCaseInsensitive`). Without this wired in,
- * `Ediabas.swapToVariant` falls into a Node `fs/promises` branch
- * that's stubbed in browser bundles and the GRP→PRG swap silently
- * fails.
+ * Delegates to the shared `makeBrowserSgbdResolver` in
+ * `@emdzej/inpax-web-provider`, which itself uses a VFS
+ * `VirtualDirectory` — so the same code path works against an FSA
+ * directory pick, an OPFS bundle, or a remote HTTP install root.
+ * Without this wired in, `Ediabas.swapToVariant` falls into a Node
+ * `fs/promises` branch that's stubbed in browser bundles and the
+ * GRP→PRG swap silently fails.
  */
 async function resolveSgbdInInstall(
   filename: string,
@@ -110,42 +110,12 @@ async function resolveSgbdInInstall(
   if (!install || !install.ecu) {
     throw new Error(`SGBD resolver invoked with no install / Ecu folder loaded (file: ${filename})`);
   }
-  const ecuDir = install.ecu;
-
-  const lower = filename.toLowerCase();
-  const hasExt = /\.(prg|grp)$/.test(lower);
-  const stripped = lower.replace(/\.(prg|grp)$/, "");
-
-  /* Build the set of acceptable on-disk basenames:
-       • If the caller passed an extension (e.g. `D_KOMBI.grp`):
-         exact match first, then `.prg ↔ .grp` swap fallback.
-       • If the caller passed a bare ECU name (e.g. `D_000D`, which is
-         what INPA scripts always do): probe BOTH `.prg` AND `.grp`.
-         BMW ships some ECUs as `.grp`-only group files; pre-fix we
-         probed `.prg` only and silently missed them. Native EDIABAS
-         `ResolveSgbdFile` does the same dual probe. */
-  const candidates: string[] = hasExt
-    ? [lower, `${stripped}${lower.endsWith(".prg") ? ".grp" : ".prg"}`]
-    : [`${stripped}.prg`, `${stripped}.grp`];
-
-  /* Case-insensitive scan of the install's Ecu directory. */
-  let matchHandle: FileSystemFileHandle | null = null;
-  let matchName = filename;
-  for await (const [entryName, handle] of ecuDir.entries()) {
-    if (handle.kind !== "file") continue;
-    const entryLower = entryName.toLowerCase();
-    if (candidates.includes(entryLower)) {
-      matchHandle = handle as FileSystemFileHandle;
-      matchName = entryName;
-      break;
-    }
-  }
-  if (!matchHandle) {
-    throw new Error(`SGBD not found in install: ${filename}`);
-  }
-  const file = await matchHandle.getFile();
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  return { bytes, name: matchName };
+  /* `makeBrowserSgbdResolver` returns the same `(filename) => {bytes,
+     name}` shape the Ediabas loader expects. Call it with each
+     filename — internal lookups are cached per HttpDirectory
+     instance, so repeated lookups are cheap. */
+  const resolver = makeBrowserSgbdResolver(install.ecu);
+  return resolver(filename);
 }
 
 /* ── Interface builders (embedded mode) ──────────────────────────── */
@@ -287,7 +257,7 @@ export async function connect(): Promise<void> {
       /* Embedded — build interface + wrap in EmbeddedEdiabas with the
          install's SGBD resolver. */
       if (!app.install) {
-        throw new Error("Pick an INPA install folder first (Settings → Install)");
+        throw new Error("Pick an INPA install first (folder, bundle zip, or remote VFS)");
       }
       const iface = await buildInterface();
       next = new EmbeddedEdiabas({

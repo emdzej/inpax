@@ -1,16 +1,16 @@
 /**
- * Parser + `FileSystemDirectoryHandle`-backed loader for INPA's
- * script-select INI files (`E46.ENG`, `E60.ENG`, `Antrieb.GER`, …).
- * These drive the `scriptselect` system function: a tree-like menu
- * where each tree node is an INI section and each entry under it
- * picks a `.IPO` script in `SGDAT/`.
+ * Parser + `VirtualDirectory`-backed loader for INPA's script-select
+ * INI files (`E46.ENG`, `E60.ENG`, `Antrieb.GER`, …). These drive the
+ * `scriptselect` system function: a tree-like menu where each tree
+ * node is an INI section and each entry under it picks a `.IPO`
+ * script in `SGDAT/`.
  *
- * Hosts that resolve their CFGDAT directory through the File System
- * Access API (or OPFS — same `FileSystemDirectoryHandle` shape) can
- * use `loadScriptSelect(cfgdat, filename)` directly. Hosts whose
- * source isn't a directory handle (bundled fixtures, asset fetch,
- * test mocks) build their own loader and call `parseScriptSelect`
- * on the raw content.
+ * Hosts whose CFGDAT is a `@emdzej/bimmerz-vfs` `VirtualDirectory`
+ * (the case for the web app — works against FSA, OPFS, and remote
+ * HTTP installs) use `loadScriptSelect(cfgdat, filename)` directly.
+ * Hosts whose source isn't a directory abstraction (bundled fixtures,
+ * test mocks) build their own loader and call `parseScriptSelect` on
+ * the raw content.
  *
  * ## File shape
  *
@@ -35,6 +35,7 @@
  * also exist in the wild — `parseIni` already handles both).
  */
 
+import type { VirtualDirectory } from "@emdzej/bimmerz-vfs";
 import { parse as parseIni, type IniFile } from "@emdzej/inpax-ini-parser";
 
 export interface ScriptSelectEntry {
@@ -151,24 +152,17 @@ function parseEntries(ini: IniFile, section: string): ScriptSelectEntry[] {
  * INPA scripts pass uppercase names (`E46.ENG`) but real installs
  * often have mixed-case filenames after a Windows → macOS rsync — the
  * lookup matches either way. Drop in as the `<ScriptSelectDialog
- * loader={...}>` callback when your host has a `FileSystemDirectoryHandle`
- * for CFGDAT (the case for both `apps/web` and any future
- * inpax-style browser app using the File System Access API or OPFS).
+ * loader={...}>` callback when your host has a `VirtualDirectory` for
+ * CFGDAT (Local FSA / OPFS bundle / remote HTTP — all via
+ * `@emdzej/bimmerz-vfs`).
  */
 export async function loadScriptSelect(
-  cfgdat: FileSystemDirectoryHandle,
+  cfgdat: VirtualDirectory,
   filename: string,
 ): Promise<ScriptSelectNode | null> {
-  const target = filename.toLowerCase();
-  let handle: FileSystemFileHandle | null = null;
-  for await (const [name, entry] of cfgdat.entries()) {
-    if (entry.kind === "file" && name.toLowerCase() === target) {
-      handle = entry as FileSystemFileHandle;
-      break;
-    }
-  }
-  if (!handle) return null;
-  const file = await handle.getFile();
-  const content = await file.text();
+  const file = await cfgdat.file(filename);
+  if (!file) return null;
+  const bytes = await file.arrayBuffer();
+  const content = new TextDecoder().decode(bytes);
   return parseScriptSelect(content);
 }

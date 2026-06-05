@@ -32,7 +32,18 @@
   const { ui }: Props = $props();
 
   let items = $state<MenuItem[]>([]);
-  let shift = $state(false);
+  /* Modifier state from real Shift key presses. Tracked separately
+     from `stickyShift` so a stuck sticky toggle survives transient
+     Shift key chatter and vice versa. */
+  let keyboardShift = $state(false);
+  /* Sticky shift — armed by tapping the on-screen SHIFT button,
+     auto-clears the next time the user picks a slot. Lets touch
+     users reach F11..F20 since they have no physical Shift key.
+     One-shot rather than toggle: mirrors mobile OS sticky-keys
+     behaviour, prevents getting stuck in "shift mode" by accident. */
+  let stickyShift = $state(false);
+  /* Effective modifier — either source arms the shifted slot row. */
+  const shift = $derived(keyboardShift || stickyShift);
 
   // Re-snapshot menu items on every state:changed — the provider
   // mutates its internal arrays in place but emits `state:changed`
@@ -62,7 +73,7 @@
   // the visual "SHIFT" indicator follows the global modifier state.
   $effect(() => {
     const onKey = (e: KeyboardEvent) => {
-      shift = e.shiftKey;
+      keyboardShift = e.shiftKey;
       if (isEditableTarget(e.target)) return;
 
       // Real F-keys take priority — preserves muscle memory for users
@@ -71,8 +82,9 @@
       const fMatch = e.key.match(/^F([1-9]|10)$/);
       if (fMatch) {
         const n = parseInt(fMatch[1], 10);
-        const itemNum = e.shiftKey ? n + 10 : n;
+        const itemNum = shift ? n + 10 : n;
         ui.selectMenuItem(itemNum);
+        stickyShift = false;
         e.preventDefault();
         return;
       }
@@ -81,8 +93,9 @@
       const digitMatch = e.key.match(/^[0-9]$/);
       if (digitMatch) {
         const n = e.key === "0" ? 10 : parseInt(e.key, 10);
-        const itemNum = e.shiftKey ? n + 10 : n;
+        const itemNum = shift ? n + 10 : n;
         ui.selectMenuItem(itemNum);
+        stickyShift = false;
         e.preventDefault();
         return;
       }
@@ -93,7 +106,7 @@
       }
     };
     const onUp = (e: KeyboardEvent) => {
-      shift = e.shiftKey;
+      keyboardShift = e.shiftKey;
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onUp);
@@ -102,6 +115,15 @@
       window.removeEventListener("keyup", onUp);
     };
   });
+
+  /* Click-path selection helper. Mirrors the keyboard path: select
+     by item number, then auto-clear sticky shift so the bar drops
+     back to F1..F10 view. We use this from both F-key clicks AND
+     pointer taps; not necessary for keyboard since onKey handles it. */
+  function selectSlot(itemNum: number): void {
+    ui.selectMenuItem(itemNum);
+    stickyShift = false;
+  }
 
   function slotFor(i: number): { label: string; bound: MenuItem | undefined } {
     const startNum = shift ? 11 : 1;
@@ -112,7 +134,36 @@
   }
 </script>
 
-<div class="grid grid-cols-10 gap-px bg-elevated text-xs">
+<!--
+  11-column grid: leading SHIFT toggle + 10 F-key slots. The shift
+  cell exists primarily for touch devices (no physical Shift key) but
+  is shown to everyone — it doubles as a visual indicator of the
+  current modifier state (lights up when either source is active).
+  Tap = one-shot: arms shift, releases the next time the user picks
+  a slot. The keyboard path also clears stickyShift on selection so
+  the two input modes stay coherent.
+-->
+<div class="grid grid-cols-[auto_repeat(10,_minmax(0,_1fr))] gap-px bg-elevated text-xs">
+  <button
+    type="button"
+    class="flex flex-col items-center justify-center px-3 py-2 transition"
+    class:bg-surface={!shift}
+    class:bg-accent={shift}
+    class:text-foreground={!shift}
+    class:text-white={shift}
+    class:hover:bg-elevated={!shift}
+    aria-pressed={shift}
+    aria-label="Toggle shift (for F11–F20)"
+    title="Sticky shift — tap to arm, releases after the next F-key. Lets touch users reach F11..F20."
+    onclick={() => (stickyShift = !stickyShift)}
+  >
+    <span class="text-[10px] font-bold uppercase tracking-wider">
+      Shift
+    </span>
+    <span class="mt-0.5 text-[10px] uppercase tracking-wider opacity-70">
+      {shift ? "on" : "off"}
+    </span>
+  </button>
   {#each Array(10) as _, i (i)}
     {@const slot = slotFor(i)}
     <button
@@ -123,7 +174,7 @@
       class:hover:bg-elevated={slot.bound}
       class:cursor-not-allowed={!slot.bound}
       class:opacity-40={!slot.bound}
-      onclick={() => slot.bound && ui.selectMenuItem(slot.bound.itemNum)}
+      onclick={() => slot.bound && selectSlot(slot.bound.itemNum)}
       disabled={!slot.bound}
     >
       <span class="text-[10px] font-bold uppercase tracking-wider text-accent">

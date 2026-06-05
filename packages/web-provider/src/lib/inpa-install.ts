@@ -9,35 +9,36 @@
  *     EDIABAS/Ecu/            — SGBD files (.prg / .grp) the scripts use
  *     EDIABAS/Bin/            — INI / config (optional)
  *
- * The user picks the root directory via `showDirectoryPicker()` and we
- * walk down to find each of those subdirs case-insensitively. Each
- * resolved subdir is exposed as a `FileSystemDirectoryHandle` so the
- * rest of the app reads bytes lazily without us slurping everything
- * into memory up front.
+ * The install is now backed by `@emdzej/bimmerz-vfs`'s `VirtualDirectory`
+ * — one read-only interface, three backings: File System Access API,
+ * OPFS (both via `FsaDirectory`), and remote HTTP servers with
+ * `index.json` listings (via `HttpDirectory`). Consumers see a single
+ * shape regardless of where the bytes live.
  *
- * Browser support: requires the File System Access API
- * (`showDirectoryPicker`) — Chromium-only as of 2025-05. Firefox/Safari
- * get a "use Chrome/Edge" banner from the UI layer; we don't try to
- * fall back to `<input webkitdirectory>` here because the persistent
- * permission model is the only thing that makes this app usable.
+ * Browser support: any modern browser. FSA needs Chromium; OPFS works
+ * almost everywhere; HTTP works everywhere. The UI layer picks one,
+ * wraps the source in a `VirtualDirectory`, and hands it here.
  */
 
+import type { VirtualDirectory } from "@emdzej/bimmerz-vfs";
+import { drillPath } from "@emdzej/bimmerz-vfs";
+
 export interface InpaInstall {
-  /** The directory the user picked via showDirectoryPicker. */
-  root: FileSystemDirectoryHandle;
+  /** The root the user mounted (folder pick / OPFS bundle / remote URL). */
+  root: VirtualDirectory;
   /** `<root>/EC-APPS/INPA/CFGDAT` — top-level INPA scripts + INPA.INI. */
-  cfgdat: FileSystemDirectoryHandle | null;
+  cfgdat: VirtualDirectory | null;
   /** `<root>/EC-APPS/INPA/SGDAT` — variant scripts. */
-  sgdat: FileSystemDirectoryHandle | null;
+  sgdat: VirtualDirectory | null;
   /** `<root>/EDIABAS/Ecu` — SGBD files. */
-  ecu: FileSystemDirectoryHandle | null;
+  ecu: VirtualDirectory | null;
   /** `<root>/EDIABAS/Bin` — EDIABAS.INI lives here. */
-  ediabasBin: FileSystemDirectoryHandle | null;
+  ediabasBin: VirtualDirectory | null;
 }
 
 /**
  * Whether the canonical INPA layout was found under `root`. Used by
- * the UI to show what's missing if the picked folder isn't quite an
+ * the UI to show what's missing if the picked source isn't quite an
  * INPA install.
  */
 export function isCompleteInstall(install: InpaInstall): boolean {
@@ -46,52 +47,27 @@ export function isCompleteInstall(install: InpaInstall): boolean {
 
 /**
  * Drill into `root` and find the four canonical INPA subdirectories.
- * Each lookup is case-insensitive — real installs after rsync from
- * Windows often have lowercased path components and we don't want to
- * fail on `EC-APPS` vs `ec-apps` etc.
+ * VFS's `drillPath` walks case-insensitively, so installs rsynced
+ * from Windows (mixed casing like `EC-APPS` vs `ec-apps`) just work.
  */
 export async function discoverInpaInstall(
-  root: FileSystemDirectoryHandle
+  root: VirtualDirectory,
 ): Promise<InpaInstall> {
   const [cfgdat, sgdat, ecu, ediabasBin] = await Promise.all([
-    drillCaseInsensitive(root, ["EC-APPS", "INPA", "CFGDAT"]),
-    drillCaseInsensitive(root, ["EC-APPS", "INPA", "SGDAT"]),
-    drillCaseInsensitive(root, ["EDIABAS", "Ecu"]),
-    drillCaseInsensitive(root, ["EDIABAS", "Bin"]),
+    drillPath(root, "EC-APPS", "INPA", "CFGDAT"),
+    drillPath(root, "EC-APPS", "INPA", "SGDAT"),
+    drillPath(root, "EDIABAS", "Ecu"),
+    drillPath(root, "EDIABAS", "Bin"),
   ]);
 
   return { root, cfgdat, sgdat, ecu, ediabasBin };
 }
 
 /**
- * Walk down a path one segment at a time, matching each segment
- * case-insensitively against the actual directory entries. Returns
- * null if any segment doesn't exist — easier than a TypeError later.
- */
-async function drillCaseInsensitive(
-  start: FileSystemDirectoryHandle,
-  segments: string[]
-): Promise<FileSystemDirectoryHandle | null> {
-  let current: FileSystemDirectoryHandle = start;
-  for (const segment of segments) {
-    const target = segment.toLowerCase();
-    let found: FileSystemDirectoryHandle | null = null;
-    for await (const [name, entry] of current.entries()) {
-      if (entry.kind === "directory" && name.toLowerCase() === target) {
-        found = entry as FileSystemDirectoryHandle;
-        break;
-      }
-    }
-    if (!found) return null;
-    current = found;
-  }
-  return current;
-}
-
-/**
- * Browser feature check. Returns false on Firefox/Safari/etc. and
- * `true` on Chromium derivatives. The UI shows a "use Chrome/Edge"
- * banner when this is false rather than offering a broken fallback.
+ * Browser feature check for the FSA-based install path. The remote
+ * HTTP and OPFS paths work in all browsers — UI shows the FSA option
+ * as disabled when this returns false rather than offering a broken
+ * fallback.
  */
 export function isFileSystemAccessSupported(): boolean {
   return typeof window !== "undefined" && "showDirectoryPicker" in window;

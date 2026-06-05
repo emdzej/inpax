@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { FsaDirectory, HttpDirectory, type VirtualDirectory } from "@emdzej/bimmerz-vfs";
   import { app } from "../lib/state.svelte";
   import {
     discoverInpaInstall,
@@ -14,6 +15,9 @@
     clearInstallHandle,
     queryHandlePermission,
     requestHandlePermission,
+    saveRemoteInstallUrl,
+    loadRemoteInstallUrl,
+    clearRemoteInstallUrl,
   } from "../lib/install-storage";
   import {
     getInstallSource,
@@ -46,23 +50,45 @@
   // it's "prompt", we wait for the user to click Continue (a user
   // gesture, required by the FileSystem Access API to re-grant).
   let savedHandle = $state<FileSystemDirectoryHandle | null>(null);
+  let savedRemoteUrl = $state<string | null>(null);
   let restoring = $state(false);
 
-  onMount(async () => {
-    if (!supported) return;
+  // Remote VFS URL the user is typing into the inline form. Bound to
+  // the input; submit() builds an HttpDirectory and discovers the
+  // install.
+  let remoteUrl = $state("");
+  let remoteSubmitting = $state(false);
 
-    // Bundled-install path takes priority: if a bundle was imported
-    // previously, OPFS already has the content and `discoverInpaInstall`
-    // works against the OPFS root without any permission prompt. The
-    // marker is the source of truth; the OPFS contents are read on
-    // demand below.
+  onMount(async () => {
+    /* Remote VFS path takes top priority — no permissions to grant,
+       no OPFS read either. If the user saved a URL last session, just
+       rebuild the HttpDirectory and discover. The URL probably points
+       to a stable server; if it 404s, we surface the error and let
+       the user pick a different source. */
+    const remoteUrlSaved = loadRemoteInstallUrl();
+    if (remoteUrlSaved) {
+      restoring = true;
+      try {
+        await openRemoteInstall(remoteUrlSaved, { skipSave: true });
+        return;
+      } catch (err) {
+        app.error = `Remote install at ${remoteUrlSaved} failed: ${err instanceof Error ? err.message : String(err)}`;
+        savedRemoteUrl = remoteUrlSaved;
+      } finally {
+        restoring = false;
+      }
+    }
+
+    /* Bundled OPFS install: previously imported zip lives in OPFS,
+       no permission prompt needed. The marker is the source of
+       truth; contents are read on demand below. */
     const source = getInstallSource();
     if (source?.source === "bundled" && opfsSupported) {
       restoring = true;
       try {
         const root = await loadBundledInstall();
         if (root) {
-          await openInstall(root, { skipSave: true, source: "bundled" });
+          await openLocalInstall(root, { skipSave: true, source: "bundled" });
           return;
         }
       } catch (err) {
@@ -72,14 +98,16 @@
       }
     }
 
+    /* FSA-picked install: a saved directory handle may have already
+       been granted, in which case we silently restore. */
+    if (!supported) return;
     const handle = await loadInstallHandle();
     if (!handle) return;
     const perm = await queryHandlePermission(handle);
     if (perm === "granted") {
-      // Silent restore — no extra click needed.
       restoring = true;
       try {
-        await openInstall(handle, { skipSave: true });
+        await openLocalInstall(handle, { skipSave: true });
       } catch (err) {
         app.error = err instanceof Error ? err.message : String(err);
       } finally {
@@ -88,21 +116,23 @@
       return;
     }
     if (perm === "denied") {
-      // Stored handle has been revoked at the OS / browser level.
-      // Drop it so we don't keep prompting and fall through to the
-      // fresh picker.
+      /* Stored handle has been revoked at the OS / browser level.
+         Drop it so we don't keep prompting and fall through to the
+         fresh picker. */
       await clearInstallHandle();
       return;
     }
-    // "prompt": show the Continue button.
+    /* "prompt": show the Continue button. */
     savedHandle = handle;
   });
 
-  async function openInstall(
-    handle: FileSystemDirectoryHandle,
-    options: { skipSave?: boolean; source?: "fs-access" | "bundled" } = {}
-  ): Promise<void> {
-    const install = await discoverInpaInstall(handle);
+  /**
+   * Mount a `VirtualDirectory` as the live INPA install. Drives the
+   * UI's transition from welcome → browse. Source-agnostic — works
+   * the same for FSA, OPFS, and remote HTTP roots.
+   */
+  async function mountInstall(root: VirtualDirectory): Promise<void> {
+    const install = await discoverInpaInstall(root);
     app.install = install;
 
     const ipoFiles = [];
@@ -110,25 +140,63 @@
     if (install.cfgdat) ipoFiles.push(...(await listIpoFiles(install.cfgdat, "CFGDAT")));
     app.ipoFiles = ipoFiles;
 
-    // Auto-mount the user's pinned startup IPO, if the install has it.
-    // Match is case-insensitive and ignores the `.ipo` extension, so
-    // `Ms43_sp2.IPO` pinned earlier still resolves against an install
-    // that exposes it as `ms43_sp2.ipo` (or any other casing).
+    /* Auto-mount the user's pinned startup IPO if present.
+       Case-insensitive name match ignoring `.ipo` extension. */
     if (settings.startupIpo) {
       const found = ipoFiles.find((e) => isStartupIpo(e.name));
       if (found) app.selectedIpo = found;
     }
 
     app.view = "browse";
+  }
+
+  /**
+   * FSA / OPFS path — wraps the directory handle in `FsaDirectory`
+   * (same VirtualDirectory backing for both, by design of VFS) and
+   * mounts.
+   */
+  async function openLocalInstall(
+    handle: FileSystemDirectoryHandle,
+    options: { skipSave?: boolean; source?: "fs-access" | "bundled" } = {}
+  ): Promise<void> {
+    await mountInstall(new FsaDirectory(handle));
     if (!options.skipSave) {
       await saveInstallHandle(handle);
-      // The bundled path sets its own marker inside importZipToOpfs;
-      // only stamp the fs-access marker here so we don't overwrite a
-      // freshly-imported bundle's metadata.
+      clearRemoteInstallUrl();
+      /* The bundled path sets its own marker inside importZipToOpfs;
+         only stamp the fs-access marker here so we don't overwrite a
+         freshly-imported bundle's metadata. */
       if (options.source !== "bundled") {
         setInstallSource({ source: "fs-access" });
       }
     }
+    /* Mirror the (now-current) source marker into reactive app
+       state so the top-bar pill updates without a reload. The
+       marker write above happens BEFORE this read, so the value
+       reflects the just-completed change. For the bundled path we
+       still pick up the marker importZipToOpfs wrote. */
+    app.installSource = getInstallSource();
+  }
+
+  /**
+   * Remote VFS path — builds an `HttpDirectory` rooted at the user's
+   * URL (a tree of `index.json` files served over HTTP) and mounts.
+   * No permission grants, no OPFS write, just `fetch`.
+   */
+  async function openRemoteInstall(
+    url: string,
+    options: { skipSave?: boolean } = {}
+  ): Promise<void> {
+    const root = new HttpDirectory(url);
+    await mountInstall(root);
+    if (!options.skipSave) {
+      saveRemoteInstallUrl(url);
+      /* Switching to a remote install supersedes any prior FSA / OPFS
+         source — clear those markers so a reload comes back here. */
+      await clearInstallHandle();
+      setInstallSource({ source: "remote" });
+    }
+    app.installSource = getInstallSource();
   }
 
   function chooseZip(): void {
@@ -168,7 +236,7 @@
       // Drop any saved fs-access handle — the bundled source is now
       // the active one, and re-loading would race against the marker.
       await clearInstallHandle();
-      await openInstall(root, { skipSave: true, source: "bundled" });
+      await openLocalInstall(root, { skipSave: true, source: "bundled" });
     } catch (err) {
       app.error = err instanceof Error ? err.message : String(err);
     } finally {
@@ -191,7 +259,7 @@
       // INPA tree, only the script's own INI handling will need write
       // permission, and that's a per-file ask later.
       const handle = await window.showDirectoryPicker({ mode: "read" });
-      await openInstall(handle);
+      await openLocalInstall(handle);
     } catch (err) {
       // User cancelling the picker throws AbortError — that's expected,
       // not an error to surface.
@@ -212,10 +280,48 @@
         savedHandle = null;
         return;
       }
-      await openInstall(savedHandle);
+      await openLocalInstall(savedHandle);
     } catch (err) {
       app.error = err instanceof Error ? err.message : String(err);
     }
+  }
+
+  /** Submit the remote VFS URL form. */
+  async function submitRemote(): Promise<void> {
+    const url = remoteUrl.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) {
+      app.error = "Remote VFS URL must start with http:// or https://";
+      return;
+    }
+    app.error = null;
+    remoteSubmitting = true;
+    try {
+      await openRemoteInstall(url);
+    } catch (err) {
+      app.error = err instanceof Error ? err.message : String(err);
+    } finally {
+      remoteSubmitting = false;
+    }
+  }
+
+  /** Re-mount the previously-saved remote URL after a load failure. */
+  async function continueRemote(): Promise<void> {
+    if (!savedRemoteUrl) return;
+    app.error = null;
+    try {
+      await openRemoteInstall(savedRemoteUrl, { skipSave: true });
+      savedRemoteUrl = null;
+    } catch (err) {
+      app.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  /** Drop the saved remote URL and fall back to fresh picker. */
+  function dismissRemote(): void {
+    clearRemoteInstallUrl();
+    savedRemoteUrl = null;
+    app.error = null;
   }
 </script>
 
@@ -262,15 +368,44 @@
   </div>
 
   {#if !supported}
-    <div class="max-w-md rounded border border-red-300 dark:border-red-600/40 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-800 dark:text-red-300">
-      <strong class="font-semibold">Unsupported browser.</strong>
-      INPAX needs the File System Access API and Web Serial — both Chromium-only.
-      Use Chrome, Edge, or Opera.
+    <!-- Non-Chromium browser: the FSA-based picker is unavailable, but
+         remote VFS + (in client mode) Web Serial-free server access
+         still work. Soft warning instead of a hard block. -->
+    <div class="max-w-md rounded border border-amber-300 dark:border-amber-600/40 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+      <strong class="font-semibold">Limited browser support.</strong>
+      The File System Access API and Web Serial are Chromium-only —
+      "Pick install folder" and embedded-mode connections won't work.
+      You can still mount a remote install over HTTP and run jobs
+      through a remote ediabasx-server (Settings → Mode → Client).
     </div>
-  {:else if restoring}
-    <p class="text-sm text-faint">Restoring last folder…</p>
+  {/if}
+  {#if restoring}
+    <p class="text-sm text-faint">Restoring last install…</p>
   {:else}
-    {#if savedHandle}
+    {#if savedRemoteUrl}
+      <!-- Previously-saved remote URL failed to load (server down /
+           moved). Offer one-click retry, or dismiss to fall through
+           to the fresh-picker UI. -->
+      <div class="flex flex-col items-center gap-3 max-w-md">
+        <p class="text-sm text-foreground">
+          Remote install at <code class="text-muted">{savedRemoteUrl}</code> failed to load.
+        </p>
+        <div class="flex gap-3">
+          <button
+            class="rounded bg-accent px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-accent-muted transition"
+            onclick={continueRemote}
+          >
+            Retry
+          </button>
+          <button
+            class="rounded border border-rule px-4 py-2 text-sm text-muted hover:border-faint hover:text-foreground transition"
+            onclick={dismissRemote}
+          >
+            Pick a different install
+          </button>
+        </div>
+      </div>
+    {:else if savedHandle}
       <!-- Browser dropped the permission across the reload but the
            handle's still around. Re-grant in one click instead of
            making the user re-navigate the filesystem. -->
@@ -305,15 +440,19 @@
         {/if}
       </div>
     {:else}
-      <!-- Two paths to onboarding. Pick folder is the original
-           File System Access flow; Import bundle extracts a
-           `bimmerz-bundle`-produced zip into OPFS. The bundle path
-           sidesteps Chrome's .ini blocklist entirely on Windows
-           and survives page reloads without permission re-grants. -->
-      <div class="flex flex-col items-stretch gap-4 max-w-xl w-full md:flex-row">
+      <!-- Three onboarding paths. All produce a VirtualDirectory the
+           rest of the app reads through; the only difference is where
+           the bytes live (local disk, OPFS, remote HTTP). Picking one
+           does NOT lock you into a connection mode — that's a separate
+           Settings choice (embedded cable vs remote ediabasx-server).
+           Even client mode needs an install for INPA's .ipo scripts
+           — the server only resolves SGBDs, not scripts. -->
+      <div class="flex flex-col items-stretch gap-4 max-w-3xl w-full md:flex-row">
         <button
-          class="flex flex-1 flex-col items-center gap-2 rounded border border-rule bg-surface p-4 text-center transition hover:border-accent hover:bg-elevated"
+          class="flex flex-1 flex-col items-center gap-2 rounded border border-rule bg-surface p-4 text-center transition hover:border-accent hover:bg-elevated disabled:opacity-50 disabled:cursor-not-allowed"
           onclick={pickRoot}
+          disabled={!supported}
+          title={supported ? "" : "File System Access API requires Chrome / Edge / Opera"}
         >
           <span class="font-semibold text-foreground">Pick install folder</span>
           <span class="text-xs text-faint">
@@ -326,7 +465,7 @@
           onclick={chooseZip}
           disabled={!opfsSupported}
           title={opfsSupported
-            ? "Pick a zip produced by bimmerz-bundle"
+            ? "Pick a zip produced by bimmerz CLI tools"
             : "OPFS not supported in this browser"}
         >
           <span class="font-semibold text-foreground">Import bundle zip</span>
@@ -334,34 +473,48 @@
             One-time import. Stays available across sessions, no
             re-grant needed.
             <a
-              href="https://github.com/emdzej/inpax/tree/main/apps/bimmerz-bundler"
+              href="https://github.com/emdzej/bimmerz/tree/main/apps/cli"
               target="_blank"
               rel="noopener noreferrer"
               class="text-accent underline-offset-2 hover:underline"
               onclick={(e: Event) => e.stopPropagation()}
-            >Make one with bimmerz-bundle.</a>
+            >Make one with bimmerz CLI tools.</a>
           </span>
         </button>
-        <button
-          type="button"
-          class="flex flex-1 flex-col items-center gap-2 rounded border border-rule bg-surface p-4 text-center transition hover:border-accent hover:bg-elevated"
-          onclick={() => {
-            /* Client mode — the server owns the SGBD catalogue, no
-               local install needed. Flip the mode in config and jump
-               straight to the browse view; the user wires the server
-               URL (or Bimmerz Connect session) from Settings. */
-            app.config.mode = "client";
-            app.view = "browse";
-            app.showSettings = true;
-          }}
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <form
+          class="flex flex-1 flex-col items-stretch gap-2 rounded border border-rule bg-surface p-4 text-center transition hover:border-accent hover:bg-elevated"
+          onsubmit={(e) => { e.preventDefault(); void submitRemote(); }}
         >
-          <span class="font-semibold text-foreground">Connect to remote server</span>
+          <span class="font-semibold text-foreground">Mount remote folder</span>
           <span class="text-xs text-faint">
-            Talk to a running <code class="text-muted">ediabasx-server</code> over
-            WebSocket — direct or via Bimmerz Connect relay. No local
-            install needed; the server resolves SGBDs.
+            Point at a directory served via HTTP with
+            <code class="text-muted">index.json</code> listings. Works in
+            any browser; no permission grants.
+            <a
+              href="https://github.com/emdzej/bimmerz/tree/main/packages/vfs"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-accent underline-offset-2 hover:underline"
+              onclick={(e: Event) => e.stopPropagation()}
+            >How to serve one.</a>
           </span>
-        </button>
+          <input
+            type="url"
+            class="rounded border border-rule bg-base px-2 py-1 text-xs text-foreground placeholder:text-faint focus:border-accent focus:outline-none"
+            placeholder="http://localhost:3000"
+            bind:value={remoteUrl}
+            disabled={remoteSubmitting}
+            required
+          />
+          <button
+            type="submit"
+            class="rounded bg-accent px-3 py-1 text-xs font-medium text-zinc-950 hover:bg-accent-muted disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={remoteSubmitting || !remoteUrl.trim()}
+          >
+            {remoteSubmitting ? "Mounting…" : "Mount"}
+          </button>
+        </form>
       </div>
       <input
         bind:this={zipInput}

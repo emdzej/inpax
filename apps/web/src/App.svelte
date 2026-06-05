@@ -2,6 +2,7 @@
   import { app } from "./lib/state.svelte";
   import { connection, connect, disconnect } from "./lib/connection.svelte";
   import { settings, isDarkTheme } from "./lib/settings.svelte";
+  import { loadRemoteInstallUrl } from "./lib/install-storage";
   import {
     setLibTheme,
     classicInpaTheme,
@@ -14,6 +15,82 @@
   import ConfigPanel from "./components/ConfigPanel.svelte";
   import ConnectSessionDialog from "./components/ConnectSessionDialog.svelte";
   import ThemeToggle from "./components/ThemeToggle.svelte";
+
+  /**
+   * Top-bar install-source pill — label + tooltip describing where
+   * the active install's bytes are coming from. The label stays
+   * short (one or two words); the tooltip has the path / URL /
+   * marker so the user can confirm at a hover.
+   */
+  const installPill = $derived.by((): { label: string; tooltip: string } => {
+    if (!app.install) {
+      return { label: "no install", tooltip: "No install loaded" };
+    }
+    /* Read from reactive `app.installSource` — getInstallSource()
+       was localStorage-direct and didn't re-run this $derived when
+       the marker changed mid-session. */
+    const source = app.installSource;
+    const rootName = app.install.root.name || "(unnamed root)";
+    if (source?.source === "remote") {
+      const url = loadRemoteInstallUrl();
+      return {
+        label: "remote",
+        tooltip: `Remote VFS · ${url ?? rootName}`,
+      };
+    }
+    if (source?.source === "bundled") {
+      return {
+        label: "bundled",
+        tooltip: `OPFS bundle · ${rootName} · ${source.fileCount} files · imported ${source.importedAt}`,
+      };
+    }
+    if (source?.source === "fs-access") {
+      return {
+        label: "local",
+        tooltip: `Local folder · ${rootName}`,
+      };
+    }
+    return { label: "?", tooltip: `Unknown install source · ${rootName}` };
+  });
+
+  /**
+   * Connection-mode pill — short label for the active path between
+   * inpax and the cable, tooltip carrying the concrete endpoint /
+   * baud / URL. Sits next to the Connect button so the user sees at
+   * a glance whether they're driving a local Web Serial cable, a
+   * J2534 OpenPort, a remote ediabasx-server, or a Bimmerz Connect
+   * session — useful disambiguator when state is "Connecting…" or
+   * "Connection error".
+   */
+  const modePill = $derived.by((): { label: string; tooltip: string } => {
+    const cfg = app.config;
+    if (cfg.mode === "client") {
+      if (cfg.connectionMethod === "connect") {
+        return {
+          label: "bimmerz connect",
+          tooltip: `Client · Bimmerz Connect relay · ${cfg.connectRelayUrl ?? "wss://connect.bimmerz.app"}`,
+        };
+      }
+      return {
+        label: "ws server",
+        tooltip: `Client · direct WebSocket · ${cfg.serverUrl ?? "(URL not set)"}`,
+      };
+    }
+    if (cfg.interface === "webserial") {
+      const baud = cfg.serial?.baudRate ?? 9600;
+      return { label: "web serial", tooltip: `Embedded · Web Serial @ ${baud}` };
+    }
+    if (cfg.interface === "j2534") {
+      return { label: "j2534", tooltip: "Embedded · J2534 (Tactrix OpenPort 2.0)" };
+    }
+    if (cfg.interface === "gateway") {
+      return {
+        label: "gateway",
+        tooltip: `Embedded · Remote gateway · ${cfg.gateway?.url ?? "(URL not set)"}`,
+      };
+    }
+    return { label: cfg.interface, tooltip: `Embedded · ${cfg.interface}` };
+  });
 
   // Install the web-provider theme context at the root. Components
   // inside `@emdzej/inpax-web-provider` (ScreenCanvas, UserBoxOverlay,
@@ -94,12 +171,54 @@
         </svg>
       </a>
 
-      <!-- Top-bar Connect button. State (idle / connecting /
-           connected / error) is encoded in the button itself —
-           no separate status label needed. Hover the button to
-           see the connection descriptor in the tooltip
-           (`Connected: Web Serial @ 9600` etc.). -->
-      <div class="ml-auto">
+      <!-- Right cluster: data-location pill, mode pill, Connect
+           button. The pills carry concrete details in their
+           tooltips (folder name / URL / baud / etc.) so the user
+           can confirm at a hover without opening Settings.
+           Borderless + slightly faded — they're metadata, not
+           chrome. Icons disambiguate at-a-glance: folder = data
+           source, plug = comm link. -->
+      <div class="ml-auto flex items-center gap-3">
+        <span
+          class="flex items-center gap-1.5 text-xs text-faint"
+          title={installPill.tooltip}
+        >
+          <!-- Folder icon — represents the data source. -->
+          <svg
+            viewBox="0 0 16 16"
+            width="13"
+            height="13"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.4a1.5 1.5 0 0 1 1.06.44L8 4.5h4.5A1.5 1.5 0 0 1 14 6v6a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12V4.5z"/>
+          </svg>
+          {installPill.label}
+        </span>
+        <span
+          class="flex items-center gap-1.5 text-xs text-faint"
+          title={modePill.tooltip}
+        >
+          <!-- Plug icon — represents the comm connection. -->
+          <svg
+            viewBox="0 0 16 16"
+            width="13"
+            height="13"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M5 2v3.5M9 2v3.5M3.5 5.5h7v3a3.5 3.5 0 0 1-3.5 3.5h0a3.5 3.5 0 0 1-3.5-3.5v-3zM7 12v2"/>
+          </svg>
+          {modePill.label}
+        </span>
         <ConnectButton
           phase={connection.phase}
           message={connection.message}
