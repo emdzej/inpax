@@ -18,7 +18,8 @@
     "compile:debug": "node --inspect-brk apps/cli/dist/index.js compile",
     "editor": "node apps/cli/dist/index.js edit",
     "web": "pnpm --filter @emdzej/inpax-web dev",
-    "build:web": "pnpm --filter @emdzej/inpax-web build"
+    "build:web": "pnpm --filter @emdzej/inpax-web build",
+    "build:web:embedded": "pnpm --filter @emdzej/inpax-web build:embedded"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

@@ -27,6 +27,7 @@
     isOpfsSupported,
     type ImportProgressEvent,
   } from "../lib/bundled-install";
+  import { isEmbedded, embeddedEndpoints } from "../lib/embedded";
 
   const supported = isFileSystemAccessSupported();
   const opfsSupported = isOpfsSupported();
@@ -60,6 +61,30 @@
   let remoteSubmitting = $state(false);
 
   onMount(async () => {
+    /* Embedded build (dongle-hosted SPA): the install URL is fixed
+       to the dongle's `${origin}/data`. Mount once on boot, then
+       bail — no picker UI gets to render in this build because the
+       template branch below also gates on isEmbedded. The flag is a
+       compile-time constant so the rest of this onMount tree-shakes
+       out of the embedded bundle entirely. */
+    if (isEmbedded) {
+      restoring = true;
+      try {
+        const { installHttpBase } = embeddedEndpoints();
+        /* `skipSave: true` — the URL is build-time-derived from
+           window.location, not user input, so we don't want to
+           persist it to localStorage (it'd just be regenerated
+           next load anyway and would leak the dongle's IP to a
+           later non-embedded session sharing the same origin). */
+        await openRemoteInstall(installHttpBase, { skipSave: true });
+      } catch (err) {
+        app.error = `Couldn't mount the dongle's install at ${embeddedEndpoints().installHttpBase}: ${err instanceof Error ? err.message : String(err)}`;
+      } finally {
+        restoring = false;
+      }
+      return;
+    }
+
     /* Remote VFS path takes top priority — no permissions to grant,
        no OPFS read either. If the user saved a URL last session, just
        rebuild the HttpDirectory and discover. The URL probably points
@@ -326,6 +351,26 @@
 </script>
 
 <div class="flex h-full flex-col items-center justify-center gap-8 p-8">
+  {#if isEmbedded}
+    <!-- Dongle-hosted build: install auto-mounts from `${origin}/data`
+         on boot (see onMount above). If we're here, either we're still
+         restoring or the mount failed. Surface a focused message; the
+         three-tile picker is dead code in this build. -->
+    <h1 class="text-4xl font-bold text-accent">INPAX</h1>
+    {#if restoring}
+      <p class="text-sm text-faint">Mounting install from dongle…</p>
+    {:else if app.error}
+      <div class="max-w-md rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-600/40 dark:bg-red-950/40 dark:text-red-300">
+        {app.error}
+      </div>
+      <p class="text-xs text-faint">
+        The dongle's <code class="text-muted">{embeddedEndpoints().installHttpBase}</code> endpoint isn't reachable.
+        Check the dongle's status LED and refresh.
+      </p>
+    {:else}
+      <p class="text-sm text-faint">Waiting for dongle…</p>
+    {/if}
+  {:else}
   <div class="max-w-2xl text-center">
     <h1 class="text-4xl font-bold text-accent">INPAX</h1>
     <p class="mt-2 text-muted">BMW INPA scripts, in your browser.</p>
@@ -581,5 +626,6 @@ copy C:\EC-APPS\INPA\CFGDAT\INPA.INI  INPA.INIX</code></pre>
         <li class:opacity-50={!app.install.ecu}>EDIABAS/Ecu {app.install.ecu ? "✓" : "✗"}</li>
       </ul>
     </div>
+  {/if}
   {/if}
 </div>

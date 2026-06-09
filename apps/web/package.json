@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "build:embedded": "vite build --mode embedded",
     "preview": "vite preview",
     "pwa-assets": "pwa-assets-generator",
     "typecheck": "tsc --noEmit && svelte-check --tsconfig ./tsconfig.json"

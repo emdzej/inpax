@@ -12,9 +12,42 @@ const pkg = JSON.parse(
   readFileSync(fileURLToPath(new URL("./package.json", import.meta.url)), "utf8")
 ) as { version: string };
 
-export default defineConfig({
+/**
+ * Build modes:
+ *
+ *   • `pnpm web:build` — default. Full browser SPA: install picker
+ *     (FSA + bundled + remote), mode toggle, settings, PWA service
+ *     worker, persisted config. Deployed to inpax.bimmerz.app etc.
+ *
+ *   • `pnpm web:build:embedded` — dongle build. The SPA is hosted by
+ *     the dongle itself (ESP32-P4) at `/inpax/`, talking back to the
+ *     same origin for IEdiabas + install:
+ *       - `__EMBEDDED__` is `true` (compile-time constant).
+ *       - Mode / connection method / server URL locked to client +
+ *         direct + `${origin}/rpc/ediabasx` (see `lib/embedded.ts`).
+ *       - Install auto-mounts from `${origin}/data` over HTTP VFS on
+ *         boot — picker is skipped, mounting state never persists.
+ *       - Settings hide Mode + Server + Connect + InstallPicker
+ *         panels.
+ *       - PWA service worker dropped (no internet on the dongle, no
+ *         autoUpdate noise on hardware the user doesn't manage).
+ *     Persisted logging level + theme + UI prefs ride along normally.
+ *
+ * The two outputs live side-by-side: `dist/` and `dist-embedded/`.
+ */
+export default defineConfig(({ mode }) => {
+  const isEmbedded = mode === "embedded";
+  return {
+  /* Embedded build is mounted at `/inpax/` on the dongle — the
+     firmware serves multiple apps (`/ediabasx/`, `/inpax/`,
+     `/ncsx/`, `/nfsx/`) under one HTTP root, with `/rpc/ediabasx`
+     and `/data/` as siblings at `/`. Vite rewrites all asset URLs
+     + the SPA fallback to that prefix. Default browser build stays
+     at `/`. */
+  base: isEmbedded ? "/inpax/" : "/",
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __EMBEDDED__: JSON.stringify(isEmbedded),
   },
   plugins: [
     svelte(),
@@ -33,7 +66,9 @@ export default defineConfig({
     // inpax-web bundle is currently ~750 KB minified (mostly the
     // VM + ediabasx interpreter) and Workbox's default 2 MB cap
     // would refuse to precache it on bundles that grow.
-    VitePWA({
+    //
+    // Skipped in the embedded build — see top-of-file comment.
+    !isEmbedded && VitePWA({
       registerType: "autoUpdate",
       includeAssets: [
         "icon.svg",
@@ -113,9 +148,29 @@ export default defineConfig({
     ],
   },
   build: {
+    /* Separate output for the embedded build — firmware packagers
+       ship dist-embedded/ as static assets at the dongle's `/inpax/`
+       prefix. Default build still goes to dist/ for the hosted
+       deployment. */
+    outDir: isEmbedded ? "dist-embedded" : "dist",
+    /* Drop sourcemaps on the dongle — flash is precious. */
+    sourcemap: !isEmbedded,
     commonjsOptions: {
       include: [/node_modules/, /packages\//],
       transformMixedEsModules: true,
     },
+    /* Embedded build drops the PWA plugin (no offline cache benefit
+       on a dongle with no internet, autoUpdate is confusing on
+       hardware the user doesn't manage). The dynamic
+       `import("virtual:pwa-register")` in main.ts is gated behind
+       `if (!isEmbedded)` and tree-shakes out, but Rollup still
+       resolves the virtual specifier statically — fails because the
+       PWA plugin (which provides the virtual module) isn't loaded.
+       Mark it external so Rollup leaves the unreachable call site
+       alone. */
+    rollupOptions: isEmbedded
+      ? { external: ["virtual:pwa-register"] }
+      : undefined,
   },
+  };
 });

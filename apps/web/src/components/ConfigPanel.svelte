@@ -18,6 +18,7 @@
    */
 
   import { app } from "../lib/state.svelte";
+  import { isEmbedded } from "../lib/embedded";
   import {
     resetConfig,
     saveConfig,
@@ -388,21 +389,41 @@
       <div class="flex-1 overflow-auto p-4">
         {#if activeTab === "comm"}
           <div class="flex flex-col gap-6">
-            <!-- Mode toggle (embedded / client) + server URL —
-                 picks whether the browser drives the cable locally
-                 or talks to a remote ediabasx-server. -->
-            <ModeConfigPanel bind:config={app.config} />
-
-            {#if app.config.mode === "client"}
-              <!-- Direct WebSocket vs Bimmerz Connect relay. Only
-                   meaningful in client mode. -->
-              <ConnectConfigPanel bind:config={app.config} />
-              <ServerConfigPanel bind:config={app.config} />
+            {#if isEmbedded}
+              <!-- Embedded (dongle-hosted) build: mode + server URL +
+                   interface are locked at build time. Surface a small
+                   read-only summary so the host is still discoverable
+                   from Settings, without giving the user controls that
+                   would just be re-overridden on next load. -->
+              <fieldset class="flex flex-col gap-2 rounded border border-divider bg-elevated/60 p-3">
+                <legend class="px-1 text-xs font-bold uppercase tracking-wider text-faint">
+                  Connection
+                </legend>
+                <div class="text-xs">
+                  Connected to dongle at
+                  <code class="ml-1 font-mono text-foreground">{window.location.host}</code>
+                </div>
+                <div class="text-xs text-faint">
+                  Mode + server URL + install source are fixed for this build (dongle-hosted SPA).
+                </div>
+              </fieldset>
             {:else}
-              <!-- Embedded mode: pick a local interface (Web Serial /
-                   J2534 / Gateway). Single source of truth across the
-                   bimmerz family via @emdzej/ediabasx-web-ui. -->
-              <InterfaceConfigPanel bind:config={app.config} />
+              <!-- Mode toggle (embedded / client) + server URL —
+                   picks whether the browser drives the cable locally
+                   or talks to a remote ediabasx-server. -->
+              <ModeConfigPanel bind:config={app.config} />
+
+              {#if app.config.mode === "client"}
+                <!-- Direct WebSocket vs Bimmerz Connect relay. Only
+                     meaningful in client mode. -->
+                <ConnectConfigPanel bind:config={app.config} />
+                <ServerConfigPanel bind:config={app.config} />
+              {:else}
+                <!-- Embedded mode: pick a local interface (Web Serial /
+                     J2534 / Gateway). Single source of truth across the
+                     bimmerz family via @emdzej/ediabasx-web-ui. -->
+                <InterfaceConfigPanel bind:config={app.config} />
+              {/if}
             {/if}
 
             {#if connection.errorMessage}
@@ -415,6 +436,34 @@
           {@const installSource = getInstallSource()}
           {@const isBundled = installSource?.source === "bundled"}
           <div class="flex flex-col gap-4">
+            {#if isEmbedded}
+              <!-- Embedded build: install is locked to the dongle's
+                   `${origin}/data` endpoint. No "change folder" /
+                   "forget" / "evict bundle" — those would all leave
+                   the install in an inconsistent state since the next
+                   load just re-mounts from the same URL. Show a
+                   read-only summary of what's mounted. -->
+              <fieldset class="flex flex-col gap-2 rounded border border-divider bg-elevated/60 p-3">
+                <legend class="px-1 text-xs font-bold uppercase tracking-wider text-faint">
+                  Active install · dongle
+                </legend>
+                <p class="text-sm text-foreground">
+                  {app.install?.root.name || "(mounting…)"}
+                </p>
+                {#if app.install}
+                  <ul class="text-xs text-faint">
+                    <li>SGDAT: {app.install.sgdat ? "✓" : "✗"}</li>
+                    <li>CFGDAT: {app.install.cfgdat ? "✓" : "✗"}</li>
+                    <li>EDIABAS/Ecu: {app.install.ecu ? "✓" : "✗"}</li>
+                  </ul>
+                {/if}
+                <p class="mt-2 text-xs text-faint">
+                  Served by the dongle at
+                  <code class="font-mono">{window.location.host}/data</code>.
+                  Re-index on the dongle to refresh.
+                </p>
+              </fieldset>
+            {:else}
             <!-- Fieldset 1: Active install — shows what's currently
                  mounted regardless of source. Bundled source shows
                  stats inline since they're directly relevant; the
@@ -678,6 +727,7 @@ for /R "C:\EC-APPS" %f in (*.ini) do copy "%f" "%~dpnf.INIX"</code></pre>
                 with the <code>.INIX</code> files now visible.
               </p>
             </fieldset>
+            {/if}
           </div>
         {:else}
           <!-- Developer -->

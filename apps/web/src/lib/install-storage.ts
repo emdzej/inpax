@@ -148,14 +148,21 @@ export async function requestHandlePermission(
 
 /* ── Remote VFS URL persistence (no permission grants needed) ────── */
 
+import { isEmbedded, embeddedEndpoints } from "./embedded";
+
 const REMOTE_URL_KEY = "inpax.web.install.remoteUrl";
 
 /**
  * Persist the URL of a remote VFS install root (HttpDirectory base
  * URL — points to a tree of `index.json` files served over HTTP).
  * No permission grants involved; just localStorage.
+ *
+ * No-op in embedded builds — the install URL is build-time fixed
+ * (the dongle's own `/data` endpoint); persisting wouldn't matter,
+ * and skipping the write keeps localStorage clean.
  */
 export function saveRemoteInstallUrl(url: string): void {
+  if (isEmbedded) return;
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(REMOTE_URL_KEY, url);
@@ -164,8 +171,16 @@ export function saveRemoteInstallUrl(url: string): void {
   }
 }
 
-/** Read the previously-saved remote VFS URL, or `null`. */
+/**
+ * Read the previously-saved remote VFS URL, or `null`.
+ *
+ * In embedded builds always returns the dongle's `${origin}/data`
+ * endpoint, regardless of what's in localStorage. Lets the top-bar
+ * source pill's tooltip resolve to the right URL without forcing
+ * every call site to branch on `isEmbedded`.
+ */
 export function loadRemoteInstallUrl(): string | null {
+  if (isEmbedded) return embeddedEndpoints().installHttpBase;
   if (typeof localStorage === "undefined") return null;
   try {
     return localStorage.getItem(REMOTE_URL_KEY);
@@ -174,8 +189,9 @@ export function loadRemoteInstallUrl(): string | null {
   }
 }
 
-/** Remove the persisted remote URL. */
+/** Remove the persisted remote URL. No-op in embedded builds. */
 export function clearRemoteInstallUrl(): void {
+  if (isEmbedded) return;
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.removeItem(REMOTE_URL_KEY);
