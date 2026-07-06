@@ -6,6 +6,70 @@ Format follows [Keep a Changelog](https://keepachangelog.com); the project
 follows [Semantic Versioning](https://semver.org) loosely — minor version
 bumps may carry new features and small breaking changes until 1.0.
 
+## [0.12.0] — 2026-07-06
+
+Adopts [ediabasx 0.8.0](https://github.com/emdzej/ediabasx/releases/tag/0.8.0)
+and wires the dongle-embedded inpax-web into the shared
+`useEmbeddedAutoConnect` lifecycle hook from `@emdzej/bimmerz-ui@0.2.0`.
+Ships a Bimmerz Box `manifest.json` alongside the build, and attaches
+`inpax-web-embedded-<version>.zip` to every GitHub Release so dongle
+packagers can drop the SPA onto the SD card without cloning the
+monorepo.
+
+Nothing changes for the hosted browser build at `inpax.bimmerz.app` —
+the auto-connect hook is a no-op when `__EMBEDDED__` is false, so the
+manual Connect button stays in charge.
+
+### Added
+
+- **Embedded-mode auto-connect** in `apps/web`. `App.svelte` calls
+  `useEmbeddedAutoConnect({ isEmbedded, connect, disconnect, isReady,
+  isConnected, log })` from `@emdzej/bimmerz-ui`. The hook opens the
+  same-origin `/rpc/ediabasx` RPC session once the HTTP-VFS install
+  has mounted (`isReady: () => app.install !== null`), retries with
+  exponential backoff on transient drops (1 → 2 → 4 → 8 → 16 → 30 s
+  cap), and fires `disconnect()` on `beforeunload` / `pagehide` so
+  the dongle WebSocket closes cleanly. Attempts stream to the
+  `inpax.autoconnect` bimmerz-logger category.
+- **`preview:web:embedded`** — new root script that runs
+  `vite preview --mode embedded`, serving `dist-embedded/` at
+  `http://localhost:4173/inpax/` with the same base-path + no-PWA
+  behaviour as the on-dongle bundle.
+- **Bimmerz Box `manifest.json`** — a tiny Vite plugin
+  (`inpax-embedded-manifest`) emits `dist-embedded/manifest.json` at
+  build time (`name` / `description` / `version` from `package.json`
+  / `icon` / `requires: ["kline"]`). The bimmerz-box dashboard
+  auto-discovers apps under `/sdcard/apps/` by reading this file —
+  see [bimmerz-box's App manifest section](https://github.com/emdzej/bimmerz-box#app-manifest).
+- **Embedded-build docs** — new "Embedded build (dongle-hosted)"
+  section in `apps/web/README.md` covering the compile-time connection
+  lock, the auto-connect hook, the no-PWA choice, the manifest, and
+  the `pnpm build:web:embedded` / `pnpm preview:web:embedded` workflow.
+
+### Release artefacts
+
+- **`inpax-web-embedded-<version>.zip`** attached to each GitHub
+  Release via `publish.yml`. Workflow runs
+  `pnpm --filter @emdzej/inpax-web build:embedded`, zips
+  `dist-embedded/`, and uploads via `gh release upload`. Skipped on
+  manual `workflow_dispatch` / dry runs. Required permission bumped
+  to `contents: write`.
+
+### Changed
+
+- **`@emdzej/ediabasx-*` deps bumped `^0.7.1` → `^0.8.0`** in
+  `inpax-ediabasx-provider`, `inpax-cli`, `inpax-web`. Lockfile
+  refresh; no transient dep updates.
+
+### Dependencies
+
+- **`@emdzej/bimmerz-ui@^0.2.0`** — new dependency of
+  `@emdzej/inpax-web`, pulled from npm. Source-only Svelte package
+  — added to `optimizeDeps.exclude` so each `.svelte` / `.svelte.ts`
+  file is routed through `@sveltejs/vite-plugin-svelte`'s transform
+  instead of esbuild's pre-bundler (which lacks the loader for those
+  extensions and would choke on TS syntax in a `.svelte.ts` file).
+
 ## [0.11.1] — 2026-06-05
 
 Dependency bump only — picks up

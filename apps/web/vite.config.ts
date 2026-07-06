@@ -51,6 +51,39 @@ export default defineConfig(({ mode }) => {
   },
   plugins: [
     svelte(),
+    /* Bimmerz Box app manifest. The dongle's dashboard auto-discovers
+       apps under `/sdcard/apps/<slug>/` and reads each folder's
+       `manifest.json` to render a tile — see
+       https://github.com/emdzej/bimmerz-box#app-manifest. Emitting
+       from the plugin (not a static file in `public/`) keeps the
+       `version` field in lockstep with package.json without a manual
+       bump on every release. Only relevant to the embedded build. */
+    isEmbedded && {
+      name: "inpax-embedded-manifest",
+      apply: "build" as const,
+      generateBundle(): void {
+        this.emitFile({
+          type: "asset",
+          fileName: "manifest.json",
+          source: JSON.stringify(
+            {
+              name: "INPAX",
+              description: "BMW INPA scripts in the browser — .IPO runner over K-line & CAN",
+              version: pkg.version,
+              icon: "icon.svg",
+              /* Advisory — the dashboard flags tiles whose requirements
+                 aren't met by the dongle hardware. Inpax needs the
+                 K-line transceiver to drive the diagnostic bus; the
+                 install VFS is bundled with the SPA at build time so
+                 no additional capability tag is needed. */
+              requires: ["kline"],
+            },
+            null,
+            2,
+          ) + "\n",
+        });
+      },
+    },
     // PWA — generates a Web App Manifest, registers a service worker
     // that precaches the build output, and gives users an "install"
     // affordance on Chromium / Edge. The SW is regenerated on every
@@ -146,6 +179,14 @@ export default defineConfig(({ mode }) => {
       "@emdzej/ediabasx-interface-base",
       "@emdzej/ediabasx-interface-serial",
     ],
+    /* `@emdzej/bimmerz-ui` ships source-only `.svelte` + `.svelte.ts`.
+       Same reasoning as the `inpax-web-provider` exclusion above —
+       esbuild pre-bundling doesn't run the svelte plugin's TS
+       preprocessor, so `.svelte.ts` rune helpers (like
+       `useEmbeddedAutoConnect`) trip on `interface` / type-only
+       syntax. Excluding routes them through vite-plugin-svelte's
+       transform on-demand. */
+    exclude: ["@emdzej/bimmerz-ui"],
   },
   build: {
     /* Separate output for the embedded build — firmware packagers

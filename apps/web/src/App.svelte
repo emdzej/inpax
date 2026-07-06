@@ -1,7 +1,10 @@
 <script lang="ts">
+  import { useEmbeddedAutoConnect } from "@emdzej/bimmerz-ui";
+  import { getLogger } from "@emdzej/bimmerz-logger";
   import { app } from "./lib/state.svelte";
   import { connection, connect, disconnect } from "./lib/connection.svelte";
   import { settings, isDarkTheme } from "./lib/settings.svelte";
+  import { isEmbedded } from "./lib/embedded";
   import { loadRemoteInstallUrl } from "./lib/install-storage";
   import {
     setLibTheme,
@@ -9,6 +12,23 @@
     darkInpaTheme,
   } from "@emdzej/inpax-web-provider";
   import { ConnectButton } from "@emdzej/ediabasx-web-ui";
+
+  /* Embedded-mode lifecycle — dongle-hosted inpax auto-connects to the
+     same-origin `/rpc/ediabasx` socket once the HTTP-VFS install has
+     mounted (SGBD resolution needs `app.install` populated even in
+     client mode's IEdiabas paths that fall back to a local lookup).
+     Re-enters exponential backoff on transient drops. No-op in the
+     browser build so the manual Connect button keeps ownership. */
+  const autoConnectLog = getLogger("inpax.autoconnect");
+  useEmbeddedAutoConnect({
+    isEmbedded,
+    connect,
+    disconnect,
+    isReady: () => app.install !== null,
+    isConnected: () => connection.phase === "connected",
+    log: (msg: string, level?: "info" | "warn" | "error") =>
+      autoConnectLog[level ?? "info"](msg),
+  });
   import InstallPicker from "./components/InstallPicker.svelte";
   import IpoSidebar from "./components/IpoSidebar.svelte";
   import IpoRunner from "./components/IpoRunner.svelte";

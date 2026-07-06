@@ -1,6 +1,6 @@
 {
   "name": "@emdzej/inpax-cli",
-  "version": "0.11.1",
+  "version": "0.12.0",
   "description": "inpax CLI — decompile, run, compile, edit, and patch INPA scripts.",
   "type": "module",
   "bin": {
@@ -13,11 +13,11 @@
   },
   "dependencies": {
     "@emdzej/bimmerz-logger": "^0.1.2",
-    "@emdzej/ediabasx-client": "^0.7.1",
-    "@emdzej/ediabasx-ediabas": "^0.7.1",
-    "@emdzej/ediabasx-host-config": "^0.7.1",
-    "@emdzej/ediabasx-interface-base": "^0.7.1",
-    "@emdzej/ediabasx-interfaces": "^0.7.1",
+    "@emdzej/ediabasx-client": "^0.8.0",
+    "@emdzej/ediabasx-ediabas": "^0.8.0",
+    "@emdzej/ediabasx-host-config": "^0.8.0",
+    "@emdzej/ediabasx-interface-base": "^0.8.0",
+    "@emdzej/ediabasx-interfaces": "^0.8.0",
     "@emdzej/inpax-cli-provider": "workspace:*",
     "@emdzej/inpax-compiler-core": "workspace:*",
     "@emdzej/inpax-core": "workspace:*",
